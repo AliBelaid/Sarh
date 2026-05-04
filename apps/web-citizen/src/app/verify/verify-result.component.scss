@@ -1,0 +1,81 @@
+.result-page {
+  min-height: 100dvh;
+  background: var(--sijilli-bg);
+  padding-bottom: 2rem;
+}
+.brand {
+  background: var(--sijilli-primary);
+  color: #fff;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 3px solid var(--sijilli-accent);
+}
+.brand__back { color: #fff; line-height: 0; }
+.brand__name {
+  font-family: 'Amiri', serif;
+  color: var(--sijilli-accent);
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+.center { text-align: center; padding: 2rem; }
+.muted { color: var(--sijilli-muted); margin-inline-end: 0.25rem; }
+
+.result {
+  max-width: 720px;
+  margin: 1rem auto;
+  width: calc(100% - 2rem);
+  padding: 1rem;
+}
+.result h1 {
+  font-family: 'Amiri', serif;
+  margin: 0;
+  font-size: 1.75rem;
+  color: var(--sijilli-primary);
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(35,158,70,0.12);
+  color: var(--sijilli-success);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+.map-stub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fafafa;
+  padding: 2rem;
+  border-radius: 8px;
+  color: var(--sijilli-muted);
+  margin-bottom: 1rem;
+}
+.full { width: 100%; }
+.vc { margin-top: 0.75rem; color: var(--sijilli-muted); font-size: 0.9rem; }
+.error mat-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 2rem;
+}
+.error mat-icon { color: var(--sijilli-warn); font-size: 2rem; width: 2rem; height: 2rem; }

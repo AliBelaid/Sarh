@@ -1,0 +1,171 @@
+<div class="digital-ids">
+  <header class="digital-ids__header">
+    <div>
+      <h1>مستودع الهويّات الرقمية</h1>
+      <p class="hint">إصدار وإدارة وتعليق وإلغاء بطاقات الهوية الرقمية.</p>
+    </div>
+    <div class="digital-ids__meta">
+      <span class="digital-ids__count" *ngIf="!loading()">{{ items().length }} بطاقة</span>
+      <span class="digital-ids__live" *ngIf="live()" title="بث مباشر من قاعدة البيانات">
+        <span class="dot"></span>
+        بث مباشر
+      </span>
+      <button mat-flat-button color="primary" (click)="openIssue()">
+        <mat-icon>add</mat-icon>
+        إصدار بطاقة
+      </button>
+    </div>
+  </header>
+
+  <mat-card class="digital-ids__filters">
+    <mat-card-content>
+      <div class="filters-row">
+        <mat-form-field appearance="outline">
+          <mat-label>بحث برقم الهوية أو الاسم</mat-label>
+          <input
+            matInput
+            [ngModel]="query()"
+            (ngModelChange)="query.set($event); refresh()"
+            placeholder="LY-11-2026-..."
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>الحالة</mat-label>
+          <mat-select
+            [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event); refresh()"
+          >
+            <mat-option value="">الكل</mat-option>
+            <mat-option value="active">فعّالة</mat-option>
+            <mat-option value="frozen">مجمّدة</mat-option>
+            <mat-option value="revoked">ملغاة</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button
+          mat-stroked-button
+          (click)="refresh()"
+          [disabled]="loading()"
+        >
+          <mat-icon>refresh</mat-icon>
+          تحديث
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading()"></mat-progress-bar>
+
+  <mat-card class="digital-ids__table-card" *ngIf="items().length > 0">
+    <mat-card-content>
+      <table mat-table [dataSource]="items()" class="full-width">
+        <ng-container matColumnDef="digital_id_number">
+          <th mat-header-cell *matHeaderCellDef>الرقم الرقمي</th>
+          <td mat-cell *matCellDef="let row">
+            <code>{{ row.digital_id_number }}</code>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="citizen">
+          <th mat-header-cell *matHeaderCellDef>المالك</th>
+          <td mat-cell *matCellDef="let row">{{ fullName(row) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>الحالة</th>
+          <td mat-cell *matCellDef="let row">
+            <mat-chip [color]="statusColor(row.status)" highlighted>
+              {{ statusLabel(row.status) }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="issued_at">
+          <th mat-header-cell *matHeaderCellDef>الإصدار</th>
+          <td mat-cell *matCellDef="let row">
+            {{ row.issued_at | date: 'yyyy-MM-dd' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="expires_at">
+          <th mat-header-cell *matHeaderCellDef>الانتهاء</th>
+          <td mat-cell *matCellDef="let row">
+            {{ row.expires_at ? (row.expires_at | date: 'yyyy-MM-dd') : '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="did">
+          <th mat-header-cell *matHeaderCellDef>DID</th>
+          <td mat-cell *matCellDef="let row">
+            <code class="did-cell">{{ row.did || '—' }}</code>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-col">إجراءات</th>
+          <td mat-cell *matCellDef="let row" class="actions-col">
+            <button
+              mat-icon-button
+              matTooltip="تعديل"
+              (click)="openEdit(row)"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
+            @if (row.status === 'active') {
+              <button
+                mat-icon-button
+                matTooltip="تجميد"
+                color="accent"
+                (click)="setStatus(row, 'frozen')"
+              >
+                <mat-icon>ac_unit</mat-icon>
+              </button>
+            }
+            @if (row.status === 'frozen') {
+              <button
+                mat-icon-button
+                matTooltip="تفعيل"
+                color="primary"
+                (click)="setStatus(row, 'active')"
+              >
+                <mat-icon>play_arrow</mat-icon>
+              </button>
+            }
+            @if (row.status !== 'revoked') {
+              <button
+                mat-icon-button
+                matTooltip="إلغاء"
+                color="warn"
+                (click)="confirmRevoke(row)"
+              >
+                <mat-icon>block</mat-icon>
+              </button>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+
+      <div class="digital-ids__pagination" *ngIf="nextCursor()">
+        <button mat-stroked-button (click)="refresh(true)" [disabled]="loading()">
+          <mat-icon>expand_more</mat-icon>
+          تحميل المزيد
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card *ngIf="items().length === 0 && !loading()">
+    <mat-card-content class="empty">
+      <mat-icon>credit_card_off</mat-icon>
+      <p *ngIf="query() || statusFilter()">لا توجد بطاقات مطابقة لبحثك.</p>
+      <p *ngIf="!query() && !statusFilter() && live()">
+        لم تُصدر أيّ بطاقات بعد. اضغط "إصدار بطاقة" للبدء.
+      </p>
+      <p *ngIf="!query() && !statusFilter() && !live()">لا توجد هويّات رقمية.</p>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,117 @@
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+
+@if (error()) {
+  <mat-card class="error">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ error() }}</span>
+  </mat-card>
+}
+
+@if (property(); as p) {
+  <div class="review-grid">
+    <mat-card class="hero">
+      <mat-card-content>
+        <div class="hero__row">
+          <div class="hero__title">
+            <h1>{{ p.property_code ?? 'طلب جديد' }}</h1>
+            <div class="muted">رقم القطعة: {{ p.parcel_number ?? '—' }}</div>
+          </div>
+          <sijilli-status-chip [status]="p.status"></sijilli-status-chip>
+        </div>
+        <mat-divider class="my"></mat-divider>
+        <div class="grid-2">
+          <div><span class="muted">النوع:</span> {{ p.property_type }}</div>
+          <div><span class="muted">المساحة:</span> <span class="ltr-num">{{ p.area_sqm ?? '—' }} م²</span></div>
+          <div><span class="muted">المنطقة:</span> {{ p.region_id ?? '—' }}</div>
+          <div><span class="muted">العنوان:</span> {{ p.address_ar ?? '—' }}</div>
+          <div>
+            <span class="muted">تاريخ الإرسال:</span>
+            <span class="ltr-num">{{ p.submitted_at | date: 'yyyy-MM-dd HH:mm' }}</span>
+          </div>
+          <div>
+            <span class="muted">آخر مراجعة:</span>
+            <span class="ltr-num">{{ p.reviewed_at | date: 'yyyy-MM-dd HH:mm' }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="map-placeholder">
+      <mat-card-header>
+        <mat-card-title>الخريطة</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="map-stub">
+          <mat-icon>map</mat-icon>
+          <span>سيتم عرض حدود العقار على Mapbox هنا.</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="overlaps">
+      <mat-card-header>
+        <mat-card-title>تعارضات الحدود</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        @if (overlaps().length === 0) {
+          <p class="muted">لا توجد تعارضات معتمدة مكشوفة.</p>
+        } @else {
+          <ul>
+            @for (o of overlaps(); track o.property_id) {
+              <li>
+                <span>{{ o.parcel_number ?? o.property_id }}</span>
+                <strong class="warn">{{ o.overlap_pct }}%</strong>
+              </li>
+            }
+          </ul>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="decision">
+      <mat-card-header>
+        <mat-card-title>القرار</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-button-toggle-group
+          [value]="decision()"
+          (change)="decision.set($event.value)"
+          aria-label="القرار"
+        >
+          <mat-button-toggle value="approve">اعتماد</mat-button-toggle>
+          <mat-button-toggle value="needs_clarification">طلب توضيح</mat-button-toggle>
+          <mat-button-toggle value="reject">رفض</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        @if (decision() === 'approve') {
+          <mat-form-field appearance="outline" class="full mt">
+            <mat-label>رقم القرار الإداري (اختياري)</mat-label>
+            <input matInput [value]="decreeNo()" (input)="decreeNo.set($any($event.target).value)" />
+          </mat-form-field>
+        }
+
+        <mat-form-field appearance="outline" class="full mt">
+          <mat-label>ملاحظة للمواطن</mat-label>
+          <textarea
+            matInput
+            rows="4"
+            [value]="note()"
+            (input)="note.set($any($event.target).value)"
+          ></textarea>
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          color="primary"
+          class="full mt"
+          (click)="submit()"
+          [disabled]="reviewBusyId() === p.id"
+        >
+          تأكيد القرار
+        </button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}

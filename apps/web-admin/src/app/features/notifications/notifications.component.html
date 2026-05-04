@@ -1,0 +1,95 @@
+<div class="notifs-page">
+  <header class="page-head">
+    <div>
+      <h1>
+        الإشعارات
+        @if (live()) {
+          <span class="live-badge"><span class="dot"></span>بث مباشر</span>
+        }
+      </h1>
+      <p class="hint">كل الإشعارات الخارجة من النظام إلى المواطنين والموظّفين.</p>
+    </div>
+    <div class="totals">
+      <span class="total-chip">إجمالي · {{ counts().total }}</span>
+      <span class="total-chip warn">غير مقروء · {{ counts().unread }}</span>
+    </div>
+  </header>
+
+  <mat-card class="filters">
+    <mat-card-content class="row">
+      <mat-form-field appearance="outline" class="grow">
+        <mat-label>بحث في العنوان أو النص</mat-label>
+        <input
+          matInput
+          [ngModel]="query()"
+          (ngModelChange)="query.set($event)"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>القناة</mat-label>
+        <mat-select
+          [ngModel]="kindFilter()"
+          (ngModelChange)="kindFilter.set($event)"
+        >
+          <mat-option value="">الكل</mat-option>
+          <mat-option value="in_app">داخل التطبيق</mat-option>
+          <mat-option value="sms">رسالة نصية</mat-option>
+          <mat-option value="push">إشعار دفع</mat-option>
+          <mat-option value="email">بريد إلكتروني</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>المستلم</mat-label>
+        <mat-select
+          [ngModel]="recipientFilter()"
+          (ngModelChange)="recipientFilter.set($event)"
+        >
+          <mat-option value="">الكل</mat-option>
+          <mat-option value="citizen">مواطن</mat-option>
+          <mat-option value="officer">موظّف</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </mat-card-content>
+  </mat-card>
+
+  @if (loading()) { <mat-progress-bar mode="indeterminate"></mat-progress-bar> }
+
+  <div class="notif-list" *ngIf="items().length > 0">
+    @for (n of items(); track n.id) {
+      <div class="notif" [class.unread]="!n.read_at" (click)="markRead(n)">
+        <div class="notif__icon">
+          <mat-icon>{{ kindIcon(n.kind) }}</mat-icon>
+        </div>
+        <div class="notif__body">
+          <div class="notif__head">
+            <span class="title">{{ n.title_ar || '—' }}</span>
+            <span class="kind">{{ kindLabel(n.kind) }}</span>
+          </div>
+          @if (n.body_ar) { <p class="body">{{ n.body_ar }}</p> }
+          @if (payloadSnippet(n.payload)) {
+            <code class="payload">{{ payloadSnippet(n.payload) }}</code>
+          }
+          <div class="meta">
+            <span class="recipient">إلى: {{ recipientLabel(n) }}</span>
+            <span class="time ltr-num">{{ n.sent_at | date: 'yyyy-MM-dd HH:mm' }}</span>
+            <span class="status" *ngIf="n.delivery_status">{{ n.delivery_status }}</span>
+            <span class="read-state">{{ n.read_at ? 'مقروء' : 'غير مقروء' }}</span>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (!loading() && items().length === 0) {
+    <div class="empty">
+      <mat-icon>notifications_off</mat-icon>
+      @if (query() || kindFilter() || recipientFilter()) {
+        <p>لا توجد إشعارات مطابقة للفلتر.</p>
+      } @else {
+        <p>لم يُرسَل أيّ إشعار بعد. ستظهر هنا فور إرسال أوّل إشعار من النظام.</p>
+      }
+    </div>
+  }
+</div>

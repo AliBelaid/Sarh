@@ -1,0 +1,83 @@
+<div class="citizens-page">
+  <header class="page-head">
+    <div>
+      <h1>
+        المواطنون
+        @if (live()) {
+          <span class="live-badge"><span class="dot"></span>بث مباشر</span>
+        }
+      </h1>
+      <p class="hint">قاعدة بيانات المواطنين الموحّدة. أضِف، حدّث، وعطّل الحسابات.</p>
+    </div>
+    <button mat-flat-button color="primary" (click)="openCreate()">
+      <mat-icon>person_add</mat-icon>
+      تسجيل مواطن
+    </button>
+  </header>
+
+  <mat-card class="search">
+    <mat-card-content class="row">
+      <mat-form-field appearance="outline" class="grow">
+        <mat-label>بحث (الاسم، الرقم الرقمي، الهاتف)</mat-label>
+        <input matInput [(ngModel)]="q" (keyup.enter)="search()" (input)="search()" />
+      </mat-form-field>
+      <button mat-stroked-button (click)="search()">
+        <mat-icon>search</mat-icon> بحث
+      </button>
+    </mat-card-content>
+  </mat-card>
+
+  @if (loading()) { <mat-progress-bar mode="indeterminate"></mat-progress-bar> }
+
+  <table mat-table [dataSource]="items()" class="table" *ngIf="items().length > 0">
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef>الاسم</th>
+      <td mat-cell *matCellDef="let c">{{ fullName(c) }}</td>
+    </ng-container>
+    <ng-container matColumnDef="phone">
+      <th mat-header-cell *matHeaderCellDef>الهاتف</th>
+      <td mat-cell *matCellDef="let c" dir="ltr">{{ c.phone ?? '—' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="region">
+      <th mat-header-cell *matHeaderCellDef>المنطقة</th>
+      <td mat-cell *matCellDef="let c" class="ltr-num">{{ c.region_id ?? '—' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="digital_id">
+      <th mat-header-cell *matHeaderCellDef>الرقم الرقمي</th>
+      <td mat-cell *matCellDef="let c" class="ltr-num">
+        <code>{{ c.digital_id_number ?? '—' }}</code>
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef class="actions-col">إجراءات</th>
+      <td mat-cell *matCellDef="let c" class="actions-col">
+        <button mat-icon-button matTooltip="تعديل" (click)="openEdit(c)">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          [matTooltip]="(c.is_active ?? true) ? 'تعطيل' : 'تفعيل'"
+          [color]="(c.is_active ?? true) ? 'warn' : 'primary'"
+          (click)="toggleActive(c)"
+        >
+          <mat-icon>{{ (c.is_active ?? true) ? 'block' : 'check_circle' }}</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let r; columns: displayedColumns"></tr>
+  </table>
+
+  @if (!loading() && items().length === 0) {
+    <div class="empty">
+      <mat-icon>person_off</mat-icon>
+      @if (q.length > 0) {
+        <p>لا توجد نتائج لبحثك.</p>
+      } @else if (live()) {
+        <p>لا يوجد مواطنون مسجّلون بعد. اضغط "تسجيل مواطن" لإضافة الأوّل.</p>
+      } @else {
+        <p>اكتب اسماً أو رقم هاتف للبحث.</p>
+      }
+    </div>
+  }
+</div>

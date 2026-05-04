@@ -1,0 +1,13 @@
+// Sijilli — Prisma schema (introspected from local SQL Server).
+// Regenerate via `pnpm prisma:pull` after running migrations.
+// Hand-written T-SQL lives in infra/mssql/migrations/.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+  // Example: sqlserver://localhost:1433;database=sijilli;integratedSecurity=true;trustServerCertificate=true
+}

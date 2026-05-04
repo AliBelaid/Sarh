@@ -1,0 +1,413 @@
+# Sijilli — production compose stack.
+#
+# Brings up:
+#   - mssql             : SQL Server 2022 (replaces Supabase Postgres)
+#   - api               : NestJS backend
+#   - web               : single Angular SPA (replaces the four web-* apps)
+#   - web-citizen, web-officer, web-id-issuer, web-admin : LEGACY SPAs kept
+#                         in compose during the parity migration. Remove
+#                         once `web` reaches feature parity.
+#   - edge              : nginx terminating TLS, reverse proxy + rate limit
+#   - certbot           : ACME http-01 renewal sidecar
+#   - aca-py            : Hyperledger Aries Cloud Agent (multitenant)
+#   - prometheus, grafana, loki, promtail, node-exporter, cadvisor :
+#                         observability stack (see infra/docker/observability)
+#   - backup            : encrypted SQL Server snapshot scheduler
+#
+# Auth, Storage, and Realtime are now owned by the API itself (custom JWT,
+# local-FS storage, NestJS WS). Database is local SQL Server in this compose.
+#
+# Usage:
+#   docker compose -f infra/docker/docker-compose.production.yml \
+#       --env-file infra/docker/.env --profile observability up -d
+
+name: sijilli-prod
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '20m'
+    max-file: '5'
+    tag: '{{.Name}}'
+
+x-restart: &default-restart
+  restart: unless-stopped
+
+networks:
+  sijilli-edge:
+    driver: bridge
+  sijilli-ssi:
+    external: true   # shared with infra/docker/aca-py/docker-compose.yml
+    name: sijilli-ssi
+  sijilli-obs:
+    driver: bridge
+
+volumes:
+  letsencrypt:
+  letsencrypt-www:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  backup-data:
+  mssql-data:
+  storage-data:
+
+services:
+  # -------------------------------------------------------------------------
+  # SQL Server — local database (replaces Supabase Postgres).
+  # First boot creates the `sijilli` DB via the migration runner — see
+  # scripts/db/run-migrations.ps1 (or its container equivalent).
+  # -------------------------------------------------------------------------
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sijilli-mssql
+    <<: *default-restart
+    logging: *default-logging
+    environment:
+      ACCEPT_EULA: 'Y'
+      MSSQL_PID: ${MSSQL_PID:-Developer}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_COLLATION: Arabic_CI_AS
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -No -Q 'SELECT 1' >/dev/null"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [sijilli-edge]
+
+  # -------------------------------------------------------------------------
+  # API — ASP.NET Core 8 backend (replaces the legacy NestJS service in
+  # apps/api/). Talks to local SQL Server. ACA-Py + PAdES deed signing land
+  # in Phase 12 hardening; envs for them are kept here so the rollout doesn't
+  # have to wait for compose changes.
+  # -------------------------------------------------------------------------
+  api:
+    image: ${SIJILLI_REGISTRY:-ghcr.io/lvct}/sijilli-api:${SIJILLI_VERSION:-latest}
+    build:
+      context: ../../
+      dockerfile: apps/api-dotnet/Dockerfile
+    container_name: sijilli-api
+    <<: *default-restart
+    logging: *default-logging
+    depends_on:
+      mssql:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://0.0.0.0:3000
+      MSSQL_SERVER: mssql
+      MSSQL_PORT: '1433'
+      MSSQL_DATABASE: ${MSSQL_DATABASE:-sijilli}
+      MSSQL_USER: ${MSSQL_USER:-sijilli_app}
+      MSSQL_PASSWORD: ${MSSQL_PASSWORD}
+      MSSQL_ENCRYPT: 'true'
+      MSSQL_TRUST_CERT: 'true'
+      DATABASE_URL: ${DATABASE_URL}
+      SIJILLI_JWT_SECRET: ${SIJILLI_JWT_SECRET}
+      STORAGE_ROOT: /var/lib/sijilli/storage
+      KMS_MASTER_KEY: ${KMS_MASTER_KEY}
+      NFC_SUN_BASE_URL: ${NFC_SUN_BASE_URL:-https://verify.sijilli.ly/v}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      # Phase-12 placeholders — picked up once the .NET app wires real SSI/PAdES.
+      ACA_PY_ADMIN_URL: ${ACA_PY_ADMIN_URL:-http://aca-py:8021}
+      ACA_PY_ADMIN_API_KEY: ${ACA_PY_ADMIN_API_KEY}
+      ACA_PY_MT_JWT_SECRET: ${ACA_PY_MT_JWT_SECRET}
+      DEED_SIGNING_CERT_PATH: ${DEED_SIGNING_CERT_PATH:-/run/secrets/deed-signing.p12}
+      DEED_SIGNING_CERT_PASSPHRASE: ${DEED_SIGNING_CERT_PASSPHRASE}
+    secrets:
+      - deed-signing
+    volumes:
+      - storage-data:/var/lib/sijilli/storage
+    # The Dockerfile installs curl explicitly so this healthcheck is portable.
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/api/v1/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - sijilli-edge
+      - sijilli-ssi
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  # -------------------------------------------------------------------------
+  # Web — single Angular SPA serving citizen + officer + id-issuer + admin
+  # behind role-aware routing. Replaces the four legacy web-* services below.
+  # -------------------------------------------------------------------------
+  web:
+    image: ${SIJILLI_REGISTRY:-ghcr.io/lvct}/sijilli-web:${SIJILLI_VERSION:-latest}
+    build:
+      context: ../../
+      dockerfile: apps/web/Dockerfile
+    container_name: sijilli-web
+    <<: *default-restart
+    logging: *default-logging
+    networks: [sijilli-edge]
+
+  # -------------------------------------------------------------------------
+  # LEGACY web-* SPAs — kept during the parity migration to single `web`.
+  # Remove this block (and the depends_on entries in `edge`) once feature
+  # parity is reached and the legacy edge nginx routes are dropped.
+  # -------------------------------------------------------------------------
+  web-citizen:
+    image: ${SIJILLI_REGISTRY:-ghcr.io/lvct}/sijilli-web-citizen:${SIJILLI_VERSION:-latest}
+    build:
+      context: ../../
+      dockerfile: apps/web-citizen/Dockerfile
+    container_name: sijilli-web-citizen
+    <<: *default-restart
+    logging: *default-logging
+    networks: [sijilli-edge]
+
+  web-officer:
+    image: ${SIJILLI_REGISTRY:-ghcr.io/lvct}/sijilli-web-officer:${SIJILLI_VERSION:-latest}
+    build:
+      context: ../../
+      dockerfile: apps/web-officer/Dockerfile
+    container_name: sijilli-web-officer
+    <<: *default-restart
+    logging: *default-logging
+    networks: [sijilli-edge]
+
+  web-id-issuer:
+    image: ${SIJILLI_REGISTRY:-ghcr.io/lvct}/sijilli-web-id-issuer:${SIJILLI_VERSION:-latest}
+    build:
+      context: ../../
+      dockerfile: apps/web-id-issuer/Dockerfile
+    container_name: sijilli-web-id-issuer
+    <<: *default-restart
+    logging: *default-logging
+    networks: [sijilli-edge]
+
+  web-admin:
+    image: ${SIJILLI_REGISTRY:-ghcr.io/lvct}/sijilli-web-admin:${SIJILLI_VERSION:-latest}
+    build:
+      context: ../../
+      dockerfile: apps/web-admin/Dockerfile
+    container_name: sijilli-web-admin
+    <<: *default-restart
+    logging: *default-logging
+    networks: [sijilli-edge]
+
+  # -------------------------------------------------------------------------
+  # Edge — nginx terminating TLS for all five hostnames.
+  # -------------------------------------------------------------------------
+  edge:
+    image: nginx:1.27-alpine
+    container_name: sijilli-edge
+    <<: *default-restart
+    logging: *default-logging
+    depends_on:
+      - api
+      - web
+      - web-citizen
+      - web-officer
+      - web-id-issuer
+      - web-admin
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/conf.d:/etc/nginx/conf.d:ro
+      - letsencrypt:/etc/letsencrypt:ro
+      - letsencrypt-www:/var/www/certbot:ro
+    networks: [sijilli-edge]
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # -------------------------------------------------------------------------
+  # Certbot — renews Let's Encrypt certs every 12h. The edge nginx serves
+  # /.well-known/acme-challenge from the shared letsencrypt-www volume.
+  # -------------------------------------------------------------------------
+  certbot:
+    image: certbot/certbot:latest
+    container_name: sijilli-certbot
+    <<: *default-restart
+    logging: *default-logging
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - letsencrypt-www:/var/www/certbot
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'
+
+  # -------------------------------------------------------------------------
+  # ACA-Py — Aries Cloud Agent. Production deploys point at the real Indy
+  # ledger; the genesis URL is set via .env, NOT the dev von-network.
+  # -------------------------------------------------------------------------
+  aca-py:
+    image: bcgovimages/aries-cloudagent:py3.9-1.0.0
+    container_name: sijilli-aca-py
+    <<: *default-restart
+    logging: *default-logging
+    environment:
+      ACAPY_ENDPOINT: ${ACA_PY_PUBLIC_ENDPOINT}
+      ACAPY_OUTBOUND_TRANSPORT: http
+      ACAPY_INBOUND_TRANSPORT: http 0.0.0.0 8020
+      ACAPY_ADMIN: '[0.0.0.0,8021]'
+      ACAPY_ADMIN_API_KEY: ${ACA_PY_ADMIN_API_KEY}
+      ACAPY_LABEL: sijilli-issuer
+      ACAPY_WALLET_TYPE: askar
+      ACAPY_WALLET_NAME: sijilli-issuer
+      ACAPY_WALLET_KEY: ${ACA_PY_WALLET_KEY}
+      ACAPY_GENESIS_URL: ${ACA_PY_GENESIS_URL}
+      ACAPY_AUTO_PROVISION: 'true'
+      ACAPY_LOG_LEVEL: info
+      ACAPY_MULTITENANT: 'true'
+      ACAPY_MULTITENANT_ADMIN: 'true'
+      ACAPY_MULTITENANT_JWT_SECRET: ${ACA_PY_MT_JWT_SECRET}
+      ACAPY_PUBLIC_INVITES: 'true'
+      ACAPY_AUTO_ACCEPT_REQUESTS: 'true'
+      ACAPY_TAILS_SERVER_BASE_URL: ${ACA_PY_TAILS_URL}
+    ports:
+      - '8020:8020'   # public agent endpoint (must be internet-reachable)
+    networks:
+      - sijilli-edge
+      - sijilli-ssi
+
+  # -------------------------------------------------------------------------
+  # Backup — nightly encrypted SQL Server snapshot.
+  # The script `scripts/db/backup-mssql.sh` (TODO) runs `BACKUP DATABASE` via
+  # sqlcmd, age-encrypts the .bak, and ships it to S3.
+  # -------------------------------------------------------------------------
+  backup:
+    image: alpine:3.20
+    container_name: sijilli-backup
+    <<: *default-restart
+    logging: *default-logging
+    depends_on:
+      mssql:
+        condition: service_healthy
+    environment:
+      MSSQL_SERVER: mssql
+      MSSQL_DATABASE: ${MSSQL_DATABASE:-sijilli}
+      MSSQL_USER: sa
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      BACKUP_AGE_RECIPIENTS: ${BACKUP_AGE_RECIPIENTS}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-mssql}
+      AWS_ACCESS_KEY_ID: ${BACKUP_AWS_ACCESS_KEY_ID:-${AWS_ACCESS_KEY_ID}}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_AWS_SECRET_ACCESS_KEY:-${AWS_SECRET_ACCESS_KEY}}
+      AWS_DEFAULT_REGION: ${BACKUP_AWS_REGION}
+      BACKUP_RETENTION_DAYS: '90'
+    volumes:
+      - ../../scripts:/opt/sijilli/scripts:ro
+      - backup-data:/var/lib/sijilli-backup
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      # Install deps once, then run the script under cron at 02:30 UTC.
+      - 'apk add --no-cache curl gnupg age aws-cli tini bash &&
+         curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apk/keys/microsoft.gpg 2>/dev/null || true;
+         echo "30 2 * * * /opt/sijilli/scripts/db/backup-mssql.sh >> /var/log/backup.log 2>&1" | crontab - &&
+         touch /var/log/backup.log &&
+         exec tini -- crond -f -l 2'
+
+  # -------------------------------------------------------------------------
+  # Observability — opt-in via `--profile observability`.
+  # Configs live under infra/docker/observability/.
+  # -------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: sijilli-prometheus
+    <<: *default-restart
+    logging: *default-logging
+    profiles: [observability]
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks: [sijilli-edge, sijilli-obs]
+
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: sijilli-loki
+    <<: *default-restart
+    logging: *default-logging
+    profiles: [observability]
+    command: ['-config.file=/etc/loki/loki.yml']
+    volumes:
+      - ./observability/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    networks: [sijilli-obs]
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    container_name: sijilli-promtail
+    <<: *default-restart
+    logging: *default-logging
+    profiles: [observability]
+    command: ['-config.file=/etc/promtail/promtail.yml']
+    volumes:
+      - ./observability/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [sijilli-obs]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: sijilli-grafana
+    <<: *default-restart
+    logging: *default-logging
+    profiles: [observability]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://grafana.sijilli.ly}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./observability/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./observability/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [sijilli-obs]
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: sijilli-node-exporter
+    <<: *default-restart
+    logging: *default-logging
+    profiles: [observability]
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    pid: host
+    volumes:
+      - '/:/host:ro,rslave'
+    networks: [sijilli-obs]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: sijilli-cadvisor
+    <<: *default-restart
+    logging: *default-logging
+    profiles: [observability]
+    privileged: true
+    devices: ['/dev/kmsg']
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    networks: [sijilli-obs]
+
+secrets:
+  deed-signing:
+    file: ${DEED_SIGNING_CERT_PATH_HOST:-./secrets/deed-signing.p12}

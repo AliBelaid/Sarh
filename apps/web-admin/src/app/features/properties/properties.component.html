@@ -1,0 +1,128 @@
+<div class="properties-page">
+  <header class="page-head">
+    <div>
+      <h1>
+        مراجعة العقارات
+        @if (live()) {
+          <span class="live-badge"><span class="dot"></span>بث مباشر</span>
+        }
+      </h1>
+      <p class="hint">سير عمل اعتماد طلبات العقارات. يصل التقديم من تطبيق الجوال أو الإدخال اليدوي.</p>
+    </div>
+    <div class="totals">
+      <span class="total-chip">{{ rows().length }} طلب إجمالي</span>
+    </div>
+  </header>
+
+  <mat-chip-set class="filter-chips" aria-label="فلتر الحالة">
+    <mat-chip
+      [highlighted]="statusFilter() === ''"
+      (click)="setFilter('')"
+    >الكل</mat-chip>
+    <mat-chip
+      [highlighted]="statusFilter() === 'pending'"
+      (click)="setFilter('pending')"
+    >قيد الانتظار · {{ counts()['pending'] }}</mat-chip>
+    <mat-chip
+      [highlighted]="statusFilter() === 'under_review'"
+      (click)="setFilter('under_review')"
+    >قيد المراجعة · {{ counts()['under_review'] }}</mat-chip>
+    <mat-chip
+      [highlighted]="statusFilter() === 'needs_clarification'"
+      (click)="setFilter('needs_clarification')"
+    >يحتاج توضيحًا · {{ counts()['needs_clarification'] }}</mat-chip>
+    <mat-chip
+      [highlighted]="statusFilter() === 'approved'"
+      (click)="setFilter('approved')"
+    >معتمد · {{ counts()['approved'] }}</mat-chip>
+    <mat-chip
+      [highlighted]="statusFilter() === 'rejected'"
+      (click)="setFilter('rejected')"
+    >مرفوض · {{ counts()['rejected'] }}</mat-chip>
+    <mat-chip
+      [highlighted]="statusFilter() === 'frozen'"
+      (click)="setFilter('frozen')"
+    >مجمَّد · {{ counts()['frozen'] }}</mat-chip>
+  </mat-chip-set>
+
+  @if (loading()) { <mat-progress-bar mode="indeterminate"></mat-progress-bar> }
+
+  <table mat-table [dataSource]="items()" class="table" *ngIf="items().length > 0">
+    <ng-container matColumnDef="code">
+      <th mat-header-cell *matHeaderCellDef>الرمز</th>
+      <td mat-cell *matCellDef="let p">
+        <code class="ltr-num">{{ p.property_code ?? p.parcel_number ?? p.id?.slice(0, 8) }}</code>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="type">
+      <th mat-header-cell *matHeaderCellDef>النوع</th>
+      <td mat-cell *matCellDef="let p">{{ typeLabel(p.property_type) }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="area">
+      <th mat-header-cell *matHeaderCellDef>المساحة</th>
+      <td mat-cell *matCellDef="let p" class="ltr-num">{{ p.area_sqm ?? '—' }} م²</td>
+    </ng-container>
+
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>الحالة</th>
+      <td mat-cell *matCellDef="let p">
+        <span [class]="statusClass(p.status)">{{ statusLabel(p.status) }}</span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="region">
+      <th mat-header-cell *matHeaderCellDef>المنطقة</th>
+      <td mat-cell *matCellDef="let p" class="ltr-num">{{ p.region_id ?? '—' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="submitted">
+      <th mat-header-cell *matHeaderCellDef>تاريخ الإرسال</th>
+      <td mat-cell *matCellDef="let p" class="ltr-num">
+        {{ p.submitted_at ? (p.submitted_at | date: 'yyyy-MM-dd HH:mm') : '—' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef class="actions-col">إجراءات</th>
+      <td mat-cell *matCellDef="let p" class="actions-col">
+        <button
+          mat-stroked-button
+          color="primary"
+          (click)="openReview(p)"
+          matTooltip="فتح نموذج القرار"
+        >
+          <mat-icon>rule</mat-icon>
+          مراجعة
+        </button>
+        @if (p.status === 'pending' || p.status === 'under_review') {
+          <button
+            mat-icon-button
+            color="primary"
+            (click)="quickApprove(p)"
+            matTooltip="اعتماد سريع"
+          >
+            <mat-icon>check_circle</mat-icon>
+          </button>
+        }
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let r; columns: displayedColumns"></tr>
+  </table>
+
+  @if (!loading() && items().length === 0) {
+    <div class="empty">
+      <mat-icon>home_work</mat-icon>
+      @if (statusFilter()) {
+        <p>لا توجد عقارات بهذه الحالة.</p>
+      } @else if (live()) {
+        <p>لم يُسجَّل أي عقار بعد. ستظهر العقارات هنا فور تقديم أوّل طلب من تطبيق الجوال.</p>
+      } @else {
+        <p>لا توجد عقارات.</p>
+      }
+    </div>
+  }
+</div>

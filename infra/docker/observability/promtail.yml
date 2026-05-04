@@ -1,0 +1,60 @@
+# Sijilli — Promtail config. Tails docker container stdout via the json-file
+# log driver and ships entries to Loki.
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # ---- Docker container logs ---------------------------------------------
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+        filters:
+          - name: name
+            values: [sijilli-]
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: container
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: stream
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        target_label: project
+    pipeline_stages:
+      # NestJS pino logs as single-line JSON. Parse so labels become
+      # filterable in Grafana.
+      - match:
+          selector: '{service="api"}'
+          stages:
+            - json:
+                expressions:
+                  level: level
+                  msg: msg
+                  reqId: reqId
+                  citizen_id: citizen_id
+                  officer_id: officer_id
+            - labels:
+                level:
+            - output:
+                source: msg
+
+      # Edge nginx access log — keyed off request status for quick 4xx/5xx
+      # filtering. main format from infra/nginx/nginx.conf.
+      - match:
+          selector: '{service="edge"}'
+          stages:
+            - regex:
+                expression: '^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<request>[^"]+)" (?P<status>\d+) (?P<bytes>\d+) "(?P<referer>[^"]*)" "(?P<user_agent>[^"]*)" rt=(?P<request_time>\S+) uct="(?P<upstream_connect_time>[^"]*)" urt="(?P<upstream_response_time>[^"]*)"'
+            - labels:
+                status:
+                remote_addr:

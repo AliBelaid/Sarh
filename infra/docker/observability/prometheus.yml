@@ -1,0 +1,66 @@
+# Sijilli — Prometheus scrape config. Loaded by infra/docker/observability
+# service in docker-compose.production.yml.
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+  external_labels:
+    cluster: sijilli-prod
+    region: ly-tip-1
+
+# Self-scrape for liveness.
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # NestJS API — apps/api exposes /metrics via @willsoto/nestjs-prometheus
+  # (already wired in the Phase 12 hardening). The service name resolves
+  # via docker DNS.
+  - job_name: sijilli-api
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['api:3000']
+        labels:
+          service: api
+
+  # Edge nginx — nginx:alpine doesn't expose /metrics natively. We rely on
+  # logs (Promtail → Loki) for HTTP traffic and only scrape stub_status
+  # if it's enabled.
+  - job_name: edge
+    metrics_path: /stub_status
+    static_configs:
+      - targets: ['edge:80']
+        labels:
+          service: edge
+    scrape_interval: 30s
+
+  # Host-level metrics.
+  - job_name: node
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: node
+
+  # Per-container CPU / mem / I/O.
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: cadvisor
+
+  # ACA-Py — exposes /metrics under the admin API when the prometheus
+  # plugin is enabled. Still requires the admin API key.
+  - job_name: aca-py
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['aca-py:8021']
+        labels:
+          service: aca-py
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/aca-py-token
+
+# Alerting is intentionally omitted for the pilot rollout. Wire alertmanager
+# in once on-call rotations are defined.

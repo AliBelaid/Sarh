@@ -1,0 +1,24 @@
+{
+  "name": "sijilli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sijilli — Libyan Real Estate Registry + Digital Identity (LVCT)",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "dev:api": "pnpm --filter @sijilli/api start:dev",
+    "dev:web": "pnpm --filter @sijilli/web start",
+    "_legacy:dev:web-citizen": "pnpm --filter @sijilli/web-citizen start",
+    "_legacy:dev:web-officer": "pnpm --filter @sijilli/web-officer start",
+    "_legacy:dev:web-id-issuer": "pnpm --filter @sijilli/web-id-issuer start",
+    "_legacy:dev:web-admin": "pnpm --filter @sijilli/web-admin start"
+  },
+  "devDependencies": {
+    "typescript": "5.4.5"
+  }
+}

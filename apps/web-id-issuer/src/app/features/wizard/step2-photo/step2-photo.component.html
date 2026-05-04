@@ -1,0 +1,27 @@
+<h1 class="step-title">٢ / ٥ — التقاط الصورة</h1>
+<p class="muted">{{ status() }}</p>
+
+<mat-card>
+  <mat-card-content class="content">
+    @if (!wizard.photoDataUrl()) {
+      <div class="frame">
+        <video #video autoplay muted playsinline></video>
+        <div class="guide"></div>
+      </div>
+    } @else {
+      <img [src]="wizard.photoDataUrl()" alt="photo" class="frame" />
+    }
+    <canvas #canvas hidden></canvas>
+
+    <div class="actions">
+      @if (!wizard.photoDataUrl()) {
+        <button mat-flat-button color="primary" (click)="capture()">
+          <mat-icon>photo_camera</mat-icon> التقاط
+        </button>
+      } @else {
+        <button mat-stroked-button (click)="retake()">إعادة التقاط</button>
+        <button mat-flat-button color="primary" (click)="next()">التالي</button>
+      }
+    </div>
+  </mat-card-content>
+</mat-card>

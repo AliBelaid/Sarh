@@ -1,0 +1,75 @@
+# Sijilli — Hyperledger Aries Cloud Agent (ACA-Py) + von-network ledger.
+#
+# Two-process dev stack:
+#   - von-network    : a local Hyperledger Indy ledger (4 nodes + ledger
+#                      browser at http://localhost:9000)
+#   - aca-py         : the agent the API talks to via ADMIN_API_URL
+#                      (http://localhost:8021). Runs in multitenancy mode
+#                      so each citizen gets a sub-wallet on demand.
+#
+# Production deploys ACA-Py against the real Sijilli/Indy ledger; this
+# compose file is for local development and CI integration tests only.
+
+name: sijilli-aca-py
+
+services:
+  von-network:
+    image: bcgovimages/von-network:latest
+    container_name: sijilli-von-network
+    ports:
+      - '9000:8000'   # ledger browser
+      - '9701:9701'
+      - '9702:9702'
+      - '9703:9703'
+      - '9704:9704'
+      - '9705:9705'
+      - '9706:9706'
+      - '9707:9707'
+      - '9708:9708'
+    environment:
+      DOCKERHOST: ${DOCKERHOST:-host.docker.internal}
+    command: ./scripts/start_nodes.sh
+    networks:
+      - sijilli-ssi
+
+  aca-py:
+    image: bcgovimages/aries-cloudagent:py3.9-1.0.0
+    container_name: sijilli-aca-py
+    depends_on:
+      - von-network
+    ports:
+      - '8020:8020'   # agent inbound
+      - '8021:8021'   # admin API
+    environment:
+      ACAPY_ENDPOINT: http://host.docker.internal:8020
+      ACAPY_OUTBOUND_TRANSPORT: http
+      ACAPY_INBOUND_TRANSPORT: http 0.0.0.0 8020
+      ACAPY_ADMIN: '[0.0.0.0,8021]'
+      ACAPY_ADMIN_API_KEY: ${ACA_PY_ADMIN_API_KEY:-sijilli-dev-admin-key}
+      ACAPY_LABEL: sijilli-issuer
+      ACAPY_WALLET_TYPE: askar
+      ACAPY_WALLET_NAME: sijilli-issuer
+      ACAPY_WALLET_KEY: ${ACA_PY_WALLET_KEY:-sijilli-dev-wallet-key}
+      ACAPY_GENESIS_URL: http://host.docker.internal:9000/genesis
+      ACAPY_AUTO_PROVISION: 'true'
+      ACAPY_LOG_LEVEL: info
+      ACAPY_MULTITENANT: 'true'
+      ACAPY_MULTITENANT_ADMIN: 'true'
+      ACAPY_MULTITENANT_JWT_SECRET: ${ACA_PY_MT_JWT_SECRET:-sijilli-dev-mt-jwt}
+      ACAPY_PUBLIC_INVITES: 'true'
+      ACAPY_AUTO_ACCEPT_REQUESTS: 'true'
+      ACAPY_AUTO_RESPOND_MESSAGES: 'true'
+      ACAPY_AUTO_RESPOND_CREDENTIAL_PROPOSAL: 'true'
+      ACAPY_AUTO_RESPOND_CREDENTIAL_OFFER: 'true'
+      ACAPY_AUTO_RESPOND_CREDENTIAL_REQUEST: 'true'
+      ACAPY_AUTO_VERIFY_PRESENTATION: 'true'
+      ACAPY_TAILS_SERVER_BASE_URL: ${ACA_PY_TAILS_URL:-http://host.docker.internal:6543}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      - sijilli-ssi
+
+networks:
+  sijilli-ssi:
+    name: sijilli-ssi
+    driver: bridge

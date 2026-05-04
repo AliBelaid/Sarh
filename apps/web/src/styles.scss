@@ -1,0 +1,63 @@
+// Sijilli — global styles. Arabic-first RTL, shared tokens for shell + features.
+// Brand tokens come from CLAUDE.md:
+//   primary  #0F1A14 (Libyan black)
+//   accent   #D4AF37 (gold)
+//   warn     #E70013 (Libyan red)
+//   success  #239E46 (Libyan green)
+
+@use '@angular/material' as mat;
+@include mat.core();
+
+:root {
+  --primary: #0F1A14;
+  --accent:  #D4AF37;
+  --warn:    #E70013;
+  --good:    #239E46;
+  --bad:     #E70013;
+  --paper:   #FBFAF6;
+  --ink:     #0F1A14;
+  --muted:   #6B7066;
+  --rule:    #E2DDCB;
+
+  --font-ar:   'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-en:   'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ar);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+[dir='ltr'] body, body[dir='ltr'] {
+  font-family: var(--font-en);
+}
+
+a { color: var(--primary); }
+a:hover { color: var(--accent); }
+
+.mono { font-family: var(--font-mono); }
+.display { letter-spacing: -0.01em; }
+
+// Print: hide things tagged .no-print, show .print-only.
+@media print {
+  .no-print { display: none !important; }
+}
+@media screen {
+  .print-only { display: none !important; }
+}
+
+// Material density adjustment for compact admin tables.
+$sijilli-theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$violet-palette,
+  ),
+  density: (scale: -1),
+));
+html { @include mat.all-component-themes($sijilli-theme); }

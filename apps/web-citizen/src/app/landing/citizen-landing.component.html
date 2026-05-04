@@ -1,0 +1,95 @@
+<div class="page" dir="rtl">
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img src="assets/branding/logo-sarh.svg" alt="Sarh" />
+      <div class="brand-text">
+        <strong>صرح</strong>
+        <small>صرح لتوثيق العقاري · Sarh</small>
+      </div>
+    </a>
+    <nav class="nav">
+      <a class="nav-link" href="/verify">التحقّق من سند</a>
+      <a class="admin-cta" [href]="adminUrl + '/login'">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M10 17l5-5-5-5v3H3v4h7v3zm10 1V6c0-1.1-.9-2-2-2h-7v2h7v12h-7v2h7c1.1 0 2-.9 2-2z"/>
+        </svg>
+        <span>تسجيل دخول الموظفين</span>
+      </a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="hero-art" aria-hidden="true">
+      <img src="assets/branding/login-background.svg" alt="" />
+      <div class="hero-art__veil"></div>
+    </div>
+    <div class="hero-inner">
+      <img class="hero-logo" src="assets/branding/logo-sarh.svg" alt="Sarh" />
+      <span class="badge">للمواطنين فقط · على الجوال</span>
+      <h1>صرح — السجل العقاري والهوية الرقمية</h1>
+      <p class="lead">
+        خدمات المواطنين متاحة عبر تطبيق صرح للجوال. لتسجيل العقارات،
+        ومتابعة طلباتك، وإدارة هويتك الرقمية وبطاقة الـ NFC، حمّل
+        التطبيق على هاتفك.
+      </p>
+
+      <div class="stores">
+        <a class="store" aria-label="Google Play" href="#">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M3.6 1.6c-.4.4-.6.9-.6 1.6v17.6c0 .7.2 1.2.6 1.6L13 12 3.6 1.6zm10.7 11l3 3 5.7-3.3c.9-.5.9-1.7 0-2.2l-5.7-3.3-3 3 0 2.8zM4.7 1l11 11-1.7 1.7L3 2.4 4.7 1zm0 22 11-11 1.7 1.7L6.4 24.4 4.7 23z"/>
+          </svg>
+          <div>
+            <small>متوفّر على</small>
+            <strong>Google Play</strong>
+          </div>
+        </a>
+        <a class="store" aria-label="App Store" href="#">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M16.4 12.4c0-2.2 1.8-3.3 1.9-3.4-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.7.8-3.4.8-.7 0-1.7-.8-2.9-.8-1.5 0-2.9.9-3.6 2.2-1.6 2.7-.4 6.7 1.1 8.9.8 1.1 1.6 2.3 2.9 2.2 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.2 0 2.1-1.1 2.8-2.2.9-1.3 1.3-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.4zM14.3 5.4c.6-.7 1-1.7.9-2.7-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.6-.9 2.6 1 .1 2-.5 2.6-1.2z"/>
+          </svg>
+          <div>
+            <small>حمّل من</small>
+            <strong>App Store</strong>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <article class="feature">
+      <div class="feature__icon home"></div>
+      <h3>تسجيل العقارات</h3>
+      <p>ارفع طلب تسجيل عقارك مع المستندات والإحداثيات من هاتفك.</p>
+    </article>
+    <article class="feature">
+      <div class="feature__icon id"></div>
+      <h3>هويتك الرقمية</h3>
+      <p>دخول ببطاقة NFC + PIN — وثائقك جاهزة عند الحاجة.</p>
+    </article>
+    <article class="feature">
+      <div class="feature__icon qr"></div>
+      <h3>محفظة SSI</h3>
+      <p>شارك سند ملكيّتك مع البنوك والمحاكم بضغطة QR.</p>
+    </article>
+  </section>
+
+  <section class="staff-band">
+    <div class="staff-band__inner">
+      <div>
+        <strong>أنت موظّف أو مسؤول؟</strong>
+        <p>بوابات الموظفين والإدارة منفصلة. ادخل عبر الزر التالي.</p>
+      </div>
+      <a class="staff-cta" [href]="adminUrl + '/login'">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M10 17l5-5-5-5v3H3v4h7v3zm10 1V6c0-1.1-.9-2-2-2h-7v2h7v12h-7v2h7c1.1 0 2-.9 2-2z"/>
+        </svg>
+        تسجيل دخول الموظفين والإدارة
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <small>دولة ليبيا — السجل العقاري الرقمي · مدعوم من LVCT</small>
+  </footer>
+</div>

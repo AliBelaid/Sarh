@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: sijilli
+    orgId: 1
+    folder: Sijilli
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

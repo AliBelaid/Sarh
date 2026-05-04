@@ -1,0 +1,32 @@
+<div class="verify-page">
+  <div class="brand">
+    <span class="brand__name">صرح</span>
+    <span class="brand__sub">صرح لتوثيق العقاري · تحقّق من سند عقاري</span>
+  </div>
+
+  <mat-card class="verify-card">
+    <mat-card-content>
+      <h1>تحقّق من وثيقة عقارية</h1>
+      <p class="muted">
+        أدخِل رمز العقار المطبوع أسفل QR على السند، أو افتح رابط QR مباشرة
+        من كاميرا هاتفك.
+      </p>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>رمز العقار (مثال: 11-2026-000123)</mat-label>
+        <input matInput [(ngModel)]="code" (keyup.enter)="go()" dir="ltr" />
+      </mat-form-field>
+      @if (invalid()) {
+        <p class="warn">الرمز قصير جداً.</p>
+      }
+      <button mat-flat-button color="primary" (click)="go()" class="full">
+        <mat-icon>verified</mat-icon> تحقّق
+      </button>
+
+      <div class="hint">
+        <mat-icon>qr_code_scanner</mat-icon>
+        <span>أو وجّه كاميرا هاتفك إلى رمز QR على السند الورقي.</span>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

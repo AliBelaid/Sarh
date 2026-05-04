@@ -1,0 +1,14 @@
+<h1 class="step-title">٤ / ٥ — البصمة (اختياري)</h1>
+<p class="muted">إذا توفّر قارئ بصمات على المحطّة، اضغط "التقاط". وإلا تجاوز هذه الخطوة.</p>
+
+<mat-card>
+  <mat-card-content class="content">
+    <mat-icon class="big">fingerprint</mat-icon>
+    <div class="actions">
+      <button mat-stroked-button (click)="skip()">تجاوز</button>
+      <button mat-flat-button color="primary" (click)="capture()">
+        <mat-icon>fingerprint</mat-icon> التقاط
+      </button>
+    </div>
+  </mat-card-content>
+</mat-card>

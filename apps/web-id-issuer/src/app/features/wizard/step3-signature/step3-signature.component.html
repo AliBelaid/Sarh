@@ -1,0 +1,16 @@
+<h1 class="step-title">٣ / ٥ — التوقيع</h1>
+<p class="muted">وقّع داخل المربّع باستخدام لوحة اللمس أو القلم.</p>
+
+<mat-card>
+  <mat-card-content class="content">
+    <canvas #canvas width="600" height="220" class="pad"></canvas>
+    <div class="actions">
+      <button mat-stroked-button (click)="clear()">
+        <mat-icon>delete_outline</mat-icon> مسح
+      </button>
+      <button mat-flat-button color="primary" (click)="saveAndNext()" [disabled]="!hasInk()">
+        التالي
+      </button>
+    </div>
+  </mat-card-content>
+</mat-card>

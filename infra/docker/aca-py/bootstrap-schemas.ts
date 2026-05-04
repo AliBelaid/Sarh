@@ -1,0 +1,144 @@
+// Sijilli — register the two issuer schemas + cred defs against ACA-Py.
+//
+// Idempotent: if a schema or cred def already exists, the script simply
+// reuses the existing id. The resulting ids are written to .env.aca-py
+// at the repo root so the API can pick them up.
+//
+// Run:
+//   pnpm --filter @sijilli/api exec ts-node infra/docker/aca-py/bootstrap-schemas.ts
+//
+// Required env (or pass via CLI):
+//   ACA_PY_ADMIN_URL          (default http://localhost:8021)
+//   ACA_PY_ADMIN_API_KEY      (default sijilli-dev-admin-key)
+//   SIJILLI_REPO_ROOT         (default = pwd at script start)
+/* eslint-disable no-console */
+
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+interface SchemaSpec {
+  name: string;
+  version: string;
+  attributes: string[];
+  cred_def_tag: string;
+  support_revocation: boolean;
+}
+
+const SCHEMAS: SchemaSpec[] = [
+  {
+    name: 'DigitalIdSchema',
+    version: '1.0',
+    attributes: ['full_name', 'dob', 'digital_id_number', 'photo_hash'],
+    cred_def_tag: 'sijilli-digital-id-v1',
+    support_revocation: true,
+  },
+  {
+    name: 'PropertyDeedSchema',
+    version: '1.0',
+    attributes: ['property_code', 'owner_did', 'type', 'area_sqm', 'polygon_hash'],
+    cred_def_tag: 'sijilli-property-deed-v1',
+    support_revocation: true,
+  },
+];
+
+const ADMIN_URL = (process.env.ACA_PY_ADMIN_URL ?? 'http://localhost:8021').replace(/\/+$/, '');
+const ADMIN_KEY = process.env.ACA_PY_ADMIN_API_KEY ?? 'sijilli-dev-admin-key';
+
+async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${ADMIN_URL}${path}`, {
+    method,
+    headers: { 'content-type': 'application/json', 'x-api-key': ADMIN_KEY },
+    body: body !== undefined && method !== 'GET' ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`ACA-Py ${method} ${path} → ${res.status}: ${text.slice(0, 400)}`);
+  }
+  return text ? (JSON.parse(text) as T) : (undefined as unknown as T);
+}
+
+async function ensureSchema(spec: SchemaSpec): Promise<string> {
+  const params = new URLSearchParams({ schema_name: spec.name, schema_version: spec.version });
+  const existing = await call<{ schema_ids: string[] }>(
+    'GET',
+    `/schemas/created?${params.toString()}`,
+  );
+  if (existing.schema_ids?.length) {
+    console.log(`✓ schema ${spec.name}:${spec.version} already exists → ${existing.schema_ids[0]}`);
+    return existing.schema_ids[0];
+  }
+  const created = await call<{ schema_id: string }>('POST', '/schemas', {
+    schema_name: spec.name,
+    schema_version: spec.version,
+    attributes: spec.attributes,
+  });
+  console.log(`+ created schema ${spec.name}:${spec.version} → ${created.schema_id}`);
+  return created.schema_id;
+}
+
+async function ensureCredDef(spec: SchemaSpec, schemaId: string): Promise<string> {
+  const params = new URLSearchParams({ schema_id: schemaId, tag: spec.cred_def_tag });
+  const existing = await call<{ credential_definition_ids: string[] }>(
+    'GET',
+    `/credential-definitions/created?${params.toString()}`,
+  );
+  if (existing.credential_definition_ids?.length) {
+    console.log(
+      `✓ cred-def ${spec.cred_def_tag} already exists → ${existing.credential_definition_ids[0]}`,
+    );
+    return existing.credential_definition_ids[0];
+  }
+  const created = await call<{ credential_definition_id: string }>(
+    'POST',
+    '/credential-definitions',
+    {
+      schema_id: schemaId,
+      tag: spec.cred_def_tag,
+      support_revocation: spec.support_revocation,
+      revocation_registry_size: 1000,
+    },
+  );
+  console.log(`+ created cred-def ${spec.cred_def_tag} → ${created.credential_definition_id}`);
+  return created.credential_definition_id;
+}
+
+async function main() {
+  console.log(`Connecting to ACA-Py at ${ADMIN_URL}…`);
+  const status = await call<{ version?: string }>('GET', '/status');
+  console.log(`Agent online (version=${status.version ?? 'unknown'}).`);
+
+  const result: Record<string, string> = {};
+  for (const spec of SCHEMAS) {
+    const schemaId = await ensureSchema(spec);
+    const credDefId = await ensureCredDef(spec, schemaId);
+    result[`SIJILLI_${spec.name.toUpperCase()}_SCHEMA_ID`] = schemaId;
+    result[`SIJILLI_${spec.name.toUpperCase()}_CRED_DEF_ID`] = credDefId;
+  }
+
+  // Map to the env vars the API consumes.
+  const envOut: Record<string, string> = {
+    ACA_PY_ADMIN_URL: ADMIN_URL,
+    ACA_PY_ADMIN_API_KEY: ADMIN_KEY,
+    ACA_PY_DIGITAL_ID_SCHEMA_ID: result['SIJILLI_DIGITALIDSCHEMA_SCHEMA_ID'],
+    ACA_PY_DIGITAL_ID_CRED_DEF_ID: result['SIJILLI_DIGITALIDSCHEMA_CRED_DEF_ID'],
+    ACA_PY_PROPERTY_DEED_SCHEMA_ID: result['SIJILLI_PROPERTYDEEDSCHEMA_SCHEMA_ID'],
+    ACA_PY_PROPERTY_DEED_CRED_DEF_ID: result['SIJILLI_PROPERTYDEEDSCHEMA_CRED_DEF_ID'],
+  };
+
+  const repoRoot = process.env.SIJILLI_REPO_ROOT ?? process.cwd();
+  const outPath = join(repoRoot, '.env.aca-py');
+  const body =
+    '# Generated by infra/docker/aca-py/bootstrap-schemas.ts — re-run is safe.\n' +
+    Object.entries(envOut)
+      .map(([k, v]) => `${k}=${v}`)
+      .join('\n') +
+    '\n';
+  writeFileSync(outPath, body, 'utf8');
+  console.log(`\nWrote ${outPath}`);
+  console.log('Append these to apps/api/.env.local to enable real SSI in the API.');
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

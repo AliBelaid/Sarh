@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" role="img" aria-label="Sijilli Login Background">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A0F0C"/>
+      <stop offset="40%" stop-color="#0F1A14"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="goldGrad2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F4D77A"/>
+      <stop offset="50%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#9B7A1E"/>
+    </linearGradient>
+    <radialGradient id="spotlight" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#239E46" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#239E46" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="redGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#E70013" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#E70013" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="islamicPattern" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+      <g stroke="#D4AF37" stroke-width="0.6" fill="none" opacity="0.08">
+        <polygon points="40,5 55,20 55,45 40,60 25,45 25,20"/>
+        <polygon points="40,15 50,25 50,40 40,50 30,40 30,25"/>
+        <line x1="40" y1="5" x2="40" y2="60"/>
+        <line x1="25" y1="32.5" x2="55" y2="32.5"/>
+      </g>
+    </pattern>
+  </defs>
+
+  <!-- Base background -->
+  <rect width="1440" height="900" fill="url(#bgGrad)"/>
+
+  <!-- Islamic geometric pattern overlay -->
+  <rect width="1440" height="900" fill="url(#islamicPattern)"/>
+
+  <!-- Atmospheric glows -->
+  <circle cx="200" cy="200" r="500" fill="url(#spotlight)"/>
+  <circle cx="1240" cy="700" r="500" fill="url(#redGlow)"/>
+
+  <!-- Top accent: Libyan flag stripes -->
+  <rect x="0" y="0" width="1440" height="3" fill="#E70013"/>
+  <rect x="0" y="3" width="1440" height="6" fill="#000000"/>
+  <rect x="0" y="9" width="1440" height="3" fill="#239E46"/>
+
+  <!-- Bottom accent: Libyan flag stripes -->
+  <rect x="0" y="888" width="1440" height="3" fill="#239E46"/>
+  <rect x="0" y="891" width="1440" height="6" fill="#000000"/>
+  <rect x="0" y="897" width="1440" height="3" fill="#E70013"/>
+
+  <!-- Decorative side ornaments (left) -->
+  <g transform="translate(80, 450)" opacity="0.5">
+    <circle r="60" fill="none" stroke="url(#goldGrad2)" stroke-width="0.8"/>
+    <circle r="45" fill="none" stroke="url(#goldGrad2)" stroke-width="0.6"/>
+    <circle r="30" fill="none" stroke="url(#goldGrad2)" stroke-width="0.4"/>
+    <polygon points="0,-50 43,-25 43,25 0,50 -43,25 -43,-25" fill="none" stroke="url(#goldGrad2)" stroke-width="0.6"/>
+  </g>
+
+  <!-- Decorative side ornaments (right) -->
+  <g transform="translate(1360, 450)" opacity="0.5">
+    <circle r="60" fill="none" stroke="url(#goldGrad2)" stroke-width="0.8"/>
+    <circle r="45" fill="none" stroke="url(#goldGrad2)" stroke-width="0.6"/>
+    <circle r="30" fill="none" stroke="url(#goldGrad2)" stroke-width="0.4"/>
+    <polygon points="0,-50 43,-25 43,25 0,50 -43,25 -43,-25" fill="none" stroke="url(#goldGrad2)" stroke-width="0.6"/>
+  </g>
+
+  <!-- Central content card -->
+  <g transform="translate(720, 450)">
+    <!-- Subtle card backing -->
+    <rect x="-260" y="-300" width="520" height="600" rx="8"
+          fill="#0F1A14" fill-opacity="0.6" stroke="url(#goldGrad2)" stroke-width="1" stroke-opacity="0.4"/>
+
+    <!-- Compact logo at top -->
+    <g transform="translate(0, -200) scale(0.45)">
+      <polygon points="0,-160 138,-80 138,80 0,160 -138,80 -138,-80"
+               fill="#000" stroke="url(#goldGrad2)" stroke-width="3"/>
+      <rect x="-90" y="-30" width="180" height="120" fill="#0F1A14" stroke="url(#goldGrad2)" stroke-width="2"/>
+      <polygon points="-105,-30 0,-110 105,-30" fill="#E70013" stroke="url(#goldGrad2)" stroke-width="2"/>
+      <rect x="-30" y="20" width="60" height="80" fill="url(#goldGrad2)" rx="3"/>
+      <circle cx="0" cy="45" r="10" fill="#0F1A14"/>
+    </g>
+
+    <!-- Arabic title -->
+    <text x="0" y="-105" text-anchor="middle"
+          font-family="'Amiri', 'Scheherazade New', serif"
+          font-size="96" font-weight="700" fill="url(#goldGrad2)">صرح</text>
+
+    <!-- Subtitle Arabic -->
+    <text x="0" y="-60" text-anchor="middle"
+          font-family="'Amiri', serif"
+          font-size="18" fill="#D4AF37" opacity="0.9">صرح لتوثيق العقاري · السجل العقاري والهوية الرقمية</text>
+
+    <!-- Divider with crescent -->
+    <line x1="-180" y1="-30" x2="-30" y2="-30" stroke="url(#goldGrad2)" stroke-width="0.8"/>
+    <line x1="30" y1="-30" x2="180" y2="-30" stroke="url(#goldGrad2)" stroke-width="0.8"/>
+    <path d="M -10,-35 A 8,8 0 1,0 -10,-25 A 6,6 0 1,1 -4,-30 Z" fill="url(#goldGrad2)"/>
+
+    <!-- Form fields (mock) -->
+    <g transform="translate(0, 10)">
+      <text x="180" y="-10" text-anchor="end" font-family="'Amiri', serif"
+            font-size="14" fill="#D4AF37">رقم الهوية الرقمية</text>
+      <rect x="-180" y="0" width="360" height="48" rx="4"
+            fill="#000" fill-opacity="0.5" stroke="#D4AF37" stroke-opacity="0.4"/>
+      <text x="170" y="30" text-anchor="end" font-family="monospace"
+            font-size="16" fill="#D4AF37" opacity="0.5">LY-XXXX-XXXX-XXXX</text>
+    </g>
+
+    <g transform="translate(0, 70)">
+      <text x="180" y="-10" text-anchor="end" font-family="'Amiri', serif"
+            font-size="14" fill="#D4AF37">كلمة المرور</text>
+      <rect x="-180" y="0" width="360" height="48" rx="4"
+            fill="#000" fill-opacity="0.5" stroke="#D4AF37" stroke-opacity="0.4"/>
+      <g transform="translate(-160, 24)">
+        <circle cx="0" cy="0" r="3" fill="#D4AF37"/>
+        <circle cx="12" cy="0" r="3" fill="#D4AF37"/>
+        <circle cx="24" cy="0" r="3" fill="#D4AF37"/>
+        <circle cx="36" cy="0" r="3" fill="#D4AF37"/>
+        <circle cx="48" cy="0" r="3" fill="#D4AF37"/>
+        <circle cx="60" cy="0" r="3" fill="#D4AF37"/>
+      </g>
+    </g>
+
+    <!-- Login button -->
+    <g transform="translate(0, 160)">
+      <rect x="-180" y="0" width="360" height="52" rx="4" fill="url(#goldGrad2)"/>
+      <text x="0" y="33" text-anchor="middle" font-family="'Amiri', serif"
+            font-size="22" font-weight="700" fill="#0F1A14">تسجيل الدخول</text>
+    </g>
+
+    <!-- Register link -->
+    <text x="0" y="240" text-anchor="middle" font-family="'Amiri', serif"
+          font-size="14" fill="#D4AF37" opacity="0.8">ليس لديك حساب؟ <tspan font-weight="700">سَجِّل الآن</tspan></text>
+  </g>
+
+  <!-- Footer -->
+  <text x="720" y="870" text-anchor="middle" font-family="'Amiri', serif"
+        font-size="12" fill="#D4AF37" opacity="0.6">
+    دولة ليبيا — السجل العقاري الرقمي  •  مدعوم من LVCT
+  </text>
+</svg>

@@ -1,0 +1,29 @@
+{
+  "common": {
+    "app_name": "Sarh",
+    "tagline": "Sarh — Real Estate Registry & Digital Identity",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "status": {
+    "draft": "Draft",
+    "pending": "Pending",
+    "under_review": "Under review",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "needs_clarification": "Needs clarification",
+    "frozen": "Frozen"
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalid": "Invalid value",
+    "network": "Cannot reach the server. Please retry."
+  }
+}

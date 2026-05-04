@@ -1,0 +1,76 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Build output
+dist/
+build/
+out/
+.next/
+.angular/
+.nest/
+coverage/
+*.tsbuildinfo
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Claude Code per-repo state
+.claude/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+.metadata
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/App.framework
+**/ios/Flutter/flutter_assets/
+**/android/.gradle/
+**/android/app/release/
+**/android/local.properties
+**/android/captures/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Supabase
+.supabase/
+supabase/.branches/
+supabase/.temp/
+
+# Prisma
+**/prisma/migrations/dev*
+
+# Logs
+logs/
+*.log
+
+# Testing
+*.lcov
+.nyc_output/

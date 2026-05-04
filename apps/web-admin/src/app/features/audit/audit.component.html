@@ -1,0 +1,98 @@
+<div class="audit-page">
+  <header class="page-head">
+    <div>
+      <h1>
+        سجلّ التدقيق
+        @if (live()) {
+          <span class="live-badge"><span class="dot"></span>بث مباشر</span>
+        }
+      </h1>
+      <p class="hint">سجل غير قابل للتعديل لكل إجراء على البيانات. اضغط على صف للاطلاع على التفاصيل.</p>
+    </div>
+    <span class="total-chip">{{ items().length }} / {{ rows().length }} سجل</span>
+  </header>
+
+  <mat-card class="filters">
+    <mat-card-content class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>معرّف الفاعل</mat-label>
+        <input matInput [(ngModel)]="filterActor" dir="ltr" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>الإجراء</mat-label>
+        <input matInput [(ngModel)]="filterAction" dir="ltr" placeholder="approve, update, ..." />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>الكيان</mat-label>
+        <input matInput [(ngModel)]="filterEntity" dir="ltr" placeholder="properties, citizens, ..." />
+      </mat-form-field>
+      <button mat-stroked-button (click)="refresh()" *ngIf="!live()">
+        <mat-icon>refresh</mat-icon>
+        تحديث
+      </button>
+    </mat-card-content>
+  </mat-card>
+
+  @if (loading()) { <mat-progress-bar mode="indeterminate"></mat-progress-bar> }
+
+  <div class="audit-list" *ngIf="items().length > 0">
+    @for (a of items(); track a.id) {
+      <div class="audit-row" [class.expanded]="expandedId() === a.id">
+        <button class="audit-row__head" (click)="toggle(a)">
+          <span class="time ltr-num">{{ a.occurred_at | date: 'yyyy-MM-dd HH:mm:ss' }}</span>
+          <span class="actor">
+            <mat-icon class="actor-icon">{{ a.actor_kind === 'officer' ? 'badge' : (a.actor_kind === 'citizen' ? 'person' : 'memory') }}</mat-icon>
+            {{ actorLabel(a.actor_kind) }}
+            @if (a.actor_id) { <code class="actor-id">{{ a.actor_id.slice(0, 8) }}</code> }
+          </span>
+          <span [class]="actionClass(a.action)">{{ actionLabel(a.action) }}</span>
+          <span class="entity">{{ entityLabel(a.entity_table) }}</span>
+          <code class="entity-id" *ngIf="a.entity_id">{{ a.entity_id.slice(0, 8) }}</code>
+          <mat-icon class="chev">{{ expandedId() === a.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </button>
+
+        @if (expandedId() === a.id) {
+          <div class="audit-row__body">
+            @if (hasDetails(a)) {
+              <table class="diff-table">
+                <thead>
+                  <tr>
+                    <th>الحقل</th>
+                    <th>قبل</th>
+                    <th>بعد</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (d of diffRows(a); track d.key) {
+                    <tr>
+                      <td class="diff-key">{{ d.key }}</td>
+                      <td class="diff-before">{{ d.before }}</td>
+                      <td class="diff-after">{{ d.after }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="muted">لا تتوفر تفاصيل ديف للسجل (إجراء بسيط).</p>
+            }
+            <div class="meta">
+              <span>المعرّف الكامل للكيان:</span>
+              <code dir="ltr">{{ a.entity_id ?? '—' }}</code>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  @if (!loading() && items().length === 0) {
+    <div class="empty">
+      <mat-icon>fact_check</mat-icon>
+      @if (filterActor || filterAction || filterEntity) {
+        <p>لا توجد سجلات مطابقة للتصفية.</p>
+      } @else {
+        <p>سجلّ التدقيق فارغ — لم تُسجَّل أيّ عمليات بعد.</p>
+      }
+    </div>
+  }
+</div>

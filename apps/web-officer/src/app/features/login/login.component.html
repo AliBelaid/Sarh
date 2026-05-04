@@ -1,0 +1,54 @@
+<div class="login-page">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>دخول موظّف السجل</mat-card-title>
+      <mat-card-subtitle>صرح — لوحة الموظّف · صرح لتوثيق العقاري</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form (ngSubmit)="submit()">
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>البريد الإلكتروني</mat-label>
+          <input
+            matInput
+            type="email"
+            [(ngModel)]="email"
+            name="email"
+            autocomplete="username"
+            dir="ltr"
+            required
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>كلمة المرور</mat-label>
+          <input
+            matInput
+            type="password"
+            [(ngModel)]="password"
+            name="password"
+            autocomplete="current-password"
+            dir="ltr"
+            required
+          />
+        </mat-form-field>
+
+        @if (error()) {
+          <div class="login-error">{{ error() }}</div>
+        }
+
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          [disabled]="busy()"
+          class="full"
+        >
+          @if (busy()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            دخول
+          }
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

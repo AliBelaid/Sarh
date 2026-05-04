@@ -1,0 +1,9 @@
+.login-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--sijilli-primary);
+}
+.login-card { width: min(420px, 92vw); padding: 1rem; }
+.full { width: 100%; }
+.error { color: var(--sijilli-warn); margin: 0 0 1rem; }

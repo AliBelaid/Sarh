@@ -1,0 +1,32 @@
+// Sijilli — global styles
+// Brand tokens (from CLAUDE.md)
+:root {
+  --sijilli-primary: #0F1A14;   // أسود ليبي
+  --sijilli-accent:  #D4AF37;   // ذهبي رسمي
+  --sijilli-warn:    #E70013;   // أحمر ليبي
+  --sijilli-success: #239E46;   // أخضر ليبي
+  --sijilli-bg:      #FAF9F6;
+  --sijilli-text:    #1A1A1A;
+  --sijilli-muted:   #6B6B6B;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Noto Naskh Arabic', 'Amiri', 'Segoe UI', Tahoma, sans-serif;
+  background: var(--sijilli-bg);
+  color: var(--sijilli-text);
+  direction: rtl;
+}
+
+code, kbd, pre, .ltr-num {
+  font-family: 'Inter', ui-monospace, SFMono-Regular, Menlo, monospace;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+a { color: var(--sijilli-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }

@@ -1,0 +1,32 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav mode="side" opened position="end" class="shell__nav">
+    <div class="brand">
+      <span class="brand__title">صرح</span>
+      <span class="brand__sub">محطّة الإصدار — صرح لتوثيق العقاري</span>
+    </div>
+    <mat-nav-list>
+      <a mat-list-item routerLink="/wizard/step-1" routerLinkActive="active">
+        <mat-icon matListItemIcon>person_add</mat-icon>
+        <span matListItemTitle>إصدار جديد</span>
+      </a>
+      <a mat-list-item routerLink="/reissue" routerLinkActive="active">
+        <mat-icon matListItemIcon>autorenew</mat-icon>
+        <span matListItemTitle>إعادة إصدار</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <mat-toolbar class="shell__toolbar">
+      <span class="spacer"></span>
+      @if (profile()) {
+        <span class="who">{{ profile()?.user?.email }}</span>
+      }
+      <button mat-icon-button (click)="signOut()">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </mat-toolbar>
+    <main class="shell__main">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

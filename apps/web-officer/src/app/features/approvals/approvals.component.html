@@ -1,0 +1,48 @@
+<h1 class="page-title">اعتماداتي</h1>
+<p class="muted">سجلّ الطلبات التي راجعتها مؤخراً.</p>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+
+<table mat-table [dataSource]="mine()" class="table">
+  <ng-container matColumnDef="code">
+    <th mat-header-cell *matHeaderCellDef>الرمز</th>
+    <td mat-cell *matCellDef="let p">{{ p.property_code ?? p.parcel_number ?? '—' }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="type">
+    <th mat-header-cell *matHeaderCellDef>النوع</th>
+    <td mat-cell *matCellDef="let p">{{ p.property_type }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="status">
+    <th mat-header-cell *matHeaderCellDef>الحالة</th>
+    <td mat-cell *matCellDef="let p">
+      <sijilli-status-chip [status]="p.status"></sijilli-status-chip>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="reviewed">
+    <th mat-header-cell *matHeaderCellDef>تاريخ المراجعة</th>
+    <td mat-cell *matCellDef="let p" class="ltr-num">
+      {{ p.reviewed_at | date: 'yyyy-MM-dd HH:mm' }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="actions">
+    <th mat-header-cell *matHeaderCellDef></th>
+    <td mat-cell *matCellDef="let p">
+      <button mat-icon-button (click)="open(p.id)">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="open(row.id)"></tr>
+</table>
+
+@if (!loading() && mine().length === 0) {
+  <div class="empty">لم تراجع أي طلب بعد.</div>
+}

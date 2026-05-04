@@ -1,0 +1,9 @@
+packages:
+  - "apps/api"
+  - "apps/web"
+  - "apps/web-citizen"
+  - "apps/web-officer"
+  - "apps/web-id-issuer"
+  - "apps/web-admin"
+  - "packages/shared-types"
+  - "packages/ui-kit"

@@ -1,0 +1,36 @@
+# Sijilli — repo-root dockerignore. Each app Dockerfile builds from this
+# context, so the more we ignore here the faster + smaller the build.
+
+# Node / JS
+**/node_modules
+**/.pnpm-store
+**/dist
+**/build
+**/coverage
+**/*.tsbuildinfo
+
+# Flutter / Dart
+**/.dart_tool
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+apps/mobile/build
+apps/mobile/android/.gradle
+apps/mobile/ios/Pods
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.iml
+
+# Local secrets — never bake these into an image.
+.env
+.env.local
+.env.*.local
+.env.aca-py
+
+# Git
+.git
+.gitignore
