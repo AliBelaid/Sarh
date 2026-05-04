@@ -11,7 +11,7 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
-    "dev:api": "pnpm --filter @sijilli/api start:dev",
+    "dev:api": "dotnet run --project apps/api-dotnet/Sijilli.Api.csproj",
     "dev:web": "pnpm --filter @sijilli/web start",
     "_legacy:dev:web-citizen": "pnpm --filter @sijilli/web-citizen start",
     "_legacy:dev:web-officer": "pnpm --filter @sijilli/web-officer start",

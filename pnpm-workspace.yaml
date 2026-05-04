@@ -1,5 +1,4 @@
 packages:
-  - "apps/api"
   - "apps/web"
   - "apps/web-citizen"
   - "apps/web-officer"

@@ -17,20 +17,20 @@
 7. **No free-text role checking in code** — always go through the JSON permission map on `officers.permissions`.
 
 ## Tech Stack (Pinned)
-- **Backend**: Node.js 20 LTS, NestJS 10, TypeScript 5, Prisma 5 (`sqlserver` provider) + `mssql` driver for the Supabase-shaped query builder
+- **Backend**: ASP.NET Core 8 (.NET 8), C# 12, EF Core 8 (`Microsoft.EntityFrameworkCore.SqlServer`) + `Microsoft.Data.SqlClient`. Lives at `apps/api-dotnet/`. The legacy NestJS service (`apps/api/`) was retired in Phase 7 — `git checkout 949a57d -- apps/api/` resurrects it if needed
 - **Database**: Local **SQL Server 2019/2022** with `geography` for geometry, full-text catalog (Arabic) for name search, `INSTEAD OF` triggers for the append-only audit log. Migrations live in `infra/mssql/migrations/000–025.sql` and run via `pnpm db:reset` → `scripts/db/run-migrations.ps1` (sqlcmd-based)
 - **Mobile**: Flutter 3.22+, Dart 3.4, Riverpod 2.x, go_router, flutter_nfc_kit, mapbox_maps_flutter
 - **Web**: Single Angular 21 app at `apps/web/` (citizen + officer + id-issuer + admin + verify behind role-based routing) with Material 21, transloco (RTL), Sijilli brand SCSS tokens. The four legacy `apps/web-{citizen,officer,id-issuer,admin}/` apps remain in the repo only as a source for component migration; they no longer build into the prod compose stack as primaries
 - **SSI**: Hyperledger Aries Cloud Agent Python (ACA-Py) v0.12+, did:sov method
-- **Auth**: Custom HS256 JWT (`SIJILLI_JWT_SECRET`) + bcrypt; `auth_users` table + `sijilli_auth_claims` proc emit the same `citizen_id`/`officer_id`/`role`/`permissions` shape the rest of the app expects. `apps/api/src/auth/jwt.service.ts` signs/verifies; `DigitalIdAuthGuard` validates locally with no DB roundtrip
-- **Storage**: Local filesystem under `STORAGE_ROOT`; `StorageService.upload/read/writeRaw`. The verify deed PDF is streamed via the public route `GET /api/v1/verify/:code/deed.pdf` (replaces Supabase signed URLs)
-- **Realtime**: NestJS WebSocket gateway (planned; no longer Supabase Realtime)
+- **Auth**: Custom HS256 JWT (`SIJILLI_JWT_SECRET`) + bcrypt (`BCrypt.Net-Next`); `auth_users` table + `sijilli_auth_claims` proc emit the same `citizen_id`/`officer_id`/`role`/`permissions` shape the rest of the app expects. `apps/api-dotnet/Auth/JwtTokenService.cs` signs/verifies; the global `[Authorize]` attribute + per-method `[OfficerOnly(...)]` filter validate locally with no DB roundtrip
+- **Storage**: Local filesystem under `STORAGE_ROOT`; `apps/api-dotnet/Storage/StorageService.cs` exposes `UploadAsync` / `ReadAsync` / `OpenRead` / `WriteRawAsync`. The verify deed PDF is streamed via the public route `GET /api/v1/verify/:code/deed.pdf`
+- **Realtime**: ASP.NET Core SignalR (planned; previously NestJS WebSocket gateway / Supabase Realtime)
 
 ## Repository Layout
 ```
 sijilli/
 ├── apps/
-│   ├── api/                  # NestJS backend (mssql + bcrypt + JWT)
+│   ├── api-dotnet/           # ASP.NET Core 8 backend (mssql + bcrypt + JWT)
 │   ├── web/                  # Single Angular app (current; ports 4200)
 │   ├── web-citizen/          # LEGACY — kept for component migration only
 │   ├── web-officer/          # LEGACY — kept for component migration only

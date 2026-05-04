@@ -135,7 +135,7 @@ async function main() {
     '\n';
   writeFileSync(outPath, body, 'utf8');
   console.log(`\nWrote ${outPath}`);
-  console.log('Append these to apps/api/.env.local to enable real SSI in the API.');
+  console.log('Set these as ACA_PY_DIGITAL_ID_SCHEMA_ID / _CRED_DEF_ID env vars on the apps/api-dotnet container to enable real SSI.');
 }
 
 main().catch((err) => {

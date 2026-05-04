@@ -15,9 +15,9 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # NestJS API — apps/api exposes /metrics via @willsoto/nestjs-prometheus
-  # (already wired in the Phase 12 hardening). The service name resolves
-  # via docker DNS.
+  # ASP.NET Core API — apps/api-dotnet. /api/v1/metrics is wired in Phase 12
+  # hardening (prometheus-net.AspNetCore). The service name resolves via
+  # docker DNS.
   - job_name: sijilli-api
     metrics_path: /api/v1/metrics
     static_configs:
