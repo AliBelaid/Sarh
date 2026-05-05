@@ -1,5 +1,17 @@
 # PROMPTS.md — Sarh Build Sequence (Claude Code CLI)
 
+> ⚠️ **Historical document.** This file captures the *original* build plan (Phases 0–12)
+> as it was issued to Claude Code. The shipped system deviated in two large ways:
+> the API was migrated from NestJS/Prisma to **ASP.NET Core 8 + EF Core** (`apps/api-dotnet/`),
+> and the data layer moved from Supabase/Postgres to **local SQL Server 2019/2022**
+> (`infra/mssql/migrations/`). The four separate Angular apps were also consolidated
+> into a single role-routed `apps/web/`. The legacy NestJS service and the four legacy
+> web apps were deleted; recover from git history at commit `949a57d` if needed.
+>
+> For the current state, see `README.md`, `CLAUDE.md`, and `docs/Sarh.pdf`.
+
+---
+
 > Run each prompt **in order** in Claude Code CLI from the repo root. After every phase,
 > commit the changes with a clear message and run the verification steps before moving on.
 
