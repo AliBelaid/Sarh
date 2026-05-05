@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 014_triggers.sql — updated_at auto-stamp
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 -- One AFTER UPDATE trigger per table (SQL Server can't do FOR EACH ROW).

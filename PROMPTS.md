@@ -1,4 +1,4 @@
-# PROMPTS.md — Sijilli Build Sequence (Claude Code CLI)
+# PROMPTS.md — Sarh Build Sequence (Claude Code CLI)
 
 > Run each prompt **in order** in Claude Code CLI from the repo root. After every phase,
 > commit the changes with a clear message and run the verification steps before moving on.
@@ -8,7 +8,7 @@
 ## Phase 0 — Scaffold
 
 ```text
-Scaffold a monorepo at the current path named "sijilli" using pnpm workspaces.
+Scaffold a monorepo at the current path named "sarh" using pnpm workspaces.
 Create folders: apps/api, apps/web-citizen, apps/web-officer, apps/web-id-issuer,
 apps/web-admin, apps/mobile, packages/shared-types, packages/ui-kit,
 packages/flutter-shared, infra/supabase, infra/docker, infra/nginx, docs, scripts.
@@ -155,11 +155,11 @@ appears in ssi_credentials with a valid revocation_reg_id.
 
 ```text
 In apps/mobile build the citizen-facing Flutter app. Use Riverpod + go_router.
-Color tokens: primary #0F1A14, accent #D4AF37, warn #E70013, success #239E46.
+Color tokens: primary #0F172A, accent #F97316, warn #DC2626, success #0891B2.
 Default locale ar_LY, RTL.
 Screens:
-1. Splash with logo (assets/branding/logo-sijilli.svg)
-2. Onboarding (3 slides about Sijilli)
+1. Splash with logo (assets/branding/logo-sarh.svg)
+2. Onboarding (3 slides about Sarh)
 3. Login: input digital_id_number + tap NFC card → confirm + PIN 6-digit
 4. Home dashboard: list of "my properties" with status chips
 5. Property submission wizard:
@@ -259,7 +259,7 @@ officer can immediately log into web-officer with the right scope.
 ## Phase 11 — Public Verification Site
 
 ```text
-Build a small standalone site at verify.sijilli.ly (sub-app inside
+Build a small standalone site at verify.sarh.ly (sub-app inside
 apps/web-citizen with routing or a separate Angular app — use
 apps/web-verify). No login required.
 Pages:

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/router.dart';
-import 'core/theme/sijilli_theme.dart';
+import 'core/theme/sarh_theme.dart';
 
 // Supabase project — same project as the web admin so demo signups land
 // in the same auth tables and the lists pulse live across surfaces.
@@ -25,11 +25,11 @@ Future<void> main() async {
     anonKey: _supabaseAnonKey,
     debug: false,
   );
-  runApp(const ProviderScope(child: SijilliApp()));
+  runApp(const ProviderScope(child: SarhApp()));
 }
 
-class SijilliApp extends ConsumerWidget {
-  const SijilliApp({super.key});
+class SarhApp extends ConsumerWidget {
+  const SarhApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,7 +37,7 @@ class SijilliApp extends ConsumerWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'صرح',
-      theme: SijilliTheme.light(),
+      theme: SarhTheme.light(),
       // Default locale is Libyan Arabic. Latin English is bundled only for
       // technical labels (codes, IDs); the UI text is Arabic-first.
       locale: const Locale('ar', 'LY'),

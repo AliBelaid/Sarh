@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 006_properties.sql — real estate parcels with SQL Server geography
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE properties (

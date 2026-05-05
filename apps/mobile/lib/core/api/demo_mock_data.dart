@@ -1,6 +1,6 @@
 // Mock responses served by the Dio demo interceptor when the user is
 // signed in offline (token == 'demo-offline'). Shape matches what the
-// real Sijilli API returns under the matching paths — repositories that
+// real Sarh API returns under the matching paths — repositories that
 // parse `res.data` then unpack as if the network call had succeeded.
 
 DateTime _now() => DateTime.now();
@@ -112,8 +112,8 @@ Map<String, dynamic> mockCredentials() {
       {
         'id': 'demo-vc-1',
         'kind': 'digital_id',
-        'schema_id': 'sijilli/DigitalIdSchema:1.0',
-        'issuer_did': 'did:sov:LY:SijilliIssuer',
+        'schema_id': 'sarh/DigitalIdSchema:1.0',
+        'issuer_did': 'did:sov:LY:SarhIssuer',
         'subject_did': 'did:sov:LY:DemoCitizen0001',
         'issued_at': _isoDaysAgo(2),
         'expires_at': _isoYearsFromNow(10),
@@ -126,8 +126,8 @@ Map<String, dynamic> mockCredentials() {
       {
         'id': 'demo-vc-2',
         'kind': 'property_deed',
-        'schema_id': 'sijilli/PropertyDeedSchema:1.0',
-        'issuer_did': 'did:sov:LY:SijilliIssuer',
+        'schema_id': 'sarh/PropertyDeedSchema:1.0',
+        'issuer_did': 'did:sov:LY:SarhIssuer',
         'subject_did': 'did:sov:LY:DemoCitizen0001',
         'issued_at': _isoDaysAgo(45),
         'expires_at': null,

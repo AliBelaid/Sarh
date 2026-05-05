@@ -4,7 +4,7 @@ import 'package:intl/intl.dart' show DateFormat;
 
 import '../../core/api/repositories.dart';
 import '../../core/models/property.dart';
-import '../../core/theme/sijilli_colors.dart';
+import '../../core/theme/sarh_colors.dart';
 import '../home/widgets/status_chip.dart';
 
 class PropertyDetailScreen extends ConsumerWidget {
@@ -56,7 +56,7 @@ class PropertyDetailScreen extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: Card(
-                    color: SijilliColors.warn.withValues(alpha: 0.06),
+                    color: SarhColors.warn.withValues(alpha: 0.06),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -65,7 +65,7 @@ class PropertyDetailScreen extends ConsumerWidget {
                           const Text('سبب الرفض / طلب التوضيح',
                               style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  color: SijilliColors.warn)),
+                                  color: SarhColors.warn)),
                           const SizedBox(height: 4),
                           Text(p.rejectionReason!),
                         ],
@@ -96,7 +96,7 @@ class _Timeline extends StatelessWidget {
         _TimelineEvent(
           ts: property.submittedAt!,
           titleAr: 'تم إرسال الطلب',
-          color: SijilliColors.primary,
+          color: SarhColors.primary,
           icon: Icons.send_outlined,
         ),
       if (property.reviewedAt != null)
@@ -108,10 +108,10 @@ class _Timeline extends StatelessWidget {
                   ? 'تم رفض الطلب'
                   : 'تمت مراجعة الطلب',
           color: property.status == PropertyStatus.approved
-              ? SijilliColors.success
+              ? SarhColors.success
               : property.status == PropertyStatus.rejected
-                  ? SijilliColors.warn
-                  : SijilliColors.accent,
+                  ? SarhColors.warn
+                  : SarhColors.accent,
           icon: Icons.verified_outlined,
         ),
     ];

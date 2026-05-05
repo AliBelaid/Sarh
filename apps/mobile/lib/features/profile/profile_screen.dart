@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
 import '../../core/auth/auth_controller.dart';
-import '../../core/theme/sijilli_colors.dart';
+import '../../core/theme/sarh_colors.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -20,7 +20,7 @@ class ProfileScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Card(
-            color: SijilliColors.primary,
+            color: SarhColors.primary,
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -42,7 +42,7 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.fingerprint, color: SijilliColors.accent),
+                      const Icon(Icons.fingerprint, color: SarhColors.accent),
                       const SizedBox(width: 8),
                       SelectableText(
                         c?.digitalIdNumber ?? '—',
@@ -88,10 +88,10 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const Divider(height: 0),
                 ListTile(
-                  leading: const Icon(Icons.logout, color: SijilliColors.warn),
+                  leading: const Icon(Icons.logout, color: SarhColors.warn),
                   title: const Text(
                     'تسجيل الخروج',
-                    style: TextStyle(color: SijilliColors.warn),
+                    style: TextStyle(color: SarhColors.warn),
                   ),
                   onTap: () async {
                     await ref.read(authControllerProvider.notifier).signOut();

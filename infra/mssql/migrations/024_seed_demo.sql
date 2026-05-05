@@ -2,16 +2,16 @@
 -- 024_seed_demo.sql — demo data for "Demo login" (mobile + web).
 -- Idempotent: safe to re-run.
 --
--- Demo credentials: demo@sijilli.ly / Demo!12345
+-- Demo credentials: demo@sarh.ly / Demo!12345
 -- Bcrypt hash below was generated for that password (cost=10).
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 DECLARE @demo_citizen_id UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000001';
 DECLARE @demo_card_id    UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000002';
 DECLARE @demo_auth_id    UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000003';
-DECLARE @demo_email      NVARCHAR(120)    = N'demo@sijilli.ly';
+DECLARE @demo_email      NVARCHAR(120)    = N'demo@sarh.ly';
 DECLARE @demo_did_no     NVARCHAR(24)     = N'LY-99-2026-000000-0';
 -- bcrypt('Demo!12345', 10). The API regenerates this on first run if the
 -- hash is rejected (see AuthService.ensureDemoUser). Don't rely on this
@@ -54,9 +54,9 @@ GO
 
 -- 3) Auth user
 DECLARE @demo_auth_id    UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000003';
-DECLARE @demo_email      NVARCHAR(120)    = N'demo@sijilli.ly';
+DECLARE @demo_email      NVARCHAR(120)    = N'demo@sarh.ly';
 DECLARE @demo_pwhash     NVARCHAR(120)    = N'$2b$10$wJrjT9Z5Z0X4f1bN4F0VYO7p9b7cJv0u1n8QfQjJ6tQq9qJzqFbqu';
-DECLARE @demo_app_meta   NVARCHAR(MAX)    = N'{"sijilli_role":"citizen","citizen_id":"00000000-0000-0000-0000-000000000001"}';
+DECLARE @demo_app_meta   NVARCHAR(MAX)    = N'{"sarh_role":"citizen","citizen_id":"00000000-0000-0000-0000-000000000001"}';
 DECLARE @demo_user_meta  NVARCHAR(MAX)    = N'{"full_name_ar":"مستخدم تجريبي ديمو"}';
 
 MERGE auth_users AS tgt

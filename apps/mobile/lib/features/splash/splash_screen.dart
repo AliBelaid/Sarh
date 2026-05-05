@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/router.dart';
 import '../../core/auth/auth_controller.dart';
-import '../../core/theme/sijilli_colors.dart';
+import '../../core/theme/sarh_colors.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -48,13 +48,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SijilliColors.primary,
+      backgroundColor: SarhColors.primary,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SvgPicture.asset(
-              'assets/branding/logo-sijilli.svg',
+              'assets/branding/logo-sarh.svg',
               width: 144,
               height: 144,
             ),

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace Sijilli.Api.Controllers;
+namespace Sarh.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/health")]
@@ -10,7 +10,7 @@ public class HealthController : ControllerBase
     public IActionResult Get() => Ok(new
     {
         status = "ok",
-        service = "sijilli-api-dotnet",
+        service = "sarh-api-dotnet",
         timestamp = DateTimeOffset.UtcNow,
     });
 }

@@ -1,0 +1,78 @@
+---
+title: Sarh — Conceptual ERD (high-level entities)
+---
+erDiagram
+    CITIZEN ||--o{ PROPERTY : "owns"
+    CITIZEN ||--o| DIGITAL_ID_CARD : "holds"
+    CITIZEN ||--o| SSI_WALLET : "controls"
+    CITIZEN ||--o{ NOTIFICATION : "receives"
+    OFFICER ||--o{ REGISTRATION_REQUEST : "reviews"
+    OFFICER ||--o{ DIGITAL_ID_CARD : "issues"
+    OFFICER ||--o{ AUDIT_ENTRY : "writes"
+    PROPERTY ||--|| REGISTRATION_REQUEST : "submitted as"
+    PROPERTY ||--o{ PROPERTY_DOCUMENT : "has"
+    PROPERTY ||--o| DEED_PDF : "produces"
+    DEED_PDF ||--|| VERIFY_QR : "embeds"
+    DIGITAL_ID_CARD ||--|| NFC_CARD : "encoded as"
+    DIGITAL_ID_CARD ||--o{ ID_ISSUANCE_EVENT : "tracked by"
+    SSI_WALLET ||--o{ VERIFIABLE_CREDENTIAL : "stores"
+    REGION ||--o{ CITIZEN : "scopes"
+    REGION ||--o{ PROPERTY : "scopes"
+    REGION ||--o{ OFFICER : "scopes"
+
+    CITIZEN {
+        string national_id
+        string full_name_ar
+        string region
+    }
+    OFFICER {
+        string role
+        string region
+    }
+    PROPERTY {
+        string property_code
+        string status
+        polygon boundary
+    }
+    REGISTRATION_REQUEST {
+        string request_no
+        string current_status
+    }
+    DIGITAL_ID_CARD {
+        string digital_id_number
+        string status
+    }
+    NFC_CARD {
+        string nfc_uid
+        bigint counter
+    }
+    SSI_WALLET {
+        string did
+    }
+    VERIFIABLE_CREDENTIAL {
+        string type
+    }
+    DEED_PDF {
+        string sha256_hash
+        bool pades_signed
+    }
+    VERIFY_QR {
+        string verify_url
+    }
+    REGION {
+        string code
+        string name_ar
+    }
+    PROPERTY_DOCUMENT {
+        string doc_type
+    }
+    ID_ISSUANCE_EVENT {
+        string action
+    }
+    NOTIFICATION {
+        string channel
+    }
+    AUDIT_ENTRY {
+        bigint id
+        string action
+    }

@@ -66,7 +66,7 @@ export interface NfcEncodeResponse {
 
 const NFC_HELPER_URL =
   (typeof window !== 'undefined' &&
-    (window as unknown as { __SIJILLI_NFC_HELPER__?: string }).__SIJILLI_NFC_HELPER__) ||
+    (window as unknown as { __SARH_NFC_HELPER__?: string }).__SARH_NFC_HELPER__) ||
   'http://localhost:8081';
 
 @Injectable({ providedIn: 'root' })

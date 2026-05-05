@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 020_workflow_helpers.sql — property_code allocation
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE property_code_seq (

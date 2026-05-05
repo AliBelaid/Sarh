@@ -1,0 +1,32 @@
+{
+  "uid": "sarh-edge",
+  "title": "Sarh — Edge nginx",
+  "tags": ["sarh", "edge"],
+  "timezone": "Africa/Tripoli",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Edge HTTP status mix",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+      "datasource": { "type": "loki" },
+      "targets": [
+        { "expr": "sum by (status) (count_over_time({service=\"edge\"}[5m]))", "refId": "A" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "logs",
+      "title": "429 / 5xx tail",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 12 },
+      "datasource": { "type": "loki" },
+      "targets": [
+        { "expr": "{service=\"edge\"} |~ \" (4[0-9]{2}|5[0-9]{2}) \"", "refId": "A" }
+      ]
+    }
+  ]
+}

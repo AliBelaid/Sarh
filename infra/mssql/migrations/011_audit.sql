@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 011_audit.sql — append-only audit log (CLAUDE.md constraint #6)
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE audit_log (

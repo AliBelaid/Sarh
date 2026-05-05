@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 022_ssi_extras.sql — extra columns to track ACA-Py state on credentials
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 ALTER TABLE ssi_credentials ADD

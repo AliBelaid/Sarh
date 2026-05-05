@@ -1,4 +1,4 @@
-class SijilliNotification {
+class SarhNotification {
   final String id;
   final String kind; // sms | push | in_app | email
   final String titleAr;
@@ -7,7 +7,7 @@ class SijilliNotification {
   final DateTime sentAt;
   final DateTime? readAt;
 
-  SijilliNotification({
+  SarhNotification({
     required this.id,
     required this.kind,
     required this.titleAr,
@@ -19,8 +19,8 @@ class SijilliNotification {
 
   bool get isUnread => readAt == null;
 
-  factory SijilliNotification.fromJson(Map<String, dynamic> json) =>
-      SijilliNotification(
+  factory SarhNotification.fromJson(Map<String, dynamic> json) =>
+      SarhNotification(
         id: json['id'] as String,
         kind: json['kind'] as String? ?? 'in_app',
         titleAr: json['title_ar'] as String? ?? '',

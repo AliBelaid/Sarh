@@ -6,7 +6,7 @@ import type {
   PropertyStatus,
   ReviewDecision,
   ReviewResponse,
-} from '@sijilli/shared-types';
+} from '@sarh/shared-types';
 import { API_BASE } from './api-config';
 
 interface ListResponse {

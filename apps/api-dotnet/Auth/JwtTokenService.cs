@@ -3,9 +3,9 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
-using Sijilli.Api.Common.Errors;
+using Sarh.Api.Common.Errors;
 
-namespace Sijilli.Api.Auth;
+namespace Sarh.Api.Auth;
 
 public sealed class JwtTokenService
 {
@@ -14,19 +14,19 @@ public sealed class JwtTokenService
 
     public JwtTokenService(IConfiguration cfg)
     {
-        var secret = cfg["Sijilli:JwtSecret"] ?? "";
+        var secret = cfg["Sarh:JwtSecret"] ?? "";
         if (secret.Length < 32)
         {
             throw new InvalidOperationException(
-                "Sijilli:JwtSecret must be at least 32 chars. Set it in appsettings.json or env Sijilli__JwtSecret.");
+                "Sarh:JwtSecret must be at least 32 chars. Set it in appsettings.json or env Sarh__JwtSecret.");
         }
         _secretBytes = Encoding.UTF8.GetBytes(secret);
-        AccessTtlSeconds = int.TryParse(cfg["Sijilli:JwtAccessTtlSeconds"], out var ttl) ? ttl : 3600;
+        AccessTtlSeconds = int.TryParse(cfg["Sarh:JwtAccessTtlSeconds"], out var ttl) ? ttl : 3600;
     }
 
     public SecurityKey SigningKey => new SymmetricSecurityKey(_secretBytes);
 
-    public (string token, int expiresIn) SignAccessToken(SijilliJwtPayload payload)
+    public (string token, int expiresIn) SignAccessToken(SarhJwtPayload payload)
     {
         var json = JsonSerializer.Serialize(payload);
         using var doc = JsonDocument.Parse(json);
@@ -55,15 +55,15 @@ public sealed class JwtTokenService
         return (token, AccessTtlSeconds);
     }
 
-    public static SijilliJwtPayload FromClaimsPrincipal(ClaimsPrincipal user)
+    public static SarhJwtPayload FromClaimsPrincipal(ClaimsPrincipal user)
     {
         string? Get(string n) => user.FindFirst(n)?.Value;
-        var sub = Get("sub") ?? throw SijilliException.Unauthorized();
-        var role = Get("sijilli_role") ?? throw SijilliException.Unauthorized();
-        return new SijilliJwtPayload
+        var sub = Get("sub") ?? throw SarhException.Unauthorized();
+        var role = Get("sarh_role") ?? throw SarhException.Unauthorized();
+        return new SarhJwtPayload
         {
             Sub = sub,
-            SijilliRole = role,
+            SarhRole = role,
             Email = Get("email"),
             CitizenId = Get("citizen_id"),
             OfficerId = Get("officer_id"),

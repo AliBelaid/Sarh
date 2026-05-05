@@ -1,5 +1,5 @@
 {
-  "name": "@sijilli/web-citizen",
+  "name": "@sarh/web-citizen",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -39,7 +39,7 @@
     "@ngrx/effects": "^19.0.0",
     "@ngrx/store-devtools": "^19.0.0",
     "@jsverse/transloco": "^7.5.1",
-    "@sijilli/shared-types": "workspace:*"
+    "@sarh/shared-types": "workspace:*"
   },
   "devDependencies": {
     "@angular/build": "^21.1.3",

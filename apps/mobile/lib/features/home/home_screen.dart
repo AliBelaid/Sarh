@@ -6,7 +6,7 @@ import '../../app/router.dart';
 import '../../core/api/repositories.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/models/property.dart';
-import '../../core/theme/sijilli_colors.dart';
+import '../../core/theme/sarh_colors.dart';
 import 'widgets/status_chip.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -40,8 +40,8 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: SijilliColors.accent,
-        foregroundColor: SijilliColors.primary,
+        backgroundColor: SarhColors.accent,
+        foregroundColor: SarhColors.primary,
         onPressed: () => context.push(AppRoutes.wizard),
         icon: const Icon(Icons.add),
         label: const Text('تسجيل عقار'),
@@ -92,7 +92,7 @@ class _DigitalIdCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
-      color: SijilliColors.primary,
+      color: SarhColors.primary,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -100,7 +100,7 @@ class _DigitalIdCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.badge, color: SijilliColors.accent, size: 22),
+                const Icon(Icons.badge, color: SarhColors.accent, size: 22),
                 const SizedBox(width: 8),
                 Text(
                   'هويتي الرقمية',
@@ -113,7 +113,7 @@ class _DigitalIdCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
-                    color: SijilliColors.success.withValues(alpha: 0.18),
+                    color: SarhColors.success.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Text(
@@ -135,7 +135,7 @@ class _DigitalIdCard extends StatelessWidget {
                 fontFamily: 'monospace',
                 fontSize: 18,
                 letterSpacing: 1.4,
-                color: SijilliColors.accent,
+                color: SarhColors.accent,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -165,8 +165,8 @@ class _Greeting extends StatelessWidget {
         child: Row(
           children: [
             const CircleAvatar(
-              backgroundColor: SijilliColors.accent,
-              child: Icon(Icons.person, color: SijilliColors.primary),
+              backgroundColor: SarhColors.accent,
+              child: Icon(Icons.person, color: SarhColors.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -207,11 +207,11 @@ class _PropertyCard extends StatelessWidget {
                 height: 56,
                 width: 56,
                 decoration: BoxDecoration(
-                  color: SijilliColors.primary.withValues(alpha: 0.06),
+                  color: SarhColors.primary.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.location_on_outlined,
-                    color: SijilliColors.primary),
+                    color: SarhColors.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -248,12 +248,12 @@ class _EmptyState extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: const [
-            Icon(Icons.inbox_outlined, size: 48, color: SijilliColors.outline),
+            Icon(Icons.inbox_outlined, size: 48, color: SarhColors.outline),
             SizedBox(height: 8),
             Text('لا توجد عقارات مسجّلة بعد.'),
             SizedBox(height: 4),
             Text('اضغط "تسجيل عقار" للبدء.',
-                style: TextStyle(color: SijilliColors.outline)),
+                style: TextStyle(color: SarhColors.outline)),
           ],
         ),
       ),
@@ -271,7 +271,7 @@ class _ErrorView extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Text(
           message,
-          style: const TextStyle(color: SijilliColors.warn),
+          style: const TextStyle(color: SarhColors.warn),
         ),
       ),
     );

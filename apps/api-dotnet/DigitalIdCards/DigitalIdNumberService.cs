@@ -2,10 +2,10 @@ using System.Data;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Common.Errors;
-using Sijilli.Api.Data;
+using Sarh.Api.Common.Errors;
+using Sarh.Api.Data;
 
-namespace Sijilli.Api.DigitalIdCards;
+namespace Sarh.Api.DigitalIdCards;
 
 // Format: LY-RR-YYYY-SSSSSS-C
 //   LY     constant country code
@@ -20,18 +20,18 @@ namespace Sijilli.Api.DigitalIdCards;
 //   Luhn, so this service:
 //     1) calls the SQL function for serial allocation + format,
 //     2) overrides the check digit with a real Luhn digit before returning.
-public sealed partial class DigitalIdNumberService(SijilliDbContext db)
+public sealed partial class DigitalIdNumberService(SarhDbContext db)
 {
     private static readonly Regex IdRe = new(@"^LY-([0-9]{2,4})-([0-9]{4})-([0-9]{6})-([0-9])$");
 
     public async Task<string> NextAsync(string regionCode, int year, CancellationToken ct)
     {
         if (!Regex.IsMatch(regionCode, "^[0-9]{2,4}$"))
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "رمز المنطقة غير صالح.",
                 $"Invalid region code: {regionCode}");
         if (year < 2024 || year > 2100)
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "سنة الإصدار خارج النطاق المسموح.",
                 $"Issue year out of range: {year}");
 
@@ -42,10 +42,10 @@ public sealed partial class DigitalIdNumberService(SijilliDbContext db)
         cmd.Parameters.Add(new SqlParameter("@p_region_code", SqlDbType.NVarChar, 4) { Value = regionCode });
         cmd.Parameters.Add(new SqlParameter("@p_year", SqlDbType.Int) { Value = year });
         var raw = await cmd.ExecuteScalarAsync(ct) as string
-            ?? throw SijilliException.Upstream("generate_digital_id returned null");
+            ?? throw SarhException.Upstream("generate_digital_id returned null");
 
         var parts = Parse(raw)
-            ?? throw SijilliException.Upstream($"generate_digital_id returned malformed value: {raw}");
+            ?? throw SarhException.Upstream($"generate_digital_id returned malformed value: {raw}");
         return Format(parts with { Check = ComputeLuhn(parts) });
     }
 

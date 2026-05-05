@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 003_citizens.sql — citizens table + Arabic fulltext name search
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE citizens (
@@ -61,13 +61,13 @@ GO
 -- Skipped silently when SQL Server full-text feature isn't installed
 -- (e.g. Express without the FullText component) — the citizens search
 -- falls back to LIKE in that case.
-IF EXISTS (SELECT 1 FROM sys.fulltext_catalogs WHERE name = N'sijilli_ft')
+IF EXISTS (SELECT 1 FROM sys.fulltext_catalogs WHERE name = N'sarh_ft')
    AND SERVERPROPERTY(N'IsFullTextInstalled') = 1
 BEGIN
     BEGIN TRY
         EXEC(N'CREATE FULLTEXT INDEX ON citizens(full_name_ar LANGUAGE 1025)
               KEY INDEX ux_citizens_id_for_ft
-              ON sijilli_ft
+              ON sarh_ft
               WITH CHANGE_TRACKING AUTO;');
     END TRY
     BEGIN CATCH

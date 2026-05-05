@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using Sijilli.Api.Common;
-using Sijilli.Api.Data.Entities;
+using Sarh.Api.Common;
+using Sarh.Api.Data.Entities;
 
-namespace Sijilli.Api.Citizens;
+namespace Sarh.Api.Citizens;
 
 public sealed class CreateCitizenDto
 {

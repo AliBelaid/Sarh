@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Sijilli.Api.Verify;
+namespace Sarh.Api.Verify;
 
 public sealed class PublicDeedView
 {
@@ -15,4 +15,5 @@ public sealed class PublicDeedView
     public required string OwnerDisplayName { get; init; }
     public JsonElement? BoundaryPolygonGeojson { get; init; }
     public string? DeedPdfSignedUrl { get; init; }
+    public string? DeedSignedHash { get; init; }
 }

@@ -1,0 +1,133 @@
+---
+title: Sarh — Class diagram (.NET 8 backend domain)
+---
+classDiagram
+    direction LR
+
+    class Citizen {
+        +Guid Id
+        +string FirstNameAr
+        +string FatherNameAr
+        +string GrandfatherNameAr
+        +string FamilyNameAr
+        +string LegacyNationalNo
+        +DateTime BirthDate
+        +Gender Gender
+        +int RegionId
+        +bool IsActive
+        +DateTimeOffset CreatedAt
+    }
+
+    class Officer {
+        +Guid Id
+        +Guid AuthUserId
+        +string EmployeeNo
+        +string FullNameAr
+        +OfficerRole Role
+        +int RegionId
+        +Json Permissions
+        +bool IsActive
+    }
+
+    class Property {
+        +Guid Id
+        +string PropertyCode
+        +Guid OwnerCitizenId
+        +PropertyType PropertyType
+        +int RegionId
+        +Geography BoundaryPolygon
+        +Geography Centroid
+        +decimal AreaSqm
+        +PropertyStatus Status
+        +Guid ReviewedByOfficerId
+        +string DeedPdfPath
+        +string DeedSignedHash
+        +string VcCredentialId
+        +Submit() void
+        +Approve(officerId) void
+        +Reject(reason) void
+    }
+
+    class RegistrationRequest {
+        +Guid Id
+        +string RequestNo
+        +Guid PropertyId
+        +RequestStatus CurrentStatus
+        +DateTimeOffset SubmittedAt
+    }
+
+    class DigitalIdCard {
+        +Guid Id
+        +Guid CitizenId
+        +string DigitalIdNumber
+        +string CardSerial
+        +string NfcUid
+        +long LastNfcCounter
+        +string Did
+        +CardStatus Status
+        +DateTimeOffset IssuedAt
+        +DateTimeOffset ExpiresAt
+        +Issue(officerId) void
+        +Reissue(reason) void
+        +Revoke() void
+    }
+
+    class NfcCardSecret {
+        +Guid Id
+        +Guid CardId
+        +bytes MetaReadKeyEnc
+        +bytes SdmFileReadKeyEnc
+        +string KmsKeyId
+    }
+
+    class SsiWallet {
+        +Guid Id
+        +Guid CitizenId
+        +string Did
+        +Json DidDoc
+    }
+
+    class SsiCredential {
+        +Guid Id
+        +Guid WalletId
+        +CredentialType Type
+        +Json CredData
+    }
+
+    class AuditLog {
+        +long Id
+        +Guid ActorUserId
+        +string Action
+        +string Entity
+        +Guid EntityId
+        +Json BeforeState
+        +Json AfterState
+        +DateTimeOffset OccurredAt
+    }
+
+    class JwtTokenService {
+        -string Secret
+        +SignAccessToken(claims) string
+        +Verify(token) AuthClaims
+    }
+
+    class StorageService {
+        +UploadAsync(stream) string
+        +ReadAsync(path) Stream
+    }
+
+    class PadesSigner {
+        +SignAsync(pdf, certKey) bytes
+    }
+
+    Citizen --> Property : owns
+    Citizen --> DigitalIdCard : holds
+    Citizen --> SsiWallet : controls
+    Officer --> Property : reviews
+    Officer --> DigitalIdCard : issues
+    Property --> RegistrationRequest : submission
+    DigitalIdCard --> NfcCardSecret : encoded
+    SsiWallet --> SsiCredential : stores
+    Property --> PadesSigner : signs deed
+    DigitalIdCard --> StorageService : photo
+    Officer --> AuditLog : writes

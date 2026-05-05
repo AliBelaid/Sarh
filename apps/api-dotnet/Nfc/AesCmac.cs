@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace Sijilli.Api.Nfc;
+namespace Sarh.Api.Nfc;
 
 // AES-CMAC (RFC 4493). Hand-rolled to mirror the NestJS implementation in
 // apps/api/src/nfc/crypto/aes-cmac.ts byte-for-byte.

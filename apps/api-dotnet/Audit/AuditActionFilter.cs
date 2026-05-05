@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Sijilli.Api.Common.Errors;
+using Sarh.Api.Common.Errors;
 
-namespace Sijilli.Api.Audit;
+namespace Sarh.Api.Audit;
 
 // Global action filter that fires after a controller handler succeeds.
 // Looks up the [Audit] attribute on the action method (if any), buffers

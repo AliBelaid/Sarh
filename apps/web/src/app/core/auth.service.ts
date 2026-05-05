@@ -2,10 +2,10 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from './api-config';
-import { AuthUser, ROLE_HOME, SignInResponse, SijilliRole } from './auth.types';
+import { AuthUser, ROLE_HOME, SignInResponse, SarhRole } from './auth.types';
 
-const TOKEN_KEY = 'sijilli.access_token';
-const USER_KEY = 'sijilli.user';
+const TOKEN_KEY = 'sarh.access_token';
+const USER_KEY = 'sarh.user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -18,12 +18,12 @@ export class AuthService {
     return !!this.token() && !!this._user();
   }
 
-  hasRole(...roles: readonly SijilliRole[]): boolean {
+  hasRole(...roles: readonly SarhRole[]): boolean {
     const u = this._user();
     return !!u && roles.includes(u.role);
   }
 
-  homeFor(role: SijilliRole): string {
+  homeFor(role: SarhRole): string {
     return ROLE_HOME[role] ?? '/';
   }
 

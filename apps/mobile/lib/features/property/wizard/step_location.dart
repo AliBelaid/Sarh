@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
-import '../../../core/theme/sijilli_colors.dart';
+import '../../../core/theme/sarh_colors.dart';
 import 'wizard_state.dart';
 
 // Placeholder polygon picker.
@@ -129,7 +129,7 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
               child: state.hasPolygon
                   ? Text(
                       'تم تحديد مضلّع بـ ${state.polygonRing.length} نقاط.',
-                      style: const TextStyle(color: SijilliColors.success),
+                      style: const TextStyle(color: SarhColors.success),
                     )
                   : const Text('لم يتم تحديد مضلّع بعد.'),
             ),

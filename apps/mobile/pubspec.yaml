@@ -1,5 +1,5 @@
-name: sijilli_mobile
-description: Sijilli — Libyan Real Estate Registry & Digital Identity (citizen mobile app)
+name: sarh_mobile
+description: Sarh — Libyan Real Estate Registry & Digital Identity (citizen mobile app)
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -58,7 +58,7 @@ flutter:
   assets:
     - assets/branding/
 
-  # Sijilli ships with bundled Arabic + Latin font support so text in
+  # Sarh ships with bundled Arabic + Latin font support so text in
   # both scripts renders consistently across Android/iOS without
   # depending on system fonts.
   fonts:

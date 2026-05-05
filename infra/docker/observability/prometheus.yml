@@ -1,4 +1,4 @@
-# Sijilli — Prometheus scrape config. Loaded by infra/docker/observability
+# Sarh — Prometheus scrape config. Loaded by infra/docker/observability
 # service in docker-compose.production.yml.
 
 global:
@@ -6,7 +6,7 @@ global:
   scrape_timeout: 10s
   evaluation_interval: 30s
   external_labels:
-    cluster: sijilli-prod
+    cluster: sarh-prod
     region: ly-tip-1
 
 # Self-scrape for liveness.
@@ -18,7 +18,7 @@ scrape_configs:
   # ASP.NET Core API — apps/api-dotnet. /api/v1/metrics is wired in Phase 12
   # hardening (prometheus-net.AspNetCore). The service name resolves via
   # docker DNS.
-  - job_name: sijilli-api
+  - job_name: sarh-api
     metrics_path: /api/v1/metrics
     static_configs:
       - targets: ['api:3000']

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using Sijilli.Api.Data.Entities;
+using Sarh.Api.Data.Entities;
 
-namespace Sijilli.Api.DigitalIdCards;
+namespace Sarh.Api.DigitalIdCards;
 
 public sealed class IssueCardDto
 {

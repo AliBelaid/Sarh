@@ -1,10 +1,10 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Common.Errors;
-using Sijilli.Api.Data;
-using Sijilli.Api.Data.Entities;
+using Sarh.Api.Common.Errors;
+using Sarh.Api.Data;
+using Sarh.Api.Data.Entities;
 
-namespace Sijilli.Api.Nfc;
+namespace Sarh.Api.Nfc;
 
 // NfcKeyStore — wraps the per-card NFC keys at rest with AES-256-GCM using
 // KMS_MASTER_KEY (32 bytes hex from env). Mirrors
@@ -18,15 +18,15 @@ public sealed class NfcKeyStoreService
     private const int GcmTagLen = 16;
 
     private readonly byte[] _masterKey;
-    private readonly SijilliDbContext _db;
+    private readonly SarhDbContext _db;
 
-    public NfcKeyStoreService(IConfiguration config, SijilliDbContext db)
+    public NfcKeyStoreService(IConfiguration config, SarhDbContext db)
     {
         _db = db;
-        var hex = config["Sijilli:KmsMasterKey"] ?? Environment.GetEnvironmentVariable("KMS_MASTER_KEY");
+        var hex = config["Sarh:KmsMasterKey"] ?? Environment.GetEnvironmentVariable("KMS_MASTER_KEY");
         if (string.IsNullOrWhiteSpace(hex))
             throw new InvalidOperationException(
-                "KMS_MASTER_KEY (or Sijilli:KmsMasterKey) is required. Generate one with: " +
+                "KMS_MASTER_KEY (or Sarh:KmsMasterKey) is required. Generate one with: " +
                 "openssl rand -hex 32");
         if (hex.Length != 64 || !System.Text.RegularExpressions.Regex.IsMatch(hex, "^[0-9a-fA-F]+$"))
             throw new InvalidOperationException("KMS_MASTER_KEY must be 64 hex characters (32 bytes).");
@@ -71,11 +71,11 @@ public sealed class NfcKeyStoreService
     public async Task<SunKeys> LoadForCardAsync(Guid cardId, CancellationToken ct)
     {
         var secret = await _db.NfcCardSecrets.AsNoTracking().FirstOrDefaultAsync(s => s.CardId == cardId, ct)
-            ?? throw SijilliException.NotFound("مفاتيح البطاقة", "Card keys");
+            ?? throw SarhException.NotFound("مفاتيح البطاقة", "Card keys");
         if (secret.WrapAlg != WrapAlg)
-            throw SijilliException.Upstream($"Unsupported wrap algorithm: {secret.WrapAlg}");
+            throw SarhException.Upstream($"Unsupported wrap algorithm: {secret.WrapAlg}");
         if (secret.KmsKeyId != LocalKmsKeyId)
-            throw SijilliException.Upstream($"Unsupported KMS key id: {secret.KmsKeyId}");
+            throw SarhException.Upstream($"Unsupported KMS key id: {secret.KmsKeyId}");
 
         return new SunKeys
         {

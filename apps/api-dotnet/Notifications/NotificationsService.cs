@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Data;
-using Sijilli.Api.Data.Entities;
+using Sarh.Api.Data;
+using Sarh.Api.Data.Entities;
 
-namespace Sijilli.Api.Notifications;
+namespace Sarh.Api.Notifications;
 
 // Phase-6 notifications. Writes in-app rows to the notifications table on
 // key workflow events. Real SMS/email/push transports land in Phase 12 —
@@ -12,7 +12,7 @@ namespace Sijilli.Api.Notifications;
 //
 // Failures here MUST NOT escalate. Notification loss is acceptable; losing
 // the originating request because of a notification failure is not.
-public sealed class NotificationsService(SijilliDbContext db, ILogger<NotificationsService> log)
+public sealed class NotificationsService(SarhDbContext db, ILogger<NotificationsService> log)
 {
     public async Task NotifyCitizenAsync(
         Guid citizenId, string titleAr, string bodyAr, object? payload, CancellationToken ct)

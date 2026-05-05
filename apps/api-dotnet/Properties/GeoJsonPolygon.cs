@@ -1,13 +1,13 @@
 using System.Text;
 using System.Text.Json;
-using Sijilli.Api.Common.Errors;
+using Sarh.Api.Common.Errors;
 
-namespace Sijilli.Api.Properties;
+namespace Sarh.Api.Properties;
 
 /// <summary>
 /// Light validation + GeoJSON Polygon → SQL-Server WKT conversion.
 /// Mirrors apps/api/src/properties/utils/geojson.ts. We only handle the
-/// shape Sijilli emits: { "type":"Polygon", "coordinates": [ [ [lng,lat], … ] ] }.
+/// shape Sarh emits: { "type":"Polygon", "coordinates": [ [ [lng,lat], … ] ] }.
 /// </summary>
 public static class GeoJsonPolygon
 {
@@ -18,29 +18,29 @@ public static class GeoJsonPolygon
     public static (string Wkt, string GeoJson) ValidateAndConvert(JsonElement input)
     {
         if (input.ValueKind != JsonValueKind.Object)
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "حقل boundary_polygon يجب أن يكون GeoJSON Polygon.",
                 "boundary_polygon must be a GeoJSON Polygon object.");
 
         if (!input.TryGetProperty("type", out var typeEl) || typeEl.ValueKind != JsonValueKind.String ||
             typeEl.GetString() != "Polygon")
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "نوع GeoJSON يجب أن يكون Polygon.",
                 "GeoJSON type must be 'Polygon'.");
 
         if (!input.TryGetProperty("coordinates", out var coords) || coords.ValueKind != JsonValueKind.Array)
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "إحداثيات GeoJSON غير صالحة.",
                 "Invalid GeoJSON coordinates.");
 
         if (coords.GetArrayLength() < 1)
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "GeoJSON Polygon يحتاج إلى حلقة خارجية واحدة على الأقل.",
                 "GeoJSON Polygon must have at least one ring.");
 
         var ring = coords[0];
         if (ring.ValueKind != JsonValueKind.Array || ring.GetArrayLength() < MIN_RING_POINTS)
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 $"الحلقة الخارجية تحتاج إلى {MIN_RING_POINTS} نقاط على الأقل.",
                 $"Outer ring must have at least {MIN_RING_POINTS} points.");
 
@@ -48,17 +48,17 @@ public static class GeoJsonPolygon
         foreach (var pt in ring.EnumerateArray())
         {
             if (pt.ValueKind != JsonValueKind.Array || pt.GetArrayLength() < 2)
-                throw SijilliException.Validation(
+                throw SarhException.Validation(
                     "كل نقطة يجب أن تكون [lng, lat].",
                     "Each point must be [lng, lat].");
             var lng = pt[0].GetDouble();
             var lat = pt[1].GetDouble();
             if (double.IsNaN(lng) || double.IsNaN(lat) || double.IsInfinity(lng) || double.IsInfinity(lat))
-                throw SijilliException.Validation(
+                throw SarhException.Validation(
                     "إحداثية غير صالحة (NaN/Infinity).",
                     "Coordinate is NaN or Infinity.");
             if (lng < LIBYA_LNG_MIN || lng > LIBYA_LNG_MAX || lat < LIBYA_LAT_MIN || lat > LIBYA_LAT_MAX)
-                throw SijilliException.Validation(
+                throw SarhException.Validation(
                     $"الإحداثية ({lng}, {lat}) خارج حدود ليبيا التقريبيّة.",
                     $"Coordinate ({lng}, {lat}) is outside Libya's bounding box.");
             points.Add((lng, lat));
@@ -67,7 +67,7 @@ public static class GeoJsonPolygon
         var first = points[0];
         var last = points[^1];
         if (Math.Abs(first.Lng - last.Lng) > 1e-9 || Math.Abs(first.Lat - last.Lat) > 1e-9)
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "الحلقة الخارجية يجب أن تكون مغلقة (النقطة الأولى = الأخيرة).",
                 "Outer ring must be closed (first point equals last).");
 

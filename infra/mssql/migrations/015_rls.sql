@@ -15,7 +15,7 @@
 --   SESSION_CONTEXT('citizen_id' / 'officer_role') set by the API at the
 --   start of every request. The other tables rely on guards.
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 -- Helper: returns the current request's citizen_id (or NULL).

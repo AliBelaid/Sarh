@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/property.dart';
-import '../../../core/theme/sijilli_colors.dart';
+import '../../../core/theme/sarh_colors.dart';
 
 class StatusChip extends StatelessWidget {
   final PropertyStatus status;
@@ -11,13 +11,13 @@ class StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: SijilliColors.statusBackground(status.apiKey),
+        color: SarhColors.statusBackground(status.apiKey),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         status.arLabel,
         style: TextStyle(
-          color: SijilliColors.statusForeground(status.apiKey),
+          color: SarhColors.statusForeground(status.apiKey),
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),

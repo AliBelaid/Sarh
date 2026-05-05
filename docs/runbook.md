@@ -1,12 +1,12 @@
-# Sijilli — Operator Runbook
+# Sarh — Operator Runbook
 
-This runbook is the on-call playbook for production Sijilli. It covers
+This runbook is the on-call playbook for production Sarh. It covers
 outage triage, data restore, TLS rotation, NFC KMS rotation, and SSI agent
 restart. Every procedure here is destructive in some way — read the
 **Preconditions** block before acting.
 
-> All commands run from the deployment host as the `sijilli` operator
-> user. Image versions follow `infra/docker/.env` (`SIJILLI_VERSION`).
+> All commands run from the deployment host as the `sarh` operator
+> user. Image versions follow `infra/docker/.env` (`SARH_VERSION`).
 
 ---
 
@@ -18,8 +18,8 @@ restart. Every procedure here is destructive in some way — read the
   ```bash
   alias sjc='docker compose -f infra/docker/docker-compose.production.yml --env-file infra/docker/.env'
   ```
-- **Hostnames**: `sijilli.ly`, `verify.sijilli.ly`, `officer.sijilli.ly`,
-  `issuer.sijilli.ly`, `admin.sijilli.ly`, `agent.sijilli.ly` (ACA-Py).
+- **Hostnames**: `sarh.ly`, `verify.sarh.ly`, `officer.sarh.ly`,
+  `issuer.sarh.ly`, `admin.sarh.ly`, `agent.sarh.ly` (ACA-Py).
 
 ---
 
@@ -30,7 +30,7 @@ restart. Every procedure here is destructive in some way — read the
 | Symptom | First check |
 |---|---|
 | Edge returns 502 / 504 on every host | `sjc ps` — is the API container restarting? |
-| `verify.sijilli.ly/{code}` 5xxs but other hosts OK | API logs for `verify` route; Supabase reachability |
+| `verify.sarh.ly/{code}` 5xxs but other hosts OK | API logs for `verify` route; Supabase reachability |
 | Officer/admin login fails ("invalid token") | Supabase Auth status page; clock skew on edge host |
 | ID issuer wizard hangs at NFC step | Local NFC helper (`localhost:9090`) on the kiosk, NOT a server-side issue |
 | Citizen mobile shows "Network error" | Edge TLS expiry; DNS A/AAAA records; mobile carrier blocking |
@@ -39,9 +39,9 @@ restart. Every procedure here is destructive in some way — read the
 
 ```bash
 sjc ps
-curl -fsS https://sijilli.ly/healthz                    # edge → API
-curl -fsS https://sijilli.ly/api/v1/health              # API direct
-curl -fsS https://verify.sijilli.ly/api/v1/verify/PING  # rate-limited; 404 is OK, 5xx is not
+curl -fsS https://sarh.ly/healthz                    # edge → API
+curl -fsS https://sarh.ly/api/v1/health              # API direct
+curl -fsS https://verify.sarh.ly/api/v1/verify/PING  # rate-limited; 404 is OK, 5xx is not
 sjc logs --tail=200 api edge
 ```
 
@@ -63,10 +63,10 @@ named in this file would survive, but ad-hoc bind mounts won't.
 
 ```bash
 # Find last known-good tag (from the registry):
-docker pull ghcr.io/lvct/sijilli-api:<previous-sha>
+docker pull ghcr.io/lvct/sarh-api:<previous-sha>
 
 # Pin in .env, bounce only the changed service:
-sed -i 's/^SIJILLI_VERSION=.*/SIJILLI_VERSION=<previous-sha>/' infra/docker/.env
+sed -i 's/^SARH_VERSION=.*/SARH_VERSION=<previous-sha>/' infra/docker/.env
 sjc up -d api
 ```
 
@@ -78,28 +78,28 @@ sjc up -d api
 > `BACKUP_AGE_RECIPIENTS`. Without it, the snapshot is unrecoverable.
 > The restore target should be a **new** Supabase project or a clearly
 > labelled DR Postgres — never the live database without explicit
-> sign-off from the Sijilli data owner.
+> sign-off from the Sarh data owner.
 
 ### 2.1 Locate a snapshot
 
 ```bash
 # Snapshots land at s3://$BACKUP_S3_BUCKET/$BACKUP_S3_PREFIX/YYYY/MM/DD/
-aws s3 ls s3://sijilli-backups/supabase/2026/04/ --recursive
+aws s3 ls s3://sarh-backups/supabase/2026/04/ --recursive
 ```
 
 Each snapshot is two objects:
-- `sijilli-<UTCstamp>.dump.age` — encrypted custom-format pg_dump
-- `sijilli-<UTCstamp>.manifest.json` — sha256, size, recipient count
+- `sarh-<UTCstamp>.dump.age` — encrypted custom-format pg_dump
+- `sarh-<UTCstamp>.manifest.json` — sha256, size, recipient count
 
 ### 2.2 Verify integrity before decrypting
 
 ```bash
-aws s3 cp s3://.../sijilli-<stamp>.dump.age      ./
-aws s3 cp s3://.../sijilli-<stamp>.manifest.json ./
+aws s3 cp s3://.../sarh-<stamp>.dump.age      ./
+aws s3 cp s3://.../sarh-<stamp>.manifest.json ./
 
 # Compare sha256 against manifest:
-sha256sum sijilli-<stamp>.dump.age
-jq -r .sha256 sijilli-<stamp>.manifest.json
+sha256sum sarh-<stamp>.dump.age
+jq -r .sha256 sarh-<stamp>.manifest.json
 ```
 
 Mismatched hashes = **stop**. Page the data owner; do not try a "best
@@ -108,21 +108,21 @@ effort" restore.
 ### 2.3 Decrypt + restore
 
 ```bash
-age --decrypt -i ~/.config/sijilli/operator.age sijilli-<stamp>.dump.age \
-    > sijilli-<stamp>.dump
+age --decrypt -i ~/.config/sarh/operator.age sarh-<stamp>.dump.age \
+    > sarh-<stamp>.dump
 
 # Target is a fresh Postgres URI — NEVER the prod URI without sign-off.
 pg_restore \
   --no-owner --no-privileges \
   --clean --if-exists \
   --dbname="$RESTORE_DATABASE_URL" \
-  sijilli-<stamp>.dump
+  sarh-<stamp>.dump
 ```
 
 After restore, **immediately** wipe the plaintext dump:
 
 ```bash
-shred -u sijilli-<stamp>.dump
+shred -u sarh-<stamp>.dump
 ```
 
 ### 2.4 Post-restore checks
@@ -155,10 +155,10 @@ sjc exec certbot certbot renew --dry-run
 # 2) Run the one-shot issuance from inside certbot:
 sjc exec certbot certbot certonly --webroot \
   -w /var/www/certbot \
-  -d new.sijilli.ly \
+  -d new.sarh.ly \
   --non-interactive --agree-tos -m ops@lvct.ly
 
-# 3) Add a server{} block in infra/nginx/conf.d/sijilli.conf, commit,
+# 3) Add a server{} block in infra/nginx/conf.d/sarh.conf, commit,
 #    redeploy nginx config:
 sjc exec edge nginx -t && sjc exec edge nginx -s reload
 ```
@@ -247,7 +247,7 @@ Rotation requires a re-export/import:
 ```bash
 # 1) Export under old key:
 sjc exec aca-py aca-py provision \
-  --wallet-name sijilli-issuer --wallet-key "$OLD_KEY" --wallet-rekey "$NEW_KEY"
+  --wallet-name sarh-issuer --wallet-key "$OLD_KEY" --wallet-rekey "$NEW_KEY"
 
 # 2) Update .env, restart:
 sed -i "s|^ACA_PY_WALLET_KEY=.*|ACA_PY_WALLET_KEY=$NEW_KEY|" infra/docker/.env
@@ -275,8 +275,8 @@ identifier becomes orphaned. Procedure:
 
 | Surface | Owner | Channel |
 |---|---|---|
-| Backend / API / DB | LVCT engineering | `#sijilli-eng` (Slack) |
+| Backend / API / DB | LVCT engineering | `#sarh-eng` (Slack) |
 | Supabase tenant | Supabase support | dashboard → support |
 | Indy ledger (Sovrin MainNet) | Sovrin Foundation | sovrin.org/support |
-| AWS account (KMS, S3) | LVCT cloud ops | `#sijilli-cloud` |
+| AWS account (KMS, S3) | LVCT cloud ops | `#sarh-cloud` |
 | TLS / DNS | LVCT cloud ops | same |

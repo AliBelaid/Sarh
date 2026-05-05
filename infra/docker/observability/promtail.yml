@@ -1,4 +1,4 @@
-# Sijilli — Promtail config. Tails docker container stdout via the json-file
+# Sarh — Promtail config. Tails docker container stdout via the json-file
 # log driver and ships entries to Loki.
 
 server:
@@ -19,7 +19,7 @@ scrape_configs:
         refresh_interval: 15s
         filters:
           - name: name
-            values: [sijilli-]
+            values: [sarh-]
     relabel_configs:
       - source_labels: ['__meta_docker_container_name']
         regex: '/(.*)'

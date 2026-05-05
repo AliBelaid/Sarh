@@ -8,10 +8,8 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
 
 import { IdIssuerWizardService } from '../../wizard.service';
 
@@ -19,61 +17,108 @@ import { IdIssuerWizardService } from '../../wizard.service';
   selector: 'app-id-issuer-step2',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatCardModule, MatIconModule],
+  imports: [CommonModule],
   template: `
-    <h1 class="display">٢ / ٥ — التقاط الصورة</h1>
-    <p class="muted">{{ status() }}</p>
+    <section class="page">
+      <header class="head">
+        <h1 class="display">إصدار جديد</h1>
+        <p class="sub">{{ status() }}</p>
+      </header>
 
-    <mat-card>
-      <mat-card-content class="content">
-        @if (!wizard.photoDataUrl()) {
-          <div class="frame">
-            <video #video autoplay muted playsinline></video>
-            <div class="guide"></div>
-          </div>
-        } @else {
-          <img [src]="wizard.photoDataUrl()" alt="photo" class="frame" />
+      <ol class="stepper">
+        @for (s of steps; track s.n) {
+          <li [class.on]="s.n === 2" [class.done]="s.n < 2">
+            <span class="num">{{ s.n }}</span>
+            <span class="lbl">{{ s.label }}</span>
+          </li>
         }
-        <canvas #canvas hidden></canvas>
+      </ol>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>٢ / ٥ — التقاط الصورة</h2>
+          <p>وجّه الوجه داخل الإطار الذهبي ثم اضغط "التقاط".</p>
+        </div>
+
+        <div class="content">
+          @if (!wizard.photoDataUrl()) {
+            <div class="frame">
+              <video #video autoplay muted playsinline></video>
+              <div class="guide"></div>
+            </div>
+          } @else {
+            <img [src]="wizard.photoDataUrl()" alt="photo" class="frame photo" />
+          }
+          <canvas #canvas hidden></canvas>
+        </div>
 
         <div class="actions">
+          <button type="button" class="btn-back" (click)="back()">→ السابق</button>
           @if (!wizard.photoDataUrl()) {
-            <button mat-flat-button color="primary" (click)="capture()">
-              <mat-icon>photo_camera</mat-icon> التقاط
-            </button>
+            <button type="button" class="btn-primary" (click)="capture()">التقاط الصورة</button>
           } @else {
-            <button mat-stroked-button (click)="retake()">إعادة التقاط</button>
-            <button mat-flat-button color="primary" (click)="next()">التالي</button>
+            <button type="button" class="btn-secondary" (click)="retake()">إعادة التقاط</button>
+            <button type="button" class="btn-primary" (click)="next()">التالي ←</button>
           }
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
+    </section>
   `,
-  styles: [
-    `
-      h1 { margin: 0 0 0.5rem; color: var(--primary); }
-      .muted { color: var(--muted); margin: 0 0 1rem; }
-      .content { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
-      .frame {
-        width: 320px;
-        height: 400px;
-        border-radius: 8px;
-        background: #000;
-        position: relative;
-        overflow: hidden;
-        object-fit: cover;
-      }
-      .frame video { width: 100%; height: 100%; object-fit: cover; }
-      .guide {
-        position: absolute;
-        inset: 12% 12% 30%;
-        border: 2px dashed rgba(212, 175, 55, 0.7);
-        border-radius: 50%;
-        pointer-events: none;
-      }
-      .actions { display: flex; gap: 0.75rem; justify-content: center; }
-    `,
-  ],
+  styles: [`
+    :host { display: block; }
+    .page { max-width: 980px; margin: 0 auto; }
+
+    .head { margin-bottom: 18px; }
+    .head h1 { font-size: 22px; margin: 0 0 4px; color: var(--ink); }
+    .sub { font-size: 13px; color: var(--muted); margin: 0; }
+
+    .stepper { list-style: none; padding: 0; margin: 0 0 18px; display: flex; gap: 4px; flex-wrap: wrap; }
+    .stepper li { flex: 1; min-width: 120px; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; font-size: 12px; color: var(--muted); }
+    .stepper li.on { border-color: var(--primary); color: var(--ink); }
+    .stepper li.on .num { background: var(--primary); color: var(--accent); }
+    .stepper li.done { background: rgba(8, 145, 178, 0.05); border-color: rgba(8, 145, 178, 0.4); }
+    .stepper li.done .num { background: var(--good); color: #fff; }
+    .num { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--rule); color: var(--muted); font-weight: 700; font-size: 11px; flex-shrink: 0; }
+    .lbl { font-weight: 600; }
+
+    .card { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 22px; }
+    .card-head { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+    .card-head h2 { margin: 0 0 4px; font-size: 16px; color: var(--ink); }
+    .card-head p  { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+    .content { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 14px 0; }
+    .frame {
+      width: 320px;
+      max-width: 100%;
+      aspect-ratio: 4 / 5;
+      border-radius: 10px;
+      background: var(--primary);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--rule);
+    }
+    .frame video { width: 100%; height: 100%; object-fit: cover; }
+    .frame.photo { object-fit: cover; }
+    .guide {
+      position: absolute;
+      inset: 12% 12% 30%;
+      border: 2px dashed rgba(249, 115, 22, 0.7);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--rule); flex-wrap: wrap; }
+    .btn-primary, .btn-secondary, .btn-back {
+      padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: all .12s; border: 1px solid;
+    }
+    .btn-primary { background: var(--primary); color: var(--accent); border-color: var(--primary); }
+    .btn-primary:hover { background: var(--accent); color: var(--primary); }
+    .btn-secondary { background: #fff; color: var(--ink); border-color: var(--rule); }
+    .btn-secondary:hover { border-color: var(--accent); }
+    .btn-back { background: transparent; color: var(--muted); border-color: transparent; margin-inline-end: auto; }
+    .btn-back:hover { color: var(--ink); }
+  `],
 })
 export class IdIssuerStep2Page implements AfterViewInit, OnDestroy {
   private readonly router = inject(Router);
@@ -82,12 +127,20 @@ export class IdIssuerStep2Page implements AfterViewInit, OnDestroy {
   readonly videoRef = viewChild.required<ElementRef<HTMLVideoElement>>('video');
   readonly canvasRef = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
 
+  readonly steps = [
+    { n: 1, label: 'الهوية' },
+    { n: 2, label: 'الصورة' },
+    { n: 3, label: 'التوقيع' },
+    { n: 4, label: 'البصمة' },
+    { n: 5, label: 'المراجعة' },
+  ];
+
   readonly status = signal('جارٍ تشغيل الكاميرا…');
   private stream: MediaStream | null = null;
 
   async ngAfterViewInit(): Promise<void> {
     if (this.wizard.photoDataUrl()) {
-      this.status.set('تم التقاط الصورة.');
+      this.status.set('تم التقاط الصورة. يمكنك المتابعة أو إعادة الالتقاط.');
       return;
     }
     try {
@@ -137,7 +190,6 @@ export class IdIssuerStep2Page implements AfterViewInit, OnDestroy {
     void this.ngAfterViewInit();
   }
 
-  next(): void {
-    void this.router.navigate(['/id-issuer/produce/step3']);
-  }
+  back(): void { void this.router.navigate(['/app/issue/produce/step1']); }
+  next(): void { void this.router.navigate(['/app/issue/produce/step3']); }
 }

@@ -1,18 +1,18 @@
 <#
 .SYNOPSIS
-  Run Sijilli SQL Server migrations in order.
+  Run Sarh SQL Server migrations in order.
 
 .DESCRIPTION
   Replaces `supabase db reset`. Iterates files in
   infra/mssql/migrations/ in numeric order and pipes each through
   `sqlcmd`. 000_database.sql is run against `master`; everything else
-  against the `sijilli` database (each file does USE [sijilli] anyway).
+  against the `sarh` database (each file does USE [sarh] anyway).
 
 .PARAMETER Server
   SQL Server instance. Defaults to localhost.
 
 .PARAMETER Reset
-  If set, drops and recreates the `sijilli` database before applying
+  If set, drops and recreates the `sarh` database before applying
   migrations. Use only on dev.
 
 .EXAMPLE
@@ -55,12 +55,12 @@ function Invoke-Sqlcmd-File {
 }
 
 if ($Reset) {
-    Write-Host "Dropping sijilli database (Reset)" -ForegroundColor Yellow
+    Write-Host "Dropping sarh database (Reset)" -ForegroundColor Yellow
     $dropSql = @"
-IF DB_ID(N'sijilli') IS NOT NULL
+IF DB_ID(N'sarh') IS NOT NULL
 BEGIN
-    ALTER DATABASE [sijilli] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE [sijilli];
+    ALTER DATABASE [sarh] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE [sarh];
 END
 "@
     $tmp = [System.IO.Path]::GetTempFileName() + ".sql"
@@ -72,7 +72,7 @@ END
 $files = Get-ChildItem -Path $migrations -Filter "*.sql" | Sort-Object Name
 foreach ($f in $files) {
     # 000 creates the DB itself, run against master.
-    $db = if ($f.Name -like "000_*") { "master" } else { "sijilli" }
+    $db = if ($f.Name -like "000_*") { "master" } else { "sarh" }
     Invoke-Sqlcmd-File -Database $db -File $f.FullName
 }
 

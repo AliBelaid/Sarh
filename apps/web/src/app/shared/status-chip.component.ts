@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import type { PropertyStatus } from '@sijilli/shared-types';
+import type { PropertyStatus } from '@sarh/shared-types';
 
 const LABELS: Record<PropertyStatus, string> = {
   draft: 'مسودة',
@@ -34,19 +34,19 @@ const TONES: Record<PropertyStatus, string> = {
         border-radius: 999px;
         font-size: 0.85rem;
         font-weight: 600;
-        background: rgba(15, 26, 20, 0.08);
+        background: rgba(15, 23, 42, 0.08);
         color: var(--primary);
       }
       .chip[data-tone='success'] {
-        background: rgba(35, 158, 70, 0.12);
+        background: rgba(8, 145, 178, 0.12);
         color: var(--good);
       }
       .chip[data-tone='warn'] {
-        background: rgba(231, 0, 19, 0.12);
+        background: rgba(220, 38, 38, 0.12);
         color: var(--warn);
       }
       .chip[data-tone='accent'] {
-        background: rgba(212, 175, 55, 0.18);
+        background: rgba(249, 115, 22, 0.18);
         color: #8a6a14;
       }
     `,

@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 009_ssi.sql — SSI wallets and verifiable credentials (Hyperledger Aries)
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE ssi_wallets (

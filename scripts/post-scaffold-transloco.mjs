@@ -50,7 +50,7 @@ export const appConfig: ApplicationConfig = {
 const AR_JSON = JSON.stringify(
   {
     common: {
-      app_name: 'سِجِلّي',
+      app_name: 'صَرح',
       tagline: 'السجل العقاري والهوية الرقمية الليبية',
       login: 'تسجيل الدخول',
       logout: 'تسجيل الخروج',
@@ -84,7 +84,7 @@ const AR_JSON = JSON.stringify(
 const EN_JSON = JSON.stringify(
   {
     common: {
-      app_name: 'Sijilli',
+      app_name: 'Sarh',
       tagline: 'Libyan Real Estate Registry & Digital Identity',
       login: 'Sign in',
       logout: 'Sign out',

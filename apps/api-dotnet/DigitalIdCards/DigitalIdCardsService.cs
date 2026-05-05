@@ -1,18 +1,18 @@
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Auth;
-using Sijilli.Api.Common;
-using Sijilli.Api.Common.Errors;
-using Sijilli.Api.Data;
-using Sijilli.Api.Data.Entities;
-using Sijilli.Api.Nfc;
-using Sijilli.Api.Notifications;
+using Sarh.Api.Auth;
+using Sarh.Api.Common;
+using Sarh.Api.Common.Errors;
+using Sarh.Api.Data;
+using Sarh.Api.Data.Entities;
+using Sarh.Api.Nfc;
+using Sarh.Api.Notifications;
 
-namespace Sijilli.Api.DigitalIdCards;
+namespace Sarh.Api.DigitalIdCards;
 
 public sealed partial class DigitalIdCardsService(
-    SijilliDbContext db,
+    SarhDbContext db,
     DigitalIdNumberService numbers,
     NfcKeyStoreService keyStore,
     NotificationsService notifications,
@@ -24,7 +24,7 @@ public sealed partial class DigitalIdCardsService(
     // ---------------- LIST ----------------
     public async Task<CursorPage<CardView>> ListAsync(ListCardsQuery q, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.OfficerId is null) throw SijilliException.Forbidden();
+        if (actor.OfficerId is null) throw SarhException.Forbidden();
 
         IQueryable<DigitalIdCard> query = db.DigitalIdCards.AsNoTracking();
 
@@ -75,15 +75,15 @@ public sealed partial class DigitalIdCardsService(
     // ---------------- ISSUE ----------------
     public async Task<IssueCardResult> IssueAsync(IssueCardDto dto, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.OfficerId is null) throw SijilliException.Forbidden();
+        if (actor.OfficerId is null) throw SarhException.Forbidden();
 
         var citizen = await db.Citizens.AsNoTracking().FirstOrDefaultAsync(c => c.Id == dto.CitizenId, ct);
-        if (citizen is null || !citizen.IsActive) throw SijilliException.NotFound("المواطن", "Citizen");
+        if (citizen is null || !citizen.IsActive) throw SarhException.NotFound("المواطن", "Citizen");
 
         var hasActive = await db.DigitalIdCards.AsNoTracking()
             .AnyAsync(c => c.CitizenId == dto.CitizenId && c.Status == "active", ct);
         if (hasActive)
-            throw SijilliException.Conflict(
+            throw SarhException.Conflict(
                 "يوجد بطاقة فعّالة لهذا المواطن. استخدم إعادة الإصدار بدلاً من إصدار جديد.",
                 "Citizen already has an active card; use /reissue.");
 
@@ -114,7 +114,7 @@ public sealed partial class DigitalIdCardsService(
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateException ex) when (IsUnique(ex))
         {
-            throw SijilliException.Conflict(
+            throw SarhException.Conflict(
                 "تعارض في رقم البطاقة أو الرقم الرقمي.",
                 "Conflict on card_serial or digital_id_number.");
         }
@@ -166,10 +166,10 @@ public sealed partial class DigitalIdCardsService(
     // ---------------- REISSUE ----------------
     public async Task<IssueCardResult> ReissueAsync(Guid cardId, ReissueCardDto dto, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.OfficerId is null) throw SijilliException.Forbidden();
+        if (actor.OfficerId is null) throw SarhException.Forbidden();
 
         var old = await db.DigitalIdCards.AsNoTracking().FirstOrDefaultAsync(c => c.Id == cardId, ct)
-            ?? throw SijilliException.NotFound("البطاقة", "Card");
+            ?? throw SarhException.NotFound("البطاقة", "Card");
 
         await TransitionAsync(cardId, "revoked", $"إعادة إصدار: {dto.Reason}", actor, "revoked", ct);
 
@@ -198,7 +198,7 @@ public sealed partial class DigitalIdCardsService(
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateException ex) when (IsUnique(ex))
         {
-            throw SijilliException.Conflict(
+            throw SarhException.Conflict(
                 "تعارض في رقم البطاقة الجديد.",
                 "Conflict on reissued card_serial / digital_id_number.");
         }
@@ -237,17 +237,17 @@ public sealed partial class DigitalIdCardsService(
         Guid cardId, string nextStatus, string reason, CurrentUser actor,
         string historyAction, CancellationToken ct)
     {
-        if (actor.OfficerId is null) throw SijilliException.Forbidden();
+        if (actor.OfficerId is null) throw SarhException.Forbidden();
 
         var card = await db.DigitalIdCards.FirstOrDefaultAsync(c => c.Id == cardId, ct)
-            ?? throw SijilliException.NotFound("البطاقة", "Card");
+            ?? throw SarhException.NotFound("البطاقة", "Card");
 
         if (card.Status == "revoked")
-            throw SijilliException.Conflict(
+            throw SarhException.Conflict(
                 "البطاقة مُلغاة بالفعل ولا يمكن تعديل حالتها.",
                 "Card is already revoked.");
         if (nextStatus == "frozen" && card.Status == "frozen")
-            throw SijilliException.Conflict("البطاقة مجمّدة بالفعل.", "Card is already frozen.");
+            throw SarhException.Conflict("البطاقة مجمّدة بالفعل.", "Card is already frozen.");
 
         card.Status = nextStatus;
         if (nextStatus == "revoked")
@@ -275,7 +275,7 @@ public sealed partial class DigitalIdCardsService(
         if (!string.IsNullOrEmpty(dto.PhotoSha256))
         {
             if (!PhotoSha256Re.IsMatch(dto.PhotoSha256))
-                throw SijilliException.Validation(
+                throw SarhException.Validation(
                     "بصمة الصورة غير صالحة (يجب أن تكون 64 حرفاً سادس عشر).",
                     "photo_sha256 must be 64 hex characters.");
             return dto.PhotoSha256.ToLowerInvariant();
@@ -283,7 +283,7 @@ public sealed partial class DigitalIdCardsService(
 
         var path = dto.PhotoPath ?? citizenPhotoPath;
         if (string.IsNullOrEmpty(path))
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "يجب توفير صورة المواطن أو بصمتها قبل إصدار البطاقة.",
                 "Either photo_path or photo_sha256 is required.");
 
@@ -301,9 +301,9 @@ public sealed partial class DigitalIdCardsService(
 
     private string SunUrlTemplate()
     {
-        var baseUrl = config["Sijilli:NfcSunBaseUrl"]
+        var baseUrl = config["Sarh:NfcSunBaseUrl"]
             ?? Environment.GetEnvironmentVariable("NFC_SUN_BASE_URL")
-            ?? "https://verify.sijilli.ly/v";
+            ?? "https://verify.sarh.ly/v";
         return $"{baseUrl}?p={{picc}}&c={{cmac}}";
     }
 
@@ -313,7 +313,7 @@ public sealed partial class DigitalIdCardsService(
     private static string ParseRegionFromDigitalId(string id)
     {
         var m = Regex.Match(id, "^LY-([0-9]{2,4})-");
-        if (!m.Success) throw SijilliException.Upstream($"Cannot parse region from digital ID: {id}");
+        if (!m.Success) throw SarhException.Upstream($"Cannot parse region from digital ID: {id}");
         return m.Groups[1].Value;
     }
 

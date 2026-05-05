@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 004_digital_id.sql — digital ID cards + issuance history
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE digital_id_cards (

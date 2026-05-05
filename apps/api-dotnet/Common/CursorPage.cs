@@ -1,4 +1,4 @@
-namespace Sijilli.Api.Common;
+namespace Sarh.Api.Common;
 
 /// <summary>Standard cursor-pagination envelope used across list endpoints.</summary>
 public sealed class CursorPage<T>

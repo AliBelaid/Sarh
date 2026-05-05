@@ -67,7 +67,7 @@ class PropertiesRepository {
           .map((m) => Property.fromJson(m.cast<String, dynamic>()))
           .toList();
     } catch (e) {
-      throw SijilliApiError.unknown(_supabaseErrorMessage(e));
+      throw SarhApiError.unknown(_supabaseErrorMessage(e));
     }
   }
 
@@ -80,7 +80,7 @@ class PropertiesRepository {
           .single();
       return Property.fromJson((row).cast<String, dynamic>());
     } catch (e) {
-      throw SijilliApiError.unknown(_supabaseErrorMessage(e));
+      throw SarhApiError.unknown(_supabaseErrorMessage(e));
     }
   }
 
@@ -98,7 +98,7 @@ class PropertiesRepository {
   }) async {
     final citizenId = await _resolveCitizenId(_supabase);
     if (citizenId == null) {
-      throw SijilliApiError.unknown(
+      throw SarhApiError.unknown(
         'تعذّر إيجاد ملف المواطن المرتبط بحسابك. سجّل دخولاً تجريبياً أو من محطّة الإصدار.',
       );
     }
@@ -128,7 +128,7 @@ class PropertiesRepository {
           .single();
       return Property.fromJson((row).cast<String, dynamic>());
     } catch (e) {
-      throw SijilliApiError.unknown(_supabaseErrorMessage(e));
+      throw SarhApiError.unknown(_supabaseErrorMessage(e));
     }
   }
 
@@ -157,7 +157,7 @@ class PropertiesRepository {
         'storage_path': objectKey,
       });
     } catch (e) {
-      throw SijilliApiError.unknown(_supabaseErrorMessage(e));
+      throw SarhApiError.unknown(_supabaseErrorMessage(e));
     }
   }
 }
@@ -166,7 +166,7 @@ class NotificationsRepository {
   final SupabaseClient _supabase;
   NotificationsRepository(this._supabase);
 
-  Future<List<SijilliNotification>> inbox() async {
+  Future<List<SarhNotification>> inbox() async {
     final citizenId = await _resolveCitizenId(_supabase);
     try {
       var filter = _supabase.from('notifications').select();
@@ -178,10 +178,10 @@ class NotificationsRepository {
           .limit(50);
       return (rows as List)
           .cast<Map>()
-          .map((m) => SijilliNotification.fromJson(m.cast<String, dynamic>()))
+          .map((m) => SarhNotification.fromJson(m.cast<String, dynamic>()))
           .toList();
     } catch (e) {
-      throw SijilliApiError.unknown(_supabaseErrorMessage(e));
+      throw SarhApiError.unknown(_supabaseErrorMessage(e));
     }
   }
 
@@ -192,7 +192,7 @@ class NotificationsRepository {
           .update({'read_at': DateTime.now().toUtc().toIso8601String()})
           .eq('id', id);
     } catch (e) {
-      throw SijilliApiError.unknown(_supabaseErrorMessage(e));
+      throw SarhApiError.unknown(_supabaseErrorMessage(e));
     }
   }
 }
@@ -220,7 +220,7 @@ class WalletRepository {
           .map((m) => VerifiableCredential.fromJson(m.cast<String, dynamic>()))
           .toList();
     } catch (e) {
-      throw SijilliApiError.unknown(_supabaseErrorMessage(e));
+      throw SarhApiError.unknown(_supabaseErrorMessage(e));
     }
   }
 }
@@ -263,7 +263,7 @@ final propertyDetailProvider =
 });
 
 final myNotificationsProvider =
-    FutureProvider.autoDispose<List<SijilliNotification>>((ref) async {
+    FutureProvider.autoDispose<List<SarhNotification>>((ref) async {
   return ref.watch(notificationsRepoProvider).inbox();
 });
 

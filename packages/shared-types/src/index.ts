@@ -1,8 +1,8 @@
-// Sijilli — shared TypeScript types used by web apps and the public API.
+// Sarh — shared TypeScript types used by web apps and the public API.
 // Single source of truth for the wire shapes between frontends and the
 // NestJS backend. Keep these in sync with apps/api response shapes.
 
-export type SijilliRole =
+export type SarhRole =
   | 'super_admin'
   | 'registry_officer'
   | 'id_issuer'
@@ -134,7 +134,7 @@ export interface ReviewResponse {
   vc?: { credential_id: string; did: string; is_placeholder: boolean };
 }
 
-export interface SijilliNotification {
+export interface SarhNotification {
   id: string;
   recipient_citizen_id: string | null;
   recipient_officer_id: string | null;

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/models/property.dart';
-import '../../../core/theme/sijilli_colors.dart';
+import '../../../core/theme/sarh_colors.dart';
 import 'wizard_state.dart';
 
 class WizardStepType extends ConsumerWidget {
@@ -37,7 +37,7 @@ class WizardStepType extends ConsumerWidget {
                   if (v != null) controller.setType(v);
                 },
                 title: Text(t.arLabel),
-                activeColor: SijilliColors.accent,
+                activeColor: SarhColors.accent,
               ),
             ),
           const SizedBox(height: 24),

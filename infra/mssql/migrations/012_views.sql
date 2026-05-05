@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 012_views.sql — read views for frequently joined queries
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE OR ALTER VIEW v_citizen_full_name

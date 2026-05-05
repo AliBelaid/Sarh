@@ -1,28 +1,28 @@
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Auth;
-using Sijilli.Api.Common.Errors;
-using Sijilli.Api.Data;
+using Sarh.Api.Auth;
+using Sarh.Api.Common.Errors;
+using Sarh.Api.Data;
 
-namespace Sijilli.Api.Nfc;
+namespace Sarh.Api.Nfc;
 
 public sealed class NfcService(
-    SijilliDbContext db,
+    SarhDbContext db,
     NfcKeyStoreService keyStore)
 {
     // Issuer station post-write callback. Confirms the chip was written
     // successfully and binds its UID to the card row.
     public async Task<EncodeCardResult> RecordEncodedAsync(EncodeCardDto dto, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.OfficerId is null) throw SijilliException.Forbidden();
+        if (actor.OfficerId is null) throw SarhException.Forbidden();
 
         var card = await db.DigitalIdCards.FirstOrDefaultAsync(c => c.Id == dto.CardId, ct)
-            ?? throw SijilliException.NotFound("البطاقة", "Card");
+            ?? throw SarhException.NotFound("البطاقة", "Card");
 
         var newUid = dto.NfcUid.ToUpperInvariant();
         if (!string.IsNullOrEmpty(card.NfcUid) &&
             !string.Equals(card.NfcUid, newUid, StringComparison.OrdinalIgnoreCase))
         {
-            throw SijilliException.Conflict(
+            throw SarhException.Conflict(
                 "البطاقة مرتبطة بشريحة NFC مختلفة بالفعل.",
                 "Card is already bound to a different NFC UID.");
         }
@@ -33,7 +33,7 @@ public sealed class NfcService(
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateException ex) when (IsUnique(ex))
         {
-            throw SijilliException.Conflict(
+            throw SarhException.Conflict(
                 "هذه الشريحة مستخدمة في بطاقة أخرى.",
                 "This NFC UID is already bound to another card.");
         }
@@ -92,13 +92,13 @@ public sealed class NfcService(
                 if (!string.Equals(hex, candidate.NfcUid, StringComparison.OrdinalIgnoreCase)) continue;
             }
 
-            if (candidate.Status == "revoked") throw SijilliException.Forbidden("البطاقة ملغاة.");
-            if (candidate.Status == "frozen") throw SijilliException.Forbidden("البطاقة مجمّدة.");
+            if (candidate.Status == "revoked") throw SarhException.Forbidden("البطاقة ملغاة.");
+            if (candidate.Status == "frozen") throw SarhException.Forbidden("البطاقة مجمّدة.");
             if (candidate.ExpiresAt < DateTimeOffset.UtcNow)
-                throw SijilliException.Forbidden("البطاقة منتهية الصلاحية.");
+                throw SarhException.Forbidden("البطاقة منتهية الصلاحية.");
 
             if (decoded.Counter <= candidate.LastNfcCounter)
-                throw SijilliException.Unauthorized();
+                throw SarhException.Unauthorized();
 
             // Atomic-ish update: succeed only if our counter is strictly
             // higher than the persisted one.
@@ -108,11 +108,11 @@ public sealed class NfcService(
                     last_nfc_tap_at  = SYSDATETIMEOFFSET()
                 WHERE id = {candidate.Id}
                   AND last_nfc_counter < {decoded.Counter};", ct);
-            if (rows == 0) throw SijilliException.Unauthorized();
+            if (rows == 0) throw SarhException.Unauthorized();
 
             var citizen = await db.Citizens.AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == candidate.CitizenId, ct)
-                ?? throw SijilliException.Upstream("Citizen lookup failed");
+                ?? throw SarhException.Upstream("Citizen lookup failed");
 
             var fullNameAr = string.Join(" ", new[]
             {
@@ -136,7 +136,7 @@ public sealed class NfcService(
             };
         }
 
-        throw SijilliException.Unauthorized();
+        throw SarhException.Unauthorized();
     }
 
     private static (string PiccDataHex, string CmacHex, string? UidHex) ExtractParts(VerifySunDto dto)
@@ -148,11 +148,11 @@ public sealed class NfcService(
                 var parsed = SunMessage.ParseUrl(dto.Url);
                 return (parsed.PiccDataHex, parsed.CmacHex, parsed.UidHex);
             }
-            catch { throw SijilliException.Unauthorized(); }
+            catch { throw SarhException.Unauthorized(); }
         }
         if (!string.IsNullOrEmpty(dto.P) && !string.IsNullOrEmpty(dto.C))
             return (dto.P, dto.C, null);
-        throw SijilliException.Unauthorized();
+        throw SarhException.Unauthorized();
     }
 
     private const int UNIQUE_VIOLATION = 2627;

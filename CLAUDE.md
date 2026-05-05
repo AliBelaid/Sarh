@@ -1,8 +1,8 @@
-# CLAUDE.md — Sijilli Build Context
+# CLAUDE.md — Sarh Build Context
 
 ## Project Identity
-- **Name (AR)**: سِجِلّي
-- **Name (EN)**: Sijilli
+- **Name (AR)**: صَرح
+- **Name (EN)**: Sarh
 - **Purpose**: Libyan Real Estate Registry + Digital Identity issuance platform.
 - **Owner**: LVCT (Libya Vision for Communication & Technology).
 - **Target Users**: Libyan citizens, registry officers, ID issuance officers, super admins, public verifiers.
@@ -12,7 +12,7 @@
 2. **Ownership of digital identity must be re-issuable**: when (if) Libya launches a national digital ID, the system must migrate without data loss. Keep `legacy_national_no` field on every citizen.
 3. **Coordinates uniqueness**: two approved properties cannot share the same centroid. Polygon overlap must trigger a reviewer warning, not a hard block (legacy paper deeds may legitimately conflict).
 4. **NFC card cloning resistance**: use NTAG 424 DNA only. Static UID is not enough. Each card must produce a SUN message with rolling counter validated server-side.
-5. **Tamper-evident documents**: every issued PDF deed must be PAdES-signed and contain a verifiable QR pointing to `verify.sijilli.ly/{deed_id}`.
+5. **Tamper-evident documents**: every issued PDF deed must be PAdES-signed and contain a verifiable QR pointing to `verify.sarh.ly/{deed_id}`.
 6. **Audit log is append-only**. No UPDATE or DELETE allowed.
 7. **No free-text role checking in code** — always go through the JSON permission map on `officers.permissions`.
 
@@ -20,15 +20,15 @@
 - **Backend**: ASP.NET Core 8 (.NET 8), C# 12, EF Core 8 (`Microsoft.EntityFrameworkCore.SqlServer`) + `Microsoft.Data.SqlClient`. Lives at `apps/api-dotnet/`. The legacy NestJS service (`apps/api/`) was retired in Phase 7 — `git checkout 949a57d -- apps/api/` resurrects it if needed
 - **Database**: Local **SQL Server 2019/2022** with `geography` for geometry, full-text catalog (Arabic) for name search, `INSTEAD OF` triggers for the append-only audit log. Migrations live in `infra/mssql/migrations/000–025.sql` and run via `pnpm db:reset` → `scripts/db/run-migrations.ps1` (sqlcmd-based)
 - **Mobile**: Flutter 3.22+, Dart 3.4, Riverpod 2.x, go_router, flutter_nfc_kit, mapbox_maps_flutter
-- **Web**: Single Angular 21 app at `apps/web/` (citizen + officer + id-issuer + admin + verify behind role-based routing) with Material 21, transloco (RTL), Sijilli brand SCSS tokens. The four legacy `apps/web-{citizen,officer,id-issuer,admin}/` apps remain in the repo only as a source for component migration; they no longer build into the prod compose stack as primaries
+- **Web**: Single Angular 21 app at `apps/web/` (citizen + officer + id-issuer + admin + verify behind role-based routing) with Material 21, transloco (RTL), Sarh brand SCSS tokens. The four legacy `apps/web-{citizen,officer,id-issuer,admin}/` apps remain in the repo only as a source for component migration; they no longer build into the prod compose stack as primaries
 - **SSI**: Hyperledger Aries Cloud Agent Python (ACA-Py) v0.12+, did:sov method
-- **Auth**: Custom HS256 JWT (`SIJILLI_JWT_SECRET`) + bcrypt (`BCrypt.Net-Next`); `auth_users` table + `sijilli_auth_claims` proc emit the same `citizen_id`/`officer_id`/`role`/`permissions` shape the rest of the app expects. `apps/api-dotnet/Auth/JwtTokenService.cs` signs/verifies; the global `[Authorize]` attribute + per-method `[OfficerOnly(...)]` filter validate locally with no DB roundtrip
+- **Auth**: Custom HS256 JWT (`SARH_JWT_SECRET`) + bcrypt (`BCrypt.Net-Next`); `auth_users` table + `sarh_auth_claims` proc emit the same `citizen_id`/`officer_id`/`role`/`permissions` shape the rest of the app expects. `apps/api-dotnet/Auth/JwtTokenService.cs` signs/verifies; the global `[Authorize]` attribute + per-method `[OfficerOnly(...)]` filter validate locally with no DB roundtrip
 - **Storage**: Local filesystem under `STORAGE_ROOT`; `apps/api-dotnet/Storage/StorageService.cs` exposes `UploadAsync` / `ReadAsync` / `OpenRead` / `WriteRawAsync`. The verify deed PDF is streamed via the public route `GET /api/v1/verify/:code/deed.pdf`
 - **Realtime**: ASP.NET Core SignalR (planned; previously NestJS WebSocket gateway / Supabase Realtime)
 
 ## Repository Layout
 ```
-sijilli/
+sarh/
 ├── apps/
 │   ├── api-dotnet/           # ASP.NET Core 8 backend (mssql + bcrypt + JWT)
 │   ├── web/                  # Single Angular app (current; ports 4200)
@@ -73,11 +73,11 @@ sijilli/
 ## Frontend Conventions
 - All Angular apps share `packages/ui-kit` for RTL components.
 - Material 17 with custom theme matching brand colors:
-  - Primary: `#0F1A14` (Libyan black)
-  - Accent:  `#D4AF37` (gold)
-  - Warn:    `#E70013` (Libyan red)
-  - Success: `#239E46` (Libyan green)
-- Flutter app uses identical color tokens (lib/core/theme/sijilli_colors.dart).
+  - Primary: `#0F172A` (Libyan black)
+  - Accent:  `#F97316` (gold)
+  - Warn:    `#DC2626` (Libyan red)
+  - Success: `#0891B2` (Libyan green)
+- Flutter app uses identical color tokens (lib/core/theme/sarh_colors.dart).
 - Form validation messages always in Arabic.
 
 ## Security Checklist (per build phase)
@@ -90,7 +90,7 @@ sijilli/
 - [ ] Antivirus scan on uploaded documents (ClamAV in Edge Function)
 
 ## Branding Assets
-- Logo:           `branding/logo-sijilli.svg`
+- Logo:           `branding/logo-sarh.svg`
 - Login bg:       `branding/login-background.svg`
 - Architecture:   `docs/architecture-diagram.svg`
 - Favicon:        derive from logo, 32x32 + 192x192 + 512x512

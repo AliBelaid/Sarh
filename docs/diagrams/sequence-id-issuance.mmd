@@ -1,0 +1,47 @@
+---
+title: Sarh — Digital ID card issuance sequence
+---
+sequenceDiagram
+    autonumber
+    actor Officer as ID Issuer<br/>Officer
+    actor Citizen as Citizen
+    participant Web as ID-Issuer Station<br/>(Angular)
+    participant API as .NET 8 API
+    participant DB as SQL Server
+    participant NFC as NTAG 424 DNA<br/>Reader
+    participant SSI as ACA-Py<br/>(SSI agent)
+    participant Print as Card Printer
+
+    Officer->>Web: opens Issue station
+    Citizen->>Officer: presents legacy paper ID
+    Officer->>Web: Step 1 — enters identity
+    Officer->>Web: Step 2 — captures photo
+    Officer->>Web: Step 3 — captures signature
+    Officer->>Web: Step 4 — fingerprint (optional)
+    Officer->>Web: Step 5 — review
+    Web->>API: POST /api/v1/citizens<br/>{name, dob, region, photo}
+    API->>DB: INSERT citizen, audit_log
+    DB-->>API: { citizen_id, digital_id_number }
+    API-->>Web: 201 Created
+
+    Web->>Web: navigate /finalize
+    Officer->>Web: clicks "Issue & Encode"
+    Web->>API: POST /api/v1/digital-id-cards
+    API->>DB: INSERT digital_id_cards
+    API->>DB: INSERT nfc_card_secrets<br/>(AES-GCM wrapped keys)
+    API->>SSI: create_did + issue VC<br/>type=CitizenIdentity
+    SSI-->>API: { did, credential_id }
+    API->>DB: UPDATE card SET did, vc_id
+    API-->>Web: 200 { card, nfc_keys, sun_url_template }
+
+    Web->>NFC: encode_card(uid, keys, SUN URL)
+    NFC-->>Web: write_ok=true
+    Web->>API: POST /api/v1/digital-id-cards/{id}/confirm-encoded
+    API->>DB: INSERT id_issuance_history (action=issue)
+    API->>DB: INSERT audit_log
+
+    Web->>Print: render PDF + send to printer
+    Print-->>Officer: physical card
+    Officer->>Citizen: hands card
+
+    Note over Citizen,API: Public verify: tap card →<br/>verify.sarh.ly/{sun} resolves SDM<br/>+ checks rolling counter

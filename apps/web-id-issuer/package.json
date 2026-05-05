@@ -1,5 +1,5 @@
 {
-  "name": "@sijilli/web-id-issuer",
+  "name": "@sarh/web-id-issuer",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -40,7 +40,7 @@
     "@ngrx/store-devtools": "^19.0.0",
     "@jsverse/transloco": "^7.5.1",
     "@supabase/supabase-js": "^2.45.4",
-    "@sijilli/shared-types": "workspace:*"
+    "@sarh/shared-types": "workspace:*"
   },
   "devDependencies": {
     "@angular/build": "^21.1.3",

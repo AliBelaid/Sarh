@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Sijilli.Api.Common.Errors;
+using Sarh.Api.Common.Errors;
 
-namespace Sijilli.Api.Auth;
+namespace Sarh.Api.Auth;
 
-/// <summary>Authorize-style attribute that requires <c>sijilli_role</c> ∈ allowed.</summary>
+/// <summary>Authorize-style attribute that requires <c>sarh_role</c> ∈ allowed.</summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequireRoleAttribute : Attribute, IAsyncActionFilter
 {
@@ -13,9 +13,9 @@ public class RequireRoleAttribute : Attribute, IAsyncActionFilter
 
     public Task OnActionExecutionAsync(ActionExecutingContext ctx, ActionExecutionDelegate next)
     {
-        var role = ctx.HttpContext.User.FindFirst("sijilli_role")?.Value;
-        if (string.IsNullOrEmpty(role)) throw SijilliException.Unauthorized();
-        if (!_allowed.Contains(role)) throw SijilliException.Forbidden();
+        var role = ctx.HttpContext.User.FindFirst("sarh_role")?.Value;
+        if (string.IsNullOrEmpty(role)) throw SarhException.Unauthorized();
+        if (!_allowed.Contains(role)) throw SarhException.Forbidden();
         return next();
     }
 }

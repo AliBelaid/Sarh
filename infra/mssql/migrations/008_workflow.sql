@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 008_workflow.sql — registration requests + reviewer comments
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE registration_requests (

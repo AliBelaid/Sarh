@@ -1,0 +1,62 @@
+---
+title: Sarh — Property submission, review, and deed issuance
+---
+sequenceDiagram
+    autonumber
+    actor C as Citizen
+    actor O as Registry officer
+    participant W as apps/web (Angular)
+    participant API as .NET 8 API
+    participant DB as SQL Server
+    participant FS as Storage<br/>(local FS)
+    participant PDF as PAdES signer
+    participant SSI as ACA-Py<br/>(Hyperledger Aries)
+    actor V as Public verifier
+
+    rect rgb(239, 246, 255)
+    Note over C,DB: 1) Submission
+    C->>W: fill form + draw polygon
+    W->>API: POST /api/v1/properties { polygon, area, docs }
+    API->>DB: INSERT properties (status='pending')
+    API->>DB: INSERT registration_requests
+    DB-->>API: property_id, request_no
+    API-->>W: 201 SubmitResult
+    end
+
+    rect rgb(254, 252, 232)
+    Note over O,DB: 2) Review
+    O->>W: open /app/queue
+    W->>API: GET /api/v1/properties?status=pending
+    API->>DB: SELECT
+    DB-->>W: list
+    O->>W: open detail, read docs, view map
+    O->>W: click "Approve" + decree no
+    W->>API: POST /api/v1/properties/:id/review { decision: 'approve', approval_decree_no }
+    API->>DB: UPDATE properties SET status='approved',<br/>reviewed_by_officer_id, approval_decree_no
+    DB->>DB: AFTER UPDATE trigger → audit_log INSERT
+    end
+
+    rect rgb(236, 253, 245)
+    Note over API,SSI: 3) Deed + VC issuance
+    API->>PDF: generate deed PDF<br/>(citizen, polygon, decree)
+    PDF-->>API: signed PAdES bytes + SHA256
+    API->>FS: write deeds/<id>.pdf
+    API->>DB: UPDATE properties SET deed_pdf_path, deed_signed_hash
+    API->>SSI: issue VC (PropertyDeed) for citizen DID
+    SSI-->>API: credential_id
+    API->>DB: UPDATE properties SET vc_credential_id
+    API->>DB: INSERT notifications (citizen, "deed ready")
+    end
+
+    rect rgb(254, 226, 226)
+    Note over C,V: 4) Delivery + public verify
+    C->>W: open /app/my/properties → download PDF
+    W->>API: GET /api/v1/storage/deeds/<id>.pdf
+    API->>FS: read file
+    FS-->>C: PDF (with QR pointing to /verify/<code>)
+
+    V->>W: scan QR / open /verify/<code>
+    W->>API: GET /api/v1/verify/:code
+    API->>DB: SELECT property + verify hash
+    API-->>V: 200 { owner, area, decree, signed: true }
+    end

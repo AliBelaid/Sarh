@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Sijilli.Api.Nfc;
+namespace Sarh.Api.Nfc;
 
 public sealed class EncodeCardDto
 {

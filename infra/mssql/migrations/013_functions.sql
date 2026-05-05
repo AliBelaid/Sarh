@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 013_functions.sql — domain functions (digital ID generation, overlap check)
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 -- Auto-generate digital ID number with Luhn-style check.

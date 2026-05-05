@@ -1,7 +1,7 @@
-// Post-scaffold transformer for Sijilli Angular apps.
+// Post-scaffold transformer for Sarh Angular apps.
 // Applies: RTL + Arabic, brand colors, dev server port,
-// @sijilli/* package name, Material + transloco + NgRx in deps,
-// Sijilli landing page.
+// @sarh/* package name, Material + transloco + NgRx in deps,
+// Sarh landing page.
 //
 // Run: node scripts/post-scaffold-angular.mjs
 
@@ -13,37 +13,37 @@ const REPO = path.resolve(import.meta.dirname, '..');
 const APPS = [
   {
     dir: 'web-citizen',
-    pkg: '@sijilli/web-citizen',
+    pkg: '@sarh/web-citizen',
     port: 4200,
-    titleAr: 'سِجِلّي — بوابة المواطن',
-    titleEn: 'Sijilli — Citizen Portal',
+    titleAr: 'صَرح — بوابة المواطن',
+    titleEn: 'Sarh — Citizen Portal',
     headlineAr: 'بوابة المواطن',
     subAr: 'سجّل عقاراتك، تابع طلباتك، شارك وثائقك بأمان.',
   },
   {
     dir: 'web-officer',
-    pkg: '@sijilli/web-officer',
+    pkg: '@sarh/web-officer',
     port: 4201,
-    titleAr: 'سِجِلّي — لوحة موظف السجل',
-    titleEn: 'Sijilli — Registry Officer',
+    titleAr: 'صَرح — لوحة موظف السجل',
+    titleEn: 'Sarh — Registry Officer',
     headlineAr: 'لوحة موظف السجل العقاري',
     subAr: 'مراجعة الطلبات، فحص الإحداثيات، اعتماد الوثائق.',
   },
   {
     dir: 'web-id-issuer',
-    pkg: '@sijilli/web-id-issuer',
+    pkg: '@sarh/web-id-issuer',
     port: 4202,
-    titleAr: 'سِجِلّي — محطة إصدار الهوية',
-    titleEn: 'Sijilli — ID Issuance Station',
+    titleAr: 'صَرح — محطة إصدار الهوية',
+    titleEn: 'Sarh — ID Issuance Station',
     headlineAr: 'محطة إصدار الهوية الرقمية',
     subAr: 'إدخال بيانات المواطن، التقاط الصورة، ترميز بطاقة NFC.',
   },
   {
     dir: 'web-admin',
-    pkg: '@sijilli/web-admin',
+    pkg: '@sarh/web-admin',
     port: 4203,
-    titleAr: 'سِجِلّي — لوحة الإدارة',
-    titleEn: 'Sijilli — Admin Console',
+    titleAr: 'صَرح — لوحة الإدارة',
+    titleEn: 'Sarh — Admin Console',
     headlineAr: 'لوحة الإدارة العامة',
     subAr: 'إدارة الموظفين، التدقيق، التقارير، إعدادات النظام.',
   },
@@ -116,7 +116,7 @@ for (const app of APPS) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body class="sijilli-body">
+<body class="sarh-body">
   <app-root></app-root>
 </body>
 </html>
@@ -126,16 +126,16 @@ for (const app of APPS) {
   // ---- styles.scss: brand tokens + RTL-friendly base ----
   write(
     path.join(root, 'src/styles.scss'),
-    `// Sijilli — global styles
+    `// Sarh — global styles
 // Brand tokens (from CLAUDE.md)
 :root {
-  --sijilli-primary: #0F1A14;   // أسود ليبي
-  --sijilli-accent:  #D4AF37;   // ذهبي رسمي
-  --sijilli-warn:    #E70013;   // أحمر ليبي
-  --sijilli-success: #239E46;   // أخضر ليبي
-  --sijilli-bg:      #FAF9F6;
-  --sijilli-text:    #1A1A1A;
-  --sijilli-muted:   #6B6B6B;
+  --sarh-primary: #0F1A14;   // أسود ليبي
+  --sarh-accent:  #D4AF37;   // ذهبي رسمي
+  --sarh-warn:    #E70013;   // أحمر ليبي
+  --sarh-success: #239E46;   // أخضر ليبي
+  --sarh-bg:      #FAF9F6;
+  --sarh-text:    #1A1A1A;
+  --sarh-muted:   #6B6B6B;
 }
 
 * { box-sizing: border-box; }
@@ -145,8 +145,8 @@ html, body {
   margin: 0;
   padding: 0;
   font-family: 'Noto Naskh Arabic', 'Amiri', 'Segoe UI', Tahoma, sans-serif;
-  background: var(--sijilli-bg);
-  color: var(--sijilli-text);
+  background: var(--sarh-bg);
+  color: var(--sarh-text);
   direction: rtl;
 }
 
@@ -156,29 +156,29 @@ code, kbd, pre, .ltr-num {
   unicode-bidi: isolate;
 }
 
-a { color: var(--sijilli-accent); text-decoration: none; }
+a { color: var(--sarh-accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 `,
   );
 
-  // ---- src/app/app.html: simple Sijilli landing ----
+  // ---- src/app/app.html: simple Sarh landing ----
   write(
     path.join(root, 'src/app/app.html'),
-    `<main class="sijilli-shell">
-  <header class="sijilli-shell__header">
-    <div class="sijilli-brand">
-      <span class="sijilli-brand__name">سِجِلّي</span>
-      <span class="sijilli-brand__sub">${app.headlineAr}</span>
+    `<main class="sarh-shell">
+  <header class="sarh-shell__header">
+    <div class="sarh-brand">
+      <span class="sarh-brand__name">صَرح</span>
+      <span class="sarh-brand__sub">${app.headlineAr}</span>
     </div>
   </header>
 
-  <section class="sijilli-shell__body">
+  <section class="sarh-shell__body">
     <h1>${app.headlineAr}</h1>
     <p class="lead">${app.subAr}</p>
     <p class="muted ltr-num">${app.titleEn} · v0.1.0</p>
   </section>
 
-  <footer class="sijilli-shell__footer">
+  <footer class="sarh-shell__footer">
     <span>© LVCT · رؤية ليبيا للاتصالات وتقنية المعلومات</span>
   </footer>
 </main>
@@ -190,56 +190,56 @@ a:hover { text-decoration: underline; }
   // ---- src/app/app.scss ----
   write(
     path.join(root, 'src/app/app.scss'),
-    `.sijilli-shell {
+    `.sarh-shell {
   min-height: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr auto;
 }
 
-.sijilli-shell__header {
-  background: var(--sijilli-primary);
-  color: var(--sijilli-bg);
+.sarh-shell__header {
+  background: var(--sarh-primary);
+  color: var(--sarh-bg);
   padding: 1rem 2rem;
-  border-bottom: 3px solid var(--sijilli-accent);
+  border-bottom: 3px solid var(--sarh-accent);
 }
 
-.sijilli-brand {
+.sarh-brand {
   display: flex;
   align-items: baseline;
   gap: 1rem;
 }
-.sijilli-brand__name {
+.sarh-brand__name {
   font-family: 'Amiri', serif;
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--sijilli-accent);
+  color: var(--sarh-accent);
 }
-.sijilli-brand__sub {
+.sarh-brand__sub {
   font-size: 1rem;
   opacity: 0.85;
 }
 
-.sijilli-shell__body {
+.sarh-shell__body {
   padding: 4rem 2rem;
   max-width: 960px;
   margin: 0 auto;
   text-align: start;
 }
-.sijilli-shell__body h1 {
+.sarh-shell__body h1 {
   font-family: 'Amiri', serif;
   font-size: 2.5rem;
   margin: 0 0 1rem;
-  color: var(--sijilli-primary);
+  color: var(--sarh-primary);
 }
-.lead { font-size: 1.15rem; line-height: 1.8; color: var(--sijilli-text); }
-.muted { color: var(--sijilli-muted); margin-top: 2rem; }
+.lead { font-size: 1.15rem; line-height: 1.8; color: var(--sarh-text); }
+.muted { color: var(--sarh-muted); margin-top: 2rem; }
 
-.sijilli-shell__footer {
+.sarh-shell__footer {
   padding: 1rem 2rem;
   text-align: center;
   background: #fff;
   border-top: 1px solid #eee;
-  color: var(--sijilli-muted);
+  color: var(--sarh-muted);
   font-size: 0.9rem;
 }
 `,

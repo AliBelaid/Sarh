@@ -1,6 +1,6 @@
-# sijilli_mobile
+# sarh_mobile
 
-Sijilli citizen mobile app
+Sarh citizen mobile app
 
 ## Getting Started
 

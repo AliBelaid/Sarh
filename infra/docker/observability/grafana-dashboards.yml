@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: sijilli
+  - name: sarh
     orgId: 1
-    folder: Sijilli
+    folder: Sarh
     type: file
     disableDeletion: true
     editable: false

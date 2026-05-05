@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Sijilli.Api.Audit;
-using Sijilli.Api.Auth;
+using Sarh.Api.Audit;
+using Sarh.Api.Auth;
 
-namespace Sijilli.Api.Controllers;
+namespace Sarh.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/auth")]

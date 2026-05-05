@@ -3,17 +3,17 @@
 -- Phase 3 .NET workflow smoke tests.
 -- Idempotent: safe to re-run.
 --
--- Demo officer credentials: officer@sijilli.ly / Officer!12345
+-- Demo officer credentials: officer@sarh.ly / Officer!12345
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 DECLARE @off_auth_id   UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000010';
 DECLARE @off_id        UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000011';
-DECLARE @off_email     NVARCHAR(120)    = N'officer@sijilli.ly';
+DECLARE @off_email     NVARCHAR(120)    = N'officer@sarh.ly';
 -- bcrypt('Officer!12345', 10)
 DECLARE @off_pwhash    NVARCHAR(120)    = N'$2b$10$Mkfd3xb.AZRwhi.kolBN6eY308A2WkjISVJNyfrIjGCvJSyzuV.7G';
-DECLARE @off_app_meta  NVARCHAR(MAX)    = N'{"sijilli_role":"registry_officer"}';
+DECLARE @off_app_meta  NVARCHAR(MAX)    = N'{"sarh_role":"registry_officer"}';
 DECLARE @off_user_meta NVARCHAR(MAX)    = N'{"full_name_ar":"موظف ديمو"}';
 
 -- 1) Auth user for the officer.
@@ -50,7 +50,7 @@ WHEN NOT MATCHED THEN
     INSERT (id, auth_user_id, employee_no, full_name_ar, full_name_en,
             role, region_id, email, permissions, is_active)
     VALUES (@off_id, @off_auth_id, N'EMP-DEMO-1', N'موظف ديمو', N'Demo Officer',
-            N'registry_officer', 11, N'officer@sijilli.ly',
+            N'registry_officer', 11, N'officer@sarh.ly',
             N'{"can_review":true,"can_approve":true}', 1);
 GO
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Sijilli — encrypted Postgres snapshot uploader.
+# Sarh — encrypted Postgres snapshot uploader.
 #
-# Runs from cron inside the `sijilli-backup` container (see
+# Runs from cron inside the `sarh-backup` container (see
 # infra/docker/docker-compose.production.yml). Mounted read-only at
-# /opt/sijilli/scripts/backup-supabase.sh.
+# /opt/sarh/scripts/backup-supabase.sh.
 #
 # What it does (in order, fail-fast):
 #   1. pg_dump --format=custom against $DATABASE_URL
@@ -27,14 +27,14 @@ fail() { log "ERROR: $*"; exit 1; }
 : "${BACKUP_S3_PREFIX:=supabase}"
 : "${BACKUP_RETENTION_DAYS:=90}"
 
-WORK_DIR="${BACKUP_WORK_DIR:-/var/lib/sijilli-backup}"
+WORK_DIR="${BACKUP_WORK_DIR:-/var/lib/sarh-backup}"
 mkdir -p "$WORK_DIR"
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 DATE_PREFIX="$(date -u +%Y/%m/%d)"
-DUMP_PATH="$WORK_DIR/sijilli-${STAMP}.dump"
-BLOB_PATH="$WORK_DIR/sijilli-${STAMP}.dump.age"
-MANIFEST_PATH="$WORK_DIR/sijilli-${STAMP}.manifest.json"
+DUMP_PATH="$WORK_DIR/sarh-${STAMP}.dump"
+BLOB_PATH="$WORK_DIR/sarh-${STAMP}.dump.age"
+MANIFEST_PATH="$WORK_DIR/sarh-${STAMP}.manifest.json"
 
 cleanup() {
   # Always wipe local artefacts — they contain plaintext PII and PadES
@@ -77,7 +77,7 @@ sha256_hex=$(sha256sum "$BLOB_PATH" | awk '{print $1}')
 
 cat > "$MANIFEST_PATH" <<EOF
 {
-  "kind": "sijilli.backup.v1",
+  "kind": "sarh.backup.v1",
   "stamp": "${STAMP}",
   "blob": "$(basename "$BLOB_PATH")",
   "bytes": ${blob_bytes},

@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/router.dart';
-import '../../../core/theme/sijilli_colors.dart';
+import '../../../core/theme/sarh_colors.dart';
 import 'wizard_state.dart';
 
 const _docTypes = <String, String>{
@@ -112,7 +112,7 @@ class _WizardStepDocumentsState extends ConsumerState<WizardStepDocuments> {
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Text('لم تُرفق أي مستندات بعد.',
-                    style: TextStyle(color: SijilliColors.outline)),
+                    style: TextStyle(color: SarhColors.outline)),
               ),
             ),
           for (var i = 0; i < docs.length; i++)
@@ -127,7 +127,7 @@ class _WizardStepDocumentsState extends ConsumerState<WizardStepDocuments> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline, color: SijilliColors.warn),
+                  icon: const Icon(Icons.delete_outline, color: SarhColors.warn),
                   onPressed: () =>
                       ref.read(wizardStateProvider.notifier).removeDocument(i),
                 ),

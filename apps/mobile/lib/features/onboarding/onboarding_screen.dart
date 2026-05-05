@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/router.dart';
-import '../../core/theme/sijilli_colors.dart';
+import '../../core/theme/sarh_colors.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -72,7 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: active ? 24 : 8,
                   decoration: BoxDecoration(
                     color:
-                        active ? SijilliColors.primary : SijilliColors.outline,
+                        active ? SarhColors.primary : SarhColors.outline,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 );
@@ -149,7 +149,7 @@ class _SlideView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(slide.icon, size: 96, color: SijilliColors.accent),
+          Icon(slide.icon, size: 96, color: SarhColors.accent),
           const SizedBox(height: 32),
           Text(
             slide.titleAr,

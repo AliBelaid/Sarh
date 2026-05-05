@@ -1,5 +1,5 @@
 -- =========================================================================
--- SIJILLI · سِجِلّي
+-- SARH · صَرح
 -- Database Schema for Supabase (PostgreSQL 15 + PostGIS 3)
 -- =========================================================================
 -- Owner   : LVCT — Libya Vision for Communication & Technology

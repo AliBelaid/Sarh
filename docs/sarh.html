@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<title>Sarh — Project Technical Documentation</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+
+  :root {
+    --primary: #0F172A;
+    --accent:  #F97316;
+    --warn:    #DC2626;
+    --good:    #0891B2;
+    --paper:   #FAFAF9;
+    --rule:    #E5E7EB;
+    --ink:     #0F172A;
+    --muted:   #64748B;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 11.5pt;
+    line-height: 1.7;
+  }
+
+  /* Cover */
+  .cover {
+    page-break-after: always;
+    min-height: 95vh;
+    background: linear-gradient(135deg, #0F172A 0%, #1e293b 100%);
+    color: #FAFAF9;
+    padding: 60px 56px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(249,115,22,0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(249,115,22,0.06) 1px, transparent 1px);
+    background-size: 36px 36px;
+    pointer-events: none;
+  }
+  .cover-top { position: relative; z-index: 1; }
+  .cover-eyebrow {
+    display: inline-block;
+    font-size: 10pt;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(249,115,22,0.5);
+    padding: 5px 14px;
+    border-radius: 999px;
+    margin-bottom: 32px;
+  }
+  .cover h1 {
+    margin: 0 0 8px;
+    font-size: 64pt;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .cover .ar {
+    font-size: 28pt;
+    color: rgba(250,250,249,0.7);
+    margin: 0 0 24px;
+    font-family: 'IBM Plex Arabic', 'Cairo', sans-serif;
+  }
+  .cover .lede {
+    font-size: 14pt;
+    color: rgba(250,250,249,0.85);
+    max-width: 540px;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .cover-bottom {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid rgba(249,115,22,0.25);
+    padding-top: 22px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 10pt;
+    color: rgba(250,250,249,0.75);
+  }
+  .cover-bottom strong { color: #FAFAF9; font-weight: 700; }
+
+  /* Page-level structure */
+  .page { padding: 18px 0; }
+  .chapter {
+    page-break-before: always;
+    padding-top: 8px;
+  }
+  .chapter-num {
+    display: inline-block;
+    font-size: 9pt;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  h1.chapter-title {
+    font-size: 28pt;
+    font-weight: 800;
+    margin: 0 0 24px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 14px;
+  }
+  h2 {
+    font-size: 16pt;
+    color: var(--ink);
+    margin: 28px 0 10px;
+    border-right: none;
+    padding: 0;
+    font-weight: 700;
+  }
+  h3 {
+    font-size: 13pt;
+    color: var(--primary);
+    margin: 18px 0 6px;
+    font-weight: 700;
+  }
+  h4 {
+    font-size: 11.5pt;
+    color: var(--ink);
+    margin: 14px 0 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  p { margin: 0 0 10px; text-align: justify; }
+  ul, ol { padding-left: 22px; margin: 6px 0 12px; }
+  li { margin: 3px 0; }
+
+  code, pre, .mono {
+    font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+    font-size: 9.5pt;
+  }
+  pre {
+    background: #0F172A;
+    color: #E2E8F0;
+    padding: 14px 18px;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.5;
+    border-left: 3px solid var(--accent);
+  }
+  code {
+    background: rgba(249,115,22,0.10);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 14px;
+    font-size: 10pt;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 7px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--primary);
+    color: #FAFAF9;
+    font-weight: 700;
+    font-size: 9.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  tbody tr:nth-child(even) { background: rgba(15,23,42,0.025); }
+
+  .callout {
+    background: rgba(249,115,22,0.06);
+    border: 1px solid rgba(249,115,22,0.3);
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 14px 0;
+    font-size: 10.5pt;
+  }
+  .callout strong { color: var(--accent); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .card h4 { margin-top: 0; color: var(--accent); }
+
+  figure {
+    margin: 16px 0;
+    page-break-inside: avoid;
+    text-align: center;
+  }
+  figure img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: #fff;
+  }
+  figcaption {
+    font-size: 9.5pt;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+    font-style: italic;
+  }
+
+  /* Table of contents */
+  .toc { padding: 8px 0; }
+  .toc h2 { border: none; color: var(--ink); font-size: 22pt; margin: 0 0 18px; }
+  .toc ol { list-style: none; padding: 0; counter-reset: ch; }
+  .toc li {
+    counter-increment: ch;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px dotted var(--rule);
+    font-size: 11pt;
+  }
+  .toc li::before {
+    content: 'Chapter ' counter(ch);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 9pt;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    width: 110px;
+    flex-shrink: 0;
+  }
+  .toc .label { flex: 1; padding: 0 14px; color: var(--ink); font-weight: 600; }
+  .toc .pg { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* Palette swatches */
+  .palette { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 18px; }
+  .swatch {
+    flex: 1; min-width: 120px;
+    border-radius: 8px; padding: 14px 12px;
+    color: #fff; font-size: 10pt; line-height: 1.4;
+  }
+  .swatch .name { font-weight: 700; font-size: 11pt; }
+  .swatch .hex { font-family: 'JetBrains Mono', monospace; opacity: 0.85; font-size: 9pt; }
+
+  /* Section badges */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 8.5pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .badge.must { background: #fef2f2; color: var(--warn); border: 1px solid #fecaca; }
+  .badge.should { background: #fff7ed; color: var(--accent); border: 1px solid #fed7aa; }
+  .badge.may { background: #ecfeff; color: var(--good); border: 1px solid #a5f3fc; }
+</style>
+</head>
+<body>
+
+<!-- ========================== COVER ========================== -->
+<section class="cover">
+  <div class="cover-top">
+    <span class="cover-eyebrow">Project Documentation · v1.0</span>
+    <h1>Sarh</h1>
+    <p class="ar">صَرح</p>
+    <p class="lede">
+      A national platform for Libya unifying the Real Estate Registry and
+      Digital Identity issuance — built on verifiable credentials, append-only
+      audit, and tamper-evident deeds.
+    </p>
+  </div>
+  <div class="cover-bottom">
+    <div>
+      <strong>Owner</strong>: Libyan Vision for Communication & Technology (LVCT)<br/>
+      <strong>Document</strong>: Technical Specification & Architecture Reference
+    </div>
+    <div style="text-align: right;">
+      <strong>Version</strong>: 1.0<br/>
+      <strong>Issued</strong>: 2026
+    </div>
+  </div>
+</section>
+
+<!-- ========================== TABLE OF CONTENTS ========================== -->
+<section class="chapter toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li><span class="label">Introduction</span><span class="pg">3</span></li>
+    <li><span class="label">Methodology</span><span class="pg">6</span></li>
+    <li><span class="label">Requirements Engineering</span><span class="pg">9</span></li>
+    <li><span class="label">System Architecture</span><span class="pg">13</span></li>
+    <li><span class="label">Data Model</span><span class="pg">17</span></li>
+    <li><span class="label">Class Diagram</span><span class="pg">21</span></li>
+    <li><span class="label">Sequence Diagrams</span><span class="pg">23</span></li>
+    <li><span class="label">User Flows</span><span class="pg">26</span></li>
+    <li><span class="label">UI/UX Design</span><span class="pg">28</span></li>
+    <li><span class="label">Wireframes</span><span class="pg">30</span></li>
+    <li><span class="label">API Contracts</span><span class="pg">32</span></li>
+    <li><span class="label">Security & Compliance</span><span class="pg">34</span></li>
+    <li><span class="label">Roadmap & Future Work</span><span class="pg">36</span></li>
+    <li><span class="label">References</span><span class="pg">37</span></li>
+  </ol>
+</section>
+
+<!-- ========================== CH 1: INTRODUCTION ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 1</p>
+  <h1 class="chapter-title">Introduction</h1>
+
+  <h2>1.1 Problem Statement</h2>
+  <p>
+    Libya's real estate sector currently relies on paper deeds issued, transferred,
+    and verified manually across municipal offices. The lack of a central registry
+    has produced three persistent problems: (i) <em>title insecurity</em>, where
+    multiple owners may legitimately hold conflicting paper deeds for the same
+    parcel; (ii) <em>verification opacity</em>, which forces buyers, banks, and
+    courts to rely on uncertain provenance chains; and (iii) <em>identity fragility</em>,
+    where there is no national digital identity that can be cryptographically
+    bound to a property holding.
+  </p>
+  <p>
+    These problems are amplified by the country's historical disruptions: archive
+    losses, multiple parallel administrative systems, and the absence of a
+    canonical reference dataset for parcel geometry.
+  </p>
+
+  <h2>1.2 Research Questions</h2>
+  <ol>
+    <li>How can a digital registry coexist with — rather than replace — legitimate paper deeds during a multi-year transition?</li>
+    <li>What architecture supports a future national digital identity (when issued by the Libyan state) without forcing a data migration?</li>
+    <li>How can deeds be made tamper-evident and machine-verifiable by any third party (bank, court, citizen)?</li>
+    <li>How can polygon overlap conflicts be surfaced for officer review without blocking submissions?</li>
+  </ol>
+
+  <h2>1.3 Objectives</h2>
+  <ul>
+    <li><strong>O1.</strong> Build a unified web + mobile platform that registers properties, issues digital ID cards (NTAG 424 DNA), and produces tamper-evident PAdES-signed PDF deeds.</li>
+    <li><strong>O2.</strong> Preserve every paper-era artifact via a <code>legacy_national_no</code> field on every citizen and a deed reference field on every property.</li>
+    <li><strong>O3.</strong> Provide a public verification page accessible to anyone with a deed code or QR scan, requiring no login.</li>
+    <li><strong>O4.</strong> Enforce an append-only audit log, defended at the database level by <code>INSTEAD OF UPDATE/DELETE</code> triggers.</li>
+    <li><strong>O5.</strong> Deliver an Arabic-first RTL experience across all citizen-facing surfaces, with Latin reserved for codes and identifiers.</li>
+  </ul>
+
+  <h2>1.4 Literature Review</h2>
+  <p>
+    Comparable national-registry initiatives provide instructive prior art. The
+    table below contrasts Sarh's positioning against three reference systems.
+  </p>
+  <table>
+    <thead>
+      <tr><th>System</th><th>Country</th><th>Identity Model</th><th>Deed Model</th><th>Public Verify</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>e-Estonia</td><td>Estonia</td><td>National eID (chip card)</td><td>X-Road federated</td><td>Yes (X-Road)</td></tr>
+      <tr><td>Bhumi</td><td>India (West Bengal)</td><td>Aadhaar bind</td><td>Centralized DB</td><td>Limited</td></tr>
+      <tr><td>SR Lanka Land Registry</td><td>Sri Lanka</td><td>NIC bind</td><td>PDF + signature</td><td>Yes</td></tr>
+      <tr><td><strong>Sarh</strong></td><td><strong>Libya</strong></td><td><strong>NTAG 424 DNA + SSI (ACA-Py)</strong></td><td><strong>PAdES + QR + SHA-256</strong></td><td><strong>Yes (no login)</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h2>1.5 Scope</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h4>In scope</h4>
+      <ul>
+        <li>Citizen, officer, ID-issuer, admin, and verifier portals</li>
+        <li>Mobile app (Flutter, Riverpod) for citizens</li>
+        <li>NFC-card encoding and SUN verification</li>
+        <li>PAdES-signed deeds with QR</li>
+        <li>SSI verifiable credentials (did:sov via ACA-Py)</li>
+        <li>Public deed verification page</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Out of scope (this version)</h4>
+      <ul>
+        <li>Direct integration with bank settlement systems</li>
+        <li>Court e-filing integration</li>
+        <li>Cadastral surveys (we accept geometry as input)</li>
+        <li>Mortgage workflows</li>
+        <li>Cross-border identity federation</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ========================== CH 2: METHODOLOGY ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 2</p>
+  <h1 class="chapter-title">Methodology</h1>
+
+  <h2>2.1 Development Process</h2>
+  <p>
+    Sarh follows an <strong>incremental SDLC</strong> partitioned into thirteen
+    delivery phases (0 through 12). Each phase has an explicit Definition of Done:
+    code passes lint and unit tests, an end-to-end happy-path runs green, API
+    endpoints appear in OpenAPI, permissions are reviewed against the role-permission
+    map, the Arabic UI is sanity-checked on RTL with real Arabic content, and audit
+    log entries are verified for every write path.
+  </p>
+
+  <h2>2.2 Feasibility Analysis</h2>
+  <h4>Technical</h4>
+  <p>
+    All major components are commodity open-source: ASP.NET Core 8 for the API,
+    SQL Server 2019/2022 for the data store, Angular 21 + Flutter for clients,
+    Hyperledger ACA-Py for SSI, and NTAG 424 DNA chips (Mifare ecosystem) for cards.
+    No exotic vendor lock-in.
+  </p>
+  <h4>Operational</h4>
+  <p>
+    The reference deployment is a single Docker Compose stack on a VPS (api,
+    web, mssql, aca-py, nginx, clamav). Backups are nightly full + hourly
+    log-shipping for SQL Server.
+  </p>
+  <h4>Economic</h4>
+  <p>
+    Per-card cost is approximately $0.85 (NTAG 424 DNA in volume). The expensive
+    moving parts are operator training and the survey of legacy paper deeds — not
+    technology spend.
+  </p>
+
+  <h2>2.3 Risk Register</h2>
+  <table>
+    <thead>
+      <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>NFC card cloning</td><td>Medium</td><td>Critical</td><td>NTAG 424 DNA SUN messages with rolling counter; static UID is never trusted alone</td></tr>
+      <tr><td>Polygon overlap with legitimate paper deed</td><td>High</td><td>Medium</td><td>Soft-block: warn officer, do not auto-reject; resolve via review committee</td></tr>
+      <tr><td>National eID launch forces migration</td><td>Medium</td><td>High</td><td><code>legacy_national_no</code> on every citizen; identity model is re-issuable</td></tr>
+      <tr><td>PDF deed manipulation</td><td>Medium</td><td>Critical</td><td>PAdES signature + SHA-256 stored in DB; <code>verify</code> endpoint compares hash on download</td></tr>
+      <tr><td>Audit log tampering by privileged user</td><td>Low</td><td>Critical</td><td><code>INSTEAD OF UPDATE/DELETE</code> triggers at DB level; not a permission, a structural prohibition</td></tr>
+      <tr><td>Connectivity loss at registration kiosk</td><td>High</td><td>Low</td><td>Wizard state held in browser signals; recovery on reconnect</td></tr>
+    </tbody>
+  </table>
+
+  <h2>2.4 Tooling</h2>
+  <ul>
+    <li><strong>Source control:</strong> Git monorepo (<code>apps/</code>, <code>packages/</code>, <code>infra/</code>, <code>docs/</code>)</li>
+    <li><strong>CI:</strong> GitHub Actions (lint → test → build → docker push)</li>
+    <li><strong>IaC:</strong> Docker Compose for the production stack; nginx for TLS termination</li>
+    <li><strong>Migrations:</strong> Numbered T-SQL files run via <code>scripts/db/run-migrations.ps1</code> (sqlcmd-based)</li>
+    <li><strong>Diagrams:</strong> Mermaid source rendered to PNG via <code>mermaid.ink</code></li>
+  </ul>
+</section>
+
+<!-- ========================== CH 3: REQUIREMENTS ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 3</p>
+  <h1 class="chapter-title">Requirements Engineering</h1>
+
+  <h2>3.1 Stakeholders</h2>
+  <table>
+    <thead>
+      <tr><th>Role</th><th>Primary Concern</th><th>Surface</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Citizen</td><td>Register property; carry verifiable ID</td><td>Mobile + web</td></tr>
+      <tr><td>Registry Officer</td><td>Review submissions; approve/reject deeds</td><td>Officer portal</td></tr>
+      <tr><td>ID-Issuance Officer</td><td>Capture biometrics, encode card</td><td>ID-issuer kiosk</td></tr>
+      <tr><td>Super Admin</td><td>User management, system config</td><td>Admin console</td></tr>
+      <tr><td>Public Verifier</td><td>Confirm a deed/card is genuine</td><td>verify.sarh.ly (no login)</td></tr>
+      <tr><td>LVCT (operator)</td><td>Uptime, security, data sovereignty</td><td>Ops dashboards</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3.2 Functional Requirements</h2>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Requirement</th><th>Priority</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>FR-1</td><td>The system shall authenticate citizens by national ID + password</td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-2</td><td>The system shall allow citizens to register a property by drawing a polygon and uploading documents</td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-3</td><td>The system shall reject overlapping centroids on approved properties (geographic uniqueness)</td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-4</td><td>The system shall warn — but not block — overlapping polygons during officer review</td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-5</td><td>The system shall issue a PAdES-signed PDF deed on approval</td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-6</td><td>The system shall produce a verifiable QR pointing to <code>verify.sarh.ly/{code}</code></td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-7</td><td>The system shall encode an NTAG 424 DNA card per citizen with rolling-counter SUN URLs</td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-8</td><td>The system shall issue a Verifiable Credential (W3C VC, did:sov) on each approved property</td><td><span class="badge should">Should</span></td></tr>
+      <tr><td>FR-9</td><td>The system shall allow public verification of any deed without login</td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-10</td><td>The system shall maintain a Citizen → Properties timeline visible only to the owning citizen and reviewing officers</td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-11</td><td>The system shall preserve a <code>legacy_national_no</code> reference on every citizen for paper-era continuity</td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-12</td><td>The system shall support Arabic-RTL UI as the default language</td><td><span class="badge must">Must</span></td></tr>
+      <tr><td>FR-13</td><td>The system shall surface a tamper banner if the served deed PDF SHA-256 differs from the stored hash</td><td><span class="badge must">Must</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>3.3 Non-Functional Requirements</h2>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Category</th><th>Target</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>NFR-1</td><td>Performance — API p95</td><td>≤ 250 ms for read endpoints under 100 RPS</td></tr>
+      <tr><td>NFR-2</td><td>Availability</td><td>99.5% measured monthly</td></tr>
+      <tr><td>NFR-3</td><td>Security — passwords</td><td>bcrypt cost factor 12 minimum</td></tr>
+      <tr><td>NFR-4</td><td>Security — JWT</td><td>HS256, 24-hour TTL, no PII in claims</td></tr>
+      <tr><td>NFR-5</td><td>Audit</td><td>Every write emits an <code>audit_log</code> row; rows are append-only</td></tr>
+      <tr><td>NFR-6</td><td>Localization</td><td>All citizen-facing UI Arabic; error envelope carries <code>message_ar</code> + <code>message_en</code></td></tr>
+      <tr><td>NFR-7</td><td>Recoverability</td><td>RPO ≤ 1 hour, RTO ≤ 4 hours</td></tr>
+      <tr><td>NFR-8</td><td>Data sovereignty</td><td>All PII at rest within Libyan-jurisdiction infrastructure</td></tr>
+      <tr><td>NFR-9</td><td>Accessibility</td><td>WCAG 2.1 AA for the public verify page</td></tr>
+      <tr><td>NFR-10</td><td>Observability</td><td>Structured logs (Serilog) + healthcheck endpoint</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3.4 Constraints (CLAUDE.md)</h2>
+  <div class="callout">
+    <strong>Hard constraints — non-negotiable:</strong>
+    <ol>
+      <li>Arabic-first RTL for ALL user-facing UI. Latin only for codes, IDs, technical labels.</li>
+      <li>Ownership of digital identity must be re-issuable: when (if) Libya launches a national digital ID, the system must migrate without data loss.</li>
+      <li>Two approved properties cannot share the same centroid; polygon overlap triggers a reviewer warning, not a hard block.</li>
+      <li>Use NTAG 424 DNA only; static UID is never trusted alone — every read must verify a SUN message.</li>
+      <li>Every issued PDF deed must be PAdES-signed and contain a verifiable QR.</li>
+      <li>The audit log is append-only — no UPDATE or DELETE allowed at the database level.</li>
+      <li>No free-text role checking in code — always go through the JSON permission map on <code>officers.permissions</code>.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ========================== CH 4: ARCHITECTURE ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 4</p>
+  <h1 class="chapter-title">System Architecture</h1>
+
+  <h2>4.1 High-Level Architecture</h2>
+  <figure>
+    <img src="diagrams/system-flow.png" alt="System flow" />
+    <figcaption>Figure 4.1 — End-to-end system flow across clients, API, datastore, and third-party services.</figcaption>
+  </figure>
+
+  <h2>4.2 Three-Tier Decomposition</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h4>Presentation Tier</h4>
+      <ul>
+        <li>Single Angular 21 SPA (<code>apps/web/</code>) routed by role to citizen, officer, ID-issuer, admin, and verify shells</li>
+        <li>Flutter mobile app (<code>apps/mobile/</code>) for citizens — Riverpod, go_router, mapbox</li>
+        <li>Standalone components, Angular Signals, <code>@if</code>/<code>@for</code> control flow</li>
+        <li>Material is <em>not</em> used; brand SCSS tokens drive a paper-card aesthetic</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Application Tier</h4>
+      <ul>
+        <li>ASP.NET Core 8 API at <code>apps/api-dotnet/</code></li>
+        <li>EF Core 8 for persistence; <code>Microsoft.Data.SqlClient</code></li>
+        <li>HS256 JWT signed in <code>JwtTokenService.cs</code>; <code>[OfficerOnly]</code> filter for permissioned routes</li>
+        <li>Audit interceptor stamps every write</li>
+        <li>QuestPDF + QRCoder render the deed PDF</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Data Tier</h4>
+      <ul>
+        <li>SQL Server 2019/2022 — local for dev, hosted for prod</li>
+        <li><code>geography</code> type for parcel polygons (SRID 4326)</li>
+        <li>Numbered T-SQL migrations <code>000–025</code> in <code>infra/mssql/migrations/</code></li>
+        <li><code>INSTEAD OF UPDATE/DELETE</code> triggers protect <code>audit_log</code></li>
+        <li>JSON columns validated by <code>CHECK ISJSON(col) = 1</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Cross-cutting Services</h4>
+      <ul>
+        <li>Hyperledger ACA-Py (did:sov) for VC issuance</li>
+        <li>nginx terminates TLS, enforces CORS, rate-limits <code>/auth/*</code></li>
+        <li>ClamAV scans every uploaded document</li>
+        <li>Local filesystem at <code>STORAGE_ROOT</code> for documents, photos, deeds</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>4.3 Architecture Decision Records (key choices)</h2>
+  <table>
+    <thead>
+      <tr><th>ADR</th><th>Decision</th><th>Rationale</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>ADR-001</td><td>SQL Server over PostgreSQL/Supabase</td><td>Operator preference, Windows-native ops, <code>INSTEAD OF</code> triggers for audit invariants</td></tr>
+      <tr><td>ADR-002</td><td>Single Angular app over four micro-frontends</td><td>One deployment, one bundle, role-based shells; the four legacy apps are kept only as a component-migration source</td></tr>
+      <tr><td>ADR-003</td><td>Custom HS256 JWT, not OAuth</td><td>No external IdP needed; HS256 + bcrypt is sufficient for the kiosk model, simpler ops</td></tr>
+      <tr><td>ADR-004</td><td>QuestPDF over headless Chromium for deeds</td><td>Server-side, deterministic, smaller footprint, PAdES-friendly</td></tr>
+      <tr><td>ADR-005</td><td>NTAG 424 DNA, not generic NFC</td><td>SUN message with rolling counter is the only economical anti-clone primitive at card price point</td></tr>
+      <tr><td>ADR-006</td><td>Append-only audit at trigger level, not application level</td><td>An attacker with admin rights still cannot rewrite history; structural defense beats permission-based defense</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========================== CH 5: DATA MODEL ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 5</p>
+  <h1 class="chapter-title">Data Model</h1>
+
+  <h2>5.1 Conceptual ERD</h2>
+  <figure>
+    <img src="diagrams/conceptual-erd.png" alt="Conceptual ERD" />
+    <figcaption>Figure 5.1 — High-level entities and relationships (conceptual).</figcaption>
+  </figure>
+
+  <h2>5.2 Logical ERD</h2>
+  <figure>
+    <img src="diagrams/db-schema.png" alt="Logical ERD" />
+    <figcaption>Figure 5.2 — Full logical schema with attributes, types, and foreign keys.</figcaption>
+  </figure>
+
+  <h2>5.3 Core Entities</h2>
+  <table>
+    <thead>
+      <tr><th>Entity</th><th>Purpose</th><th>Key Fields</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>citizens</code></td><td>Identity record, paper-era continuity</td><td><code>id</code>, <code>national_no</code>, <code>legacy_national_no</code>, <code>did</code></td></tr>
+      <tr><td><code>officers</code></td><td>Registry / ID-issuance staff with JSON permissions</td><td><code>id</code>, <code>permissions (JSON)</code>, <code>region_id</code></td></tr>
+      <tr><td><code>properties</code></td><td>Parcel polygons + status</td><td><code>id</code>, <code>polygon (geography)</code>, <code>centroid</code>, <code>status</code>, <code>deed_pdf_path</code>, <code>deed_signed_hash</code></td></tr>
+      <tr><td><code>digital_id_cards</code></td><td>NTAG 424 DNA card-issuance records</td><td><code>id</code>, <code>citizen_id</code>, <code>uid</code>, <code>sun_counter</code></td></tr>
+      <tr><td><code>verifiable_credentials</code></td><td>Issued W3C VCs (did:sov)</td><td><code>id</code>, <code>credential_def_id</code>, <code>citizen_id</code>, <code>property_id</code></td></tr>
+      <tr><td><code>audit_log</code></td><td>Append-only, BIGINT IDENTITY ordering</td><td><code>id</code>, <code>actor_id</code>, <code>action</code>, <code>before_state</code>, <code>after_state</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>5.4 Conventions</h2>
+  <ul>
+    <li>Snake_case table and column names</li>
+    <li>Primary keys: <code>UNIQUEIDENTIFIER DEFAULT NEWID()</code> — except <code>audit_log.id</code> which is <code>BIGINT IDENTITY</code> for monotonic ordering</li>
+    <li>Time columns: <code>DATETIMEOFFSET(3) DEFAULT SYSDATETIMEOFFSET()</code></li>
+    <li>Auto-stamped <code>updated_at</code> via <code>AFTER UPDATE</code> trigger on every entity</li>
+    <li>Soft delete: <code>is_active = 0</code> — never physical delete</li>
+    <li>Geometry: SQL Server <code>geography</code> (SRID 4326 implicit). Spatial methods used: <code>STIntersects</code>, <code>STDistance</code>, <code>EnvelopeCenter()</code>, <code>STArea()</code></li>
+    <li>ENUMs: SQL Server has none — modeled as <code>NVARCHAR(N) CHECK (col IN (…))</code></li>
+    <li>JSONB equivalent: <code>NVARCHAR(MAX)</code> with <code>CHECK ISJSON(col) = 1</code></li>
+  </ul>
+
+  <h2>5.5 Append-Only Audit (the structural defense)</h2>
+  <pre><code>CREATE TRIGGER trg_audit_log_no_update ON audit_log
+INSTEAD OF UPDATE AS
+BEGIN
+  RAISERROR ('audit_log is append-only', 16, 1);
+END;
+
+CREATE TRIGGER trg_audit_log_no_delete ON audit_log
+INSTEAD OF DELETE AS
+BEGIN
+  RAISERROR ('audit_log is append-only', 16, 1);
+END;</code></pre>
+  <p>
+    The trigger is the contract: even a privileged DBA cannot rewrite history through
+    application code paths without first dropping the trigger — an action which is itself logged at the SQL Server engine level.
+  </p>
+</section>
+
+<!-- ========================== CH 6: CLASS DIAGRAM ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 6</p>
+  <h1 class="chapter-title">Class Diagram</h1>
+  <p>
+    The class diagram captures the principal domain types in the .NET API
+    layer and the relationships between them. Each class corresponds either
+    to a database entity or to a service that orchestrates writes.
+  </p>
+  <figure>
+    <img src="diagrams/class-diagram.png" alt="Class diagram" />
+    <figcaption>Figure 6.1 — Principal domain classes and their relationships.</figcaption>
+  </figure>
+  <h2>6.1 Service Layer Highlights</h2>
+  <ul>
+    <li><code>JwtTokenService</code> — signs and validates HS256 tokens from <code>SARH_JWT_SECRET</code>.</li>
+    <li><code>StorageService</code> — abstracts the local filesystem under <code>STORAGE_ROOT</code>; all upload paths go through this single seam.</li>
+    <li><code>ReviewService</code> — orchestrates officer approval: persists state, invokes <code>DeedPdfBuilder</code>, computes SHA-256, writes to <code>audit_log</code>.</li>
+    <li><code>DeedPdfBuilder</code> — QuestPDF + QRCoder; renders A4 Arabic-RTL deed with three card sections, parcel map, and verify QR.</li>
+    <li><code>VerifyService</code> — public, no-auth resolver from deed code → public deed view (incl. SHA-256 for client integrity check).</li>
+  </ul>
+</section>
+
+<!-- ========================== CH 7: SEQUENCE DIAGRAMS ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 7</p>
+  <h1 class="chapter-title">Sequence Diagrams</h1>
+
+  <h2>7.1 Sign-In</h2>
+  <figure>
+    <img src="diagrams/sequence-signin.png" alt="Sign-in sequence" />
+    <figcaption>Figure 7.1 — Citizen sign-in: bcrypt verify + JWT issuance.</figcaption>
+  </figure>
+
+  <h2>7.2 ID Issuance (5-step kiosk wizard)</h2>
+  <figure>
+    <img src="diagrams/sequence-id-issuance.png" alt="ID issuance sequence" />
+    <figcaption>Figure 7.2 — End-to-end ID issuance: identity capture, photo, signature, fingerprint, NFC encoding.</figcaption>
+  </figure>
+
+  <h2>7.3 Property Approval</h2>
+  <figure>
+    <img src="diagrams/sequence-property-approval.png" alt="Property approval sequence" />
+    <figcaption>Figure 7.3 — Officer review path: validation, polygon overlap warning, deed PDF generation, audit log write.</figcaption>
+  </figure>
+</section>
+
+<!-- ========================== CH 8: USER FLOWS ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 8</p>
+  <h1 class="chapter-title">User Flows</h1>
+
+  <h2>8.1 Citizen Flow</h2>
+  <figure>
+    <img src="diagrams/user-flow-citizen.png" alt="Citizen user flow" />
+    <figcaption>Figure 8.1 — Citizen journey from sign-in through property submission and deed download.</figcaption>
+  </figure>
+
+  <h2>8.2 Officer Flow</h2>
+  <figure>
+    <img src="diagrams/user-flow-officer.png" alt="Officer user flow" />
+    <figcaption>Figure 8.2 — Officer journey through queue → review → approve / reject decisions.</figcaption>
+  </figure>
+</section>
+
+<!-- ========================== CH 9: UI/UX ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 9</p>
+  <h1 class="chapter-title">UI/UX Design</h1>
+
+  <h2>9.1 Design Philosophy</h2>
+  <p>
+    The visual system is anchored in a "PropTech paper-card" aesthetic: warm
+    paper background, slate ink, deliberate orange accents for action, cyan
+    for confirmation, red for caution. We deliberately avoid green to keep
+    the language of "approved" anchored in a neutral cool tone (cyan), which
+    reads as <em>verified by the system</em> rather than <em>positive emotion</em>.
+  </p>
+
+  <h2>9.2 Color Tokens</h2>
+  <div class="palette">
+    <div class="swatch" style="background:#0F172A;">
+      <div class="name">Primary — Slate</div>
+      <div class="hex">#0F172A</div>
+      Headings, ink, sidebar
+    </div>
+    <div class="swatch" style="background:#F97316;">
+      <div class="name">Accent — Orange</div>
+      <div class="hex">#F97316</div>
+      Primary action, focus
+    </div>
+    <div class="swatch" style="background:#0891B2;">
+      <div class="name">Good — Cyan</div>
+      <div class="hex">#0891B2</div>
+      Approved, ✓ state
+    </div>
+    <div class="swatch" style="background:#DC2626;">
+      <div class="name">Warn — Red</div>
+      <div class="hex">#DC2626</div>
+      Errors, rejections
+    </div>
+    <div class="swatch" style="background:#FAFAF9; color:#0F172A; border:1px solid #E5E7EB;">
+      <div class="name">Paper</div>
+      <div class="hex">#FAFAF9</div>
+      Background canvas
+    </div>
+    <div class="swatch" style="background:#64748B;">
+      <div class="name">Muted</div>
+      <div class="hex">#64748B</div>
+      Secondary text
+    </div>
+  </div>
+
+  <h2>9.3 Typography</h2>
+  <table>
+    <thead>
+      <tr><th>Surface</th><th>Family</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Arabic UI</td><td>IBM Plex Arabic, Cairo, Tajawal</td><td>RTL, font-feature-settings opt for ligatures</td></tr>
+      <tr><td>Latin UI</td><td>Inter, Segoe UI, system-ui</td><td>Tabular numerals on for IDs and counts</td></tr>
+      <tr><td>Code / IDs</td><td>JetBrains Mono</td><td>For citizen national_no, deed codes, hashes</td></tr>
+    </tbody>
+  </table>
+
+  <h2>9.4 Layout & Spacing</h2>
+  <ul>
+    <li>Sidebar 240 px collapsed shell, fixed at top breakpoint</li>
+    <li>Card radius 14 px, border 1 px <code>--rule</code>, padding 22 px</li>
+    <li>Form rows 14 px gap; section dividers 1 px <code>--rule</code></li>
+    <li>Buttons 9 px × 18 px, font-weight 700, transition 120 ms</li>
+  </ul>
+
+  <h2>9.5 Internationalization</h2>
+  <p>
+    Default direction is RTL. Logical CSS properties (<code>margin-inline-end</code>,
+    <code>padding-inline-start</code>) are used throughout so the same stylesheet
+    flips correctly when an LTR shell (e.g. the verify page) is rendered.
+    Validation messages, placeholders, button labels, and toast copy are all
+    Arabic by default; the verify page additionally exposes English to support
+    foreign banks and courts.
+  </p>
+</section>
+
+<!-- ========================== CH 10: WIREFRAMES ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 10</p>
+  <h1 class="chapter-title">Wireframes</h1>
+  <p>
+    Five low-fidelity wireframes establish the page-level grammar of the system.
+    They are intentionally sparse: skeleton structure, no microcopy, no real
+    iconography. Their purpose is to fix layout and information hierarchy
+    before higher-fidelity work begins.
+  </p>
+
+  <figure>
+    <img src="wireframes/01-login.svg" alt="Login wireframe" />
+    <figcaption>Figure 10.1 — Login screen: split-pane with brand panel and form.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="wireframes/02-dashboard.svg" alt="Dashboard wireframe" />
+    <figcaption>Figure 10.2 — Citizen dashboard: identity card hero + property cards.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="wireframes/03-property-registration.svg" alt="Property registration wireframe" />
+    <figcaption>Figure 10.3 — Property registration: map-first polygon picker with form drawer.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="wireframes/04-officer-review.svg" alt="Officer review wireframe" />
+    <figcaption>Figure 10.4 — Officer review: queue + map preview + decision panel.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="wireframes/05-public-verify.svg" alt="Public verify wireframe" />
+    <figcaption>Figure 10.5 — Public verify: tamper banner + deed metadata + QR + downloadable PDF.</figcaption>
+  </figure>
+</section>
+
+<!-- ========================== CH 11: API ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 11</p>
+  <h1 class="chapter-title">API Contracts</h1>
+
+  <h2>11.1 Conventions</h2>
+  <ul>
+    <li>Base path: <code>/api/v1/</code></li>
+    <li>Resource names: English plural — <code>/citizens</code>, <code>/properties</code>, <code>/digital-id-cards</code></li>
+    <li>Pagination: cursor-based — <code>?cursor=&limit=20</code> — never offset on large tables</li>
+    <li>Error envelope: <code>{ "error": { "code": "...", "message_ar": "...", "message_en": "..." } }</code></li>
+    <li>Every write endpoint emits an <code>audit_log</code> row through a global filter</li>
+  </ul>
+
+  <h2>11.2 Selected Endpoints</h2>
+  <table>
+    <thead>
+      <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>POST</td><td><code>/auth/login</code></td><td>Public</td><td>Citizen or officer sign-in; returns JWT</td></tr>
+      <tr><td>GET</td><td><code>/citizens/me</code></td><td>Citizen</td><td>Self-profile + linked properties summary</td></tr>
+      <tr><td>POST</td><td><code>/properties</code></td><td>Citizen</td><td>Submit a property registration with polygon + documents</td></tr>
+      <tr><td>GET</td><td><code>/properties/queue</code></td><td>Officer</td><td>Pending submissions in officer's region</td></tr>
+      <tr><td>POST</td><td><code>/properties/{id}/approve</code></td><td>Officer</td><td>Approve, render PDF deed, store hash</td></tr>
+      <tr><td>POST</td><td><code>/properties/{id}/reject</code></td><td>Officer</td><td>Reject with Arabic reason</td></tr>
+      <tr><td>POST</td><td><code>/digital-id-cards</code></td><td>ID-Issuer</td><td>Capture biometrics, encode NTAG 424 DNA card</td></tr>
+      <tr><td>GET</td><td><code>/verify/{code}</code></td><td>Public</td><td>Public deed view with hash for tamper check</td></tr>
+      <tr><td>GET</td><td><code>/verify/{code}/deed.pdf</code></td><td>Public</td><td>Streams PDF; sets <code>X-Deed-SHA256</code>; returns 409 on mismatch</td></tr>
+    </tbody>
+  </table>
+
+  <h2>11.3 Error Codes (selected)</h2>
+  <table>
+    <thead>
+      <tr><th>Code</th><th>HTTP</th><th>Meaning</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>ERR_AUTH_INVALID</code></td><td>401</td><td>Bad credentials</td></tr>
+      <tr><td><code>ERR_PERMISSION</code></td><td>403</td><td>Permission map denies the action</td></tr>
+      <tr><td><code>ERR_GEO_CENTROID_DUP</code></td><td>409</td><td>Approved property already exists at the same centroid</td></tr>
+      <tr><td><code>ERR_GEO_OVERLAP_WARN</code></td><td>200 (warning)</td><td>Polygon overlaps an existing one — review required, not blocked</td></tr>
+      <tr><td><code>ERR_DEED_HASH_MISMATCH</code></td><td>409</td><td>Stored SHA-256 does not match served PDF — tamper indicator</td></tr>
+      <tr><td><code>ERR_NFC_SUN_INVALID</code></td><td>400</td><td>SUN counter outside accepted window</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========================== CH 12: SECURITY ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 12</p>
+  <h1 class="chapter-title">Security & Compliance</h1>
+
+  <h2>12.1 Trust Boundaries</h2>
+  <ol>
+    <li><strong>Public ↔ API:</strong> TLS 1.2+ at nginx; rate-limited <code>/auth/*</code> and <code>/properties</code></li>
+    <li><strong>API ↔ DB:</strong> Mutual auth via <code>sarh_app</code> SQL login with least-privilege grants; no <code>db_owner</code></li>
+    <li><strong>API ↔ ACA-Py:</strong> Internal Docker network only; admin port not exposed</li>
+    <li><strong>API ↔ Storage:</strong> Single seam via <code>StorageService</code>; path traversal blocked at boundary</li>
+  </ol>
+
+  <h2>12.2 Authentication & Authorization</h2>
+  <ul>
+    <li>JWT HS256, signing key = <code>SARH_JWT_SECRET</code></li>
+    <li>Claims: <code>sub</code>, <code>citizen_id</code> or <code>officer_id</code>, <code>role</code>, <code>permissions</code> (JSON), <code>exp</code></li>
+    <li>No PII in claims — never email, name, or national number</li>
+    <li>Officers carry a JSON permission map; <code>[OfficerOnly("permission.key")]</code> filter checks the map without DB roundtrip</li>
+    <li>Passwords: bcrypt cost ≥ 12 (BCrypt.Net-Next)</li>
+  </ul>
+
+  <h2>12.3 Tamper Evidence</h2>
+  <p>
+    Every approved deed PDF is rendered by <code>DeedPdfBuilder</code> (QuestPDF +
+    QRCoder), then SHA-256-hashed by <code>ReviewService</code>; the hash and the
+    on-disk path are stored on <code>properties.deed_signed_hash</code> and
+    <code>properties.deed_pdf_path</code>. On every public download via
+    <code>GET /verify/{code}/deed.pdf</code>, the server reads the file, recomputes
+    SHA-256, compares against the stored hash, and returns HTTP 409 if they
+    diverge — this is the system's primary tamper indicator. The hash is also
+    surfaced on the public verify page so any third party can re-verify it
+    against their own download.
+  </p>
+
+  <h2>12.4 NFC Anti-Clone</h2>
+  <p>
+    NTAG 424 DNA chips emit a Secure Unique Number (SUN) message at every read
+    — a URL with a rolling counter and a per-card MAC. The verification server
+    rejects a SUN whose counter is below the last-seen value (replay) or whose
+    MAC does not validate against the per-card key. A static UID alone is never
+    treated as proof of authenticity.
+  </p>
+
+  <h2>12.5 Audit Log</h2>
+  <p>
+    Every write endpoint emits a row into <code>audit_log</code>. Rows carry actor,
+    action, target entity, before-state, after-state, IP address, and timestamp.
+    The table has <code>INSTEAD OF UPDATE</code> and <code>INSTEAD OF DELETE</code>
+    triggers that raise an error — no application code path can rewrite history.
+    Trigger removal would be visible in SQL Server's own DDL audit.
+  </p>
+
+  <h2>12.6 Compliance Checklist</h2>
+  <ul>
+    <li>All citizen-facing surfaces serve Arabic by default</li>
+    <li>Storage buckets / directories private by default; ACL on every read</li>
+    <li>JWT contains no PII</li>
+    <li>No secrets in repository — <code>.env.local</code> is gitignored</li>
+    <li>CORS restricted to known frontend origins</li>
+    <li>Rate limit on <code>/auth/*</code> and <code>/properties/submit</code></li>
+    <li>ClamAV scan on every uploaded document</li>
+  </ul>
+</section>
+
+<!-- ========================== CH 13: ROADMAP ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 13</p>
+  <h1 class="chapter-title">Roadmap & Future Work</h1>
+
+  <h2>13.1 Delivery Phases</h2>
+  <table>
+    <thead>
+      <tr><th>Phase</th><th>Title</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>0</td><td>Repo scaffold + infra</td><td>Complete</td></tr>
+      <tr><td>1</td><td>Schema + RLS-equivalent + seed</td><td>Complete</td></tr>
+      <tr><td>2</td><td>Backend auth + citizens module</td><td>Complete</td></tr>
+      <tr><td>3</td><td>Digital ID issuance + NFC encoding</td><td>Complete</td></tr>
+      <tr><td>4</td><td>Properties module + spatial queries</td><td>Complete</td></tr>
+      <tr><td>5</td><td>Workflow + officer review + notifications</td><td>Complete</td></tr>
+      <tr><td>6</td><td>SSI wallet + VC issuance</td><td>In progress</td></tr>
+      <tr><td>7</td><td>Citizen mobile app (Flutter)</td><td>In progress</td></tr>
+      <tr><td>8</td><td>Officer web portal (Angular)</td><td>Complete</td></tr>
+      <tr><td>9</td><td>ID-issuer station (Angular + NFC + camera)</td><td>Complete</td></tr>
+      <tr><td>10</td><td>Admin console + reports</td><td>Complete</td></tr>
+      <tr><td>11</td><td>Public verification site</td><td>Complete</td></tr>
+      <tr><td>12</td><td>Hardening, audit, deployment</td><td>Pending</td></tr>
+    </tbody>
+  </table>
+
+  <h2>13.2 Future Work</h2>
+  <ul>
+    <li><strong>Federation with banks:</strong> presentation requests for property VCs at loan origination</li>
+    <li><strong>Court e-filing:</strong> dispute resolution that consumes audit log evidence</li>
+    <li><strong>National eID launch path:</strong> migrate from <code>legacy_national_no</code> to the new state identifier without data loss</li>
+    <li><strong>Cadastral survey ingest:</strong> bulk import of officially surveyed parcels</li>
+    <li><strong>Selective disclosure:</strong> ZK-proofs over property attributes (age &gt; threshold without revealing area)</li>
+  </ul>
+</section>
+
+<!-- ========================== CH 14: REFERENCES ========================== -->
+<section class="chapter">
+  <p class="chapter-num">Chapter 14</p>
+  <h1 class="chapter-title">References</h1>
+  <ol>
+    <li>W3C. <em>Verifiable Credentials Data Model 2.0.</em> W3C Recommendation, 2024.</li>
+    <li>W3C. <em>Decentralized Identifiers (DIDs) v1.0.</em> W3C Recommendation, 2022.</li>
+    <li>NXP Semiconductors. <em>NTAG 424 DNA — Datasheet (NT4H2421Gx).</em> 2021.</li>
+    <li>ETSI. <em>EN 319 142-1 — Electronic Signatures and Infrastructures (ESI); PAdES digital signatures.</em></li>
+    <li>OWASP. <em>Application Security Verification Standard (ASVS) v4.0.</em></li>
+    <li>Microsoft. <em>SQL Server 2022 — Spatial Data documentation.</em> learn.microsoft.com.</li>
+    <li>Hyperledger. <em>Aries Cloud Agent Python (ACA-Py) — Documentation.</em> github.com/hyperledger/aries-cloudagent-python.</li>
+    <li>Estonia, e-Estonia. <em>X-Road and the digital society.</em> e-estonia.com.</li>
+    <li>RFC 7519. <em>JSON Web Token (JWT).</em> IETF, 2015.</li>
+    <li>RFC 8252. <em>OAuth 2.0 for Native Apps.</em> IETF, 2017.</li>
+    <li>QuestPDF. <em>Library Documentation v2024.7.</em> questpdf.com.</li>
+    <li>Sarh Project — <em>CLAUDE.md (build constraints).</em> internal.</li>
+  </ol>
+</section>
+
+</body>
+</html>

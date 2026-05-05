@@ -1,13 +1,13 @@
-// Mirrors the SijilliException envelope from apps/api:
+// Mirrors the SarhException envelope from apps/api:
 //   { "error": { "code", "message_ar", "message_en", "details" } }
-class SijilliApiError implements Exception {
+class SarhApiError implements Exception {
   final int statusCode;
   final String code;
   final String messageAr;
   final String messageEn;
   final Object? details;
 
-  SijilliApiError({
+  SarhApiError({
     required this.statusCode,
     required this.code,
     required this.messageAr,
@@ -15,9 +15,9 @@ class SijilliApiError implements Exception {
     this.details,
   });
 
-  factory SijilliApiError.fromJson(int status, Map<String, dynamic> json) {
+  factory SarhApiError.fromJson(int status, Map<String, dynamic> json) {
     final err = (json['error'] as Map?)?.cast<String, dynamic>() ?? const {};
-    return SijilliApiError(
+    return SarhApiError(
       statusCode: status,
       code: err['code'] as String? ?? 'ERR_UNKNOWN',
       messageAr: err['message_ar'] as String? ?? 'حدث خطأ غير متوقع.',
@@ -26,7 +26,7 @@ class SijilliApiError implements Exception {
     );
   }
 
-  factory SijilliApiError.unknown([String? msg]) => SijilliApiError(
+  factory SarhApiError.unknown([String? msg]) => SarhApiError(
         statusCode: 0,
         code: 'ERR_NETWORK',
         messageAr: msg ?? 'تعذّر الاتصال بالخدمة.',
@@ -34,5 +34,5 @@ class SijilliApiError implements Exception {
       );
 
   @override
-  String toString() => 'SijilliApiError($code, $statusCode): $messageEn';
+  String toString() => 'SarhApiError($code, $statusCode): $messageEn';
 }

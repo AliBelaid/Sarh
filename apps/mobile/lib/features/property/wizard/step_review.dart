@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../core/api/repositories.dart';
 import '../../../core/models/api_error.dart';
-import '../../../core/theme/sijilli_colors.dart';
+import '../../../core/theme/sarh_colors.dart';
 import 'wizard_state.dart';
 
 class WizardStepReview extends ConsumerStatefulWidget {
@@ -55,7 +55,7 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
             documentType: d.documentType,
             titleAr: d.titleAr,
           );
-        } on SijilliApiError catch (e) {
+        } on SarhApiError catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('تعذّر رفع مستند: ${e.messageAr}')),
@@ -68,7 +68,7 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
       if (mounted) {
         context.go(AppRoutes.propertyDetail(created.id));
       }
-    } on SijilliApiError catch (e) {
+    } on SarhApiError catch (e) {
       setState(() => _error = e.messageAr);
     } catch (e) {
       setState(() => _error = 'تعذّر إرسال الطلب.');
@@ -109,7 +109,7 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
-            Text(_error!, style: const TextStyle(color: SijilliColors.warn)),
+            Text(_error!, style: const TextStyle(color: SarhColors.warn)),
           ],
           const SizedBox(height: 24),
           ElevatedButton(
@@ -137,10 +137,10 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
         children: [
           Expanded(
               child: Text(label,
-                  style: const TextStyle(color: SijilliColors.outline))),
+                  style: const TextStyle(color: SarhColors.outline))),
           Text(value,
               style: const TextStyle(
-                  fontWeight: FontWeight.w600, color: SijilliColors.primary)),
+                  fontWeight: FontWeight.w600, color: SarhColors.primary)),
         ],
       ),
     );

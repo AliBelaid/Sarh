@@ -5,7 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/api/repositories.dart';
 import '../../core/models/verifiable_credential.dart';
-import '../../core/theme/sijilli_colors.dart';
+import '../../core/theme/sarh_colors.dart';
 
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key});
@@ -54,14 +54,14 @@ class _CredentialCard extends StatelessWidget {
                   height: 48,
                   width: 48,
                   decoration: BoxDecoration(
-                    color: SijilliColors.accent.withValues(alpha: 0.18),
+                    color: SarhColors.accent.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     credential.credentialType == 'DigitalId'
                         ? Icons.badge_outlined
                         : Icons.description_outlined,
-                    color: SijilliColors.primary,
+                    color: SarhColors.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -78,7 +78,7 @@ class _CredentialCard extends StatelessWidget {
                   ),
                 ),
                 if (!credential.isActive)
-                  const Icon(Icons.cancel_outlined, color: SijilliColors.warn),
+                  const Icon(Icons.cancel_outlined, color: SarhColors.warn),
               ],
             ),
             const SizedBox(height: 12),

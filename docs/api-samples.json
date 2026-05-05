@@ -1,0 +1,222 @@
+{
+  "$comment": "Representative request/response payloads for Sarh REST API. Base URL: /api/v1",
+  "auth.signIn": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/auth/sign-in",
+      "body": {
+        "email": "demo@sarh.ly",
+        "password": "Demo!12345"
+      }
+    },
+    "response_200": {
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIi…",
+      "refresh_token": "rt_5pXqv0…",
+      "expires_in": 3600,
+      "token_type": "Bearer",
+      "user": {
+        "id": "8c1f2b1c-9d3a-4e29-9bba-3a4d8a1b8e67",
+        "email": "demo@sarh.ly",
+        "sarh_role": "citizen",
+        "citizen_id": "1f2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+        "officer_id": null,
+        "permissions": null
+      }
+    },
+    "response_401": {
+      "error": {
+        "code": "ERR_UNAUTHORIZED",
+        "message_ar": "بريد إلكتروني أو كلمة مرور غير صحيحة.",
+        "message_en": "Invalid email or password."
+      }
+    }
+  },
+
+  "properties.list": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/properties?status=pending&limit=20",
+      "headers": { "Authorization": "Bearer …" }
+    },
+    "response_200": {
+      "items": [
+        {
+          "id": "a3e5e23f-…-1c47",
+          "property_code": null,
+          "parcel_number": "2174",
+          "plan_number": "B-37",
+          "owner_citizen_id": "1f2b3c4d-…-5c6d",
+          "property_type": "residential",
+          "region_id": 10,
+          "address": "حي الأندلس، شارع الزاوية",
+          "area_sqm": 425.5,
+          "status": "pending",
+          "submitted_at": "2026-05-02T10:14:23.412+02:00"
+        }
+      ],
+      "next_cursor": null
+    }
+  },
+
+  "properties.create": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/properties",
+      "headers": { "Authorization": "Bearer …" },
+      "body": {
+        "property_type": "residential",
+        "region_id": 10,
+        "address": "حي الأندلس، شارع الزاوية",
+        "parcel_number": "2174",
+        "plan_number": "B-37",
+        "block_number": null,
+        "area_sqm": 425.5,
+        "boundary": {
+          "type": "Polygon",
+          "coordinates": [[
+            [13.190512, 32.871891],
+            [13.190934, 32.871945],
+            [13.191002, 32.871460],
+            [13.190580, 32.871402],
+            [13.190512, 32.871891]
+          ]]
+        },
+        "documents": [
+          { "doc_type": "legacy_deed", "storage_path": "uploads/2026/05/02/legacy.pdf", "sha256": "3a7b…9f02" }
+        ]
+      }
+    },
+    "response_201": {
+      "id": "a3e5e23f-…-1c47",
+      "status": "pending",
+      "request_no": "REQ-2026-2118",
+      "submitted_at": "2026-05-02T10:14:23.412+02:00"
+    },
+    "response_400_overlap_warning": {
+      "$comment": "Server warns but does not block",
+      "id": "a3e5e23f-…-1c47",
+      "status": "pending",
+      "warnings": [
+        { "code": "OVERLAP_WITH_APPROVED", "with_property_id": "f1ab…", "overlap_sqm": 12.3 }
+      ]
+    }
+  },
+
+  "properties.review": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/properties/a3e5e23f-…-1c47/review",
+      "headers": { "Authorization": "Bearer <officer-token>" },
+      "body": {
+        "decision": "approve",
+        "decree_number": "DCR-2026-1142",
+        "note_ar": "المساحة المحسوبة من المضلع تطابق المساحة المُدخلة. لا توجد عقارات متداخلة."
+      }
+    },
+    "response_200": {
+      "property_id": "a3e5e23f-…-1c47",
+      "status": "approved",
+      "property_code": "PRP-2026-0438",
+      "decree_number": "DCR-2026-1142",
+      "deed_pdf_path": "deeds/2026/05/02/PRP-2026-0438.pdf",
+      "deed_signed_hash": "3a7b8e9a4c5f6d7e8b9c0d1e2f3a4b5c6d7e8f90",
+      "vc_credential_id": "urn:uuid:c1d2…"
+    }
+  },
+
+  "digitalIdCards.issue": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/digital-id-cards",
+      "headers": { "Authorization": "Bearer <id_issuer-token>" },
+      "body": {
+        "citizen_id": "1f2b3c4d-…-5c6d",
+        "region_code": "10",
+        "year": 2026,
+        "validity_years": 5
+      }
+    },
+    "response_201": {
+      "card": {
+        "id": "9bb1…",
+        "digital_id_number": "LY-10-2026-000142-3",
+        "card_serial": "S-9F2K-AB73",
+        "nfc_uid": "04A2B4C6D8E0F2",
+        "did": "did:sov:LY:9F2k…aB73",
+        "status": "active",
+        "issued_at": "2026-05-02T10:31:45+02:00",
+        "expires_at": "2031-05-02T10:31:45+02:00"
+      },
+      "nfc_keys": {
+        "$comment": "Returned only at issuance; never retrievable again. Encoded onto the card by the local NFC writer.",
+        "meta_read_key_hex": "8F9E…AE",
+        "sdm_file_read_key_hex": "23C1…77"
+      },
+      "sun_url_template": "https://verify.sarh.ly/sun?picc={picc}&enc={enc}&cmac={cmac}"
+    }
+  },
+
+  "verify.public": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/verify/PRP-2026-0438"
+    },
+    "response_200": {
+      "property_code": "PRP-2026-0438",
+      "status": "approved",
+      "property_type": "residential",
+      "region": { "id": 10, "name_ar": "طرابلس" },
+      "address": "حي الأندلس، شارع الزاوية",
+      "area_sqm": 425.5,
+      "centroid": { "lat": 32.871234, "lng": 13.190782 },
+      "owner_full_name_ar": "علي محمد بلعيد",
+      "decree_number": "DCR-2026-1142",
+      "approved_at": "2026-05-02T11:08:14+02:00",
+      "ssi_did": "did:sov:LY:9F2k…aB73",
+      "deed_signed_hash": "3a7b8e9a4c5f6d7e8b9c0d1e2f3a4b5c6d7e8f90",
+      "deed_url": "/api/v1/verify/PRP-2026-0438/deed.pdf"
+    }
+  },
+
+  "verify.nfcSun": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/verify/sun?picc=A4F2…&enc=…&cmac=…"
+    },
+    "response_200": {
+      "valid": true,
+      "card": {
+        "digital_id_number": "LY-10-2026-000142-3",
+        "status": "active",
+        "issued_at": "2026-05-02T10:31:45+02:00",
+        "expires_at": "2031-05-02T10:31:45+02:00",
+        "counter": 412
+      },
+      "citizen": {
+        "full_name_ar": "علي محمد بلعيد",
+        "region_name_ar": "طرابلس"
+      }
+    },
+    "response_409_replay": {
+      "valid": false,
+      "error": {
+        "code": "ERR_NFC_REPLAY",
+        "message_ar": "تمّ استخدام هذا الرمز سابقاً. يرجى إعادة لمس البطاقة.",
+        "message_en": "This SUN message was already consumed."
+      }
+    }
+  },
+
+  "errorEnvelope": {
+    "$comment": "All error responses share this shape.",
+    "error": {
+      "code": "ERR_VALIDATION_FAILED",
+      "message_ar": "بعض الحقول الإلزامية ناقصة.",
+      "message_en": "Some required fields are missing.",
+      "fields": {
+        "first_name_ar": "مطلوب",
+        "dob": "مطلوب"
+      }
+    }
+  }
+}

@@ -1,23 +1,31 @@
-// Sijilli — global styles. Arabic-first RTL, shared tokens for shell + features.
-// Brand tokens come from CLAUDE.md:
-//   primary  #0F1A14 (Libyan black)
-//   accent   #D4AF37 (gold)
-//   warn     #E70013 (Libyan red)
-//   success  #239E46 (Libyan green)
+// Sarh — global styles. Arabic-first RTL, shared tokens for shell + features.
+// PropTech palette: deep slate + warm orange accent on a near-white paper bg.
+// No green (per spec), no Libyan-flag colours — this is the registry's neutral
+// public-facing identity. The deed PDF still uses gold internally for heritage.
+//
+//   primary  #0F172A  slate-900 (anchors, sidebars, primary buttons)
+//   accent   #F97316  orange-500 (CTAs, active nav, highlights)
+//   warn     #DC2626  red-600 (rejection, danger)
+//   good     #0891B2  cyan-600 (success — replaces Libyan green)
+//   paper    #FAFAF9  stone-50 (page background)
+//   ink      #0F172A  slate-900 (primary text)
+//   muted    #64748B  slate-500 (secondary text)
+//   rule     #E5E7EB  gray-200 (dividers, borders)
 
-@use '@angular/material' as mat;
-@include mat.core();
+// Leaflet (loaded once globally; the Properties GIS page uses it).
+@import 'leaflet/dist/leaflet.css';
 
 :root {
-  --primary: #0F1A14;
-  --accent:  #D4AF37;
-  --warn:    #E70013;
-  --good:    #239E46;
-  --bad:     #E70013;
-  --paper:   #FBFAF6;
-  --ink:     #0F1A14;
-  --muted:   #6B7066;
-  --rule:    #E2DDCB;
+  --primary: #0F172A;
+  --accent:  #F97316;
+  --warn:    #DC2626;
+  --good:    #0891B2;
+  --bad:     #DC2626;
+  --paper:   #FAFAF9;
+  --surface: #FFFFFF;
+  --ink:     #0F172A;
+  --muted:   #64748B;
+  --rule:    #E5E7EB;
 
   --font-ar:   'IBM Plex Sans Arabic', system-ui, sans-serif;
   --font-en:   'Inter', system-ui, sans-serif;
@@ -52,12 +60,3 @@ a:hover { color: var(--accent); }
   .print-only { display: none !important; }
 }
 
-// Material density adjustment for compact admin tables.
-$sijilli-theme: mat.define-theme((
-  color: (
-    theme-type: light,
-    primary: mat.$violet-palette,
-  ),
-  density: (scale: -1),
-));
-html { @include mat.all-component-themes($sijilli-theme); }

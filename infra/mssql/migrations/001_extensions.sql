@@ -6,7 +6,7 @@
 --   pg_trgm               -> fulltext catalog (Arabic word breaker)
 --   btree_gist            -> N/A (covered by composite + filtered indexes)
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 -- Fulltext catalog used by 003_citizens.sql for Arabic name search.
@@ -14,10 +14,10 @@ GO
 -- without the FullText feature installed) don't ship full-text search.
 -- We log + continue rather than fail the migration; queries that depend
 -- on the catalog are limited to the citizens search box.
-IF NOT EXISTS (SELECT 1 FROM sys.fulltext_catalogs WHERE name = N'sijilli_ft')
+IF NOT EXISTS (SELECT 1 FROM sys.fulltext_catalogs WHERE name = N'sarh_ft')
 BEGIN
     BEGIN TRY
-        EXEC(N'CREATE FULLTEXT CATALOG sijilli_ft AS DEFAULT;');
+        EXEC(N'CREATE FULLTEXT CATALOG sarh_ft AS DEFAULT;');
     END TRY
     BEGIN CATCH
         PRINT N'WARNING: full-text catalog skipped — ' + ERROR_MESSAGE();

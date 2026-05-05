@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sijilli — dependency audit. Runs `pnpm audit --prod` against every
+# Sarh — dependency audit. Runs `pnpm audit --prod` against every
 # workspace package that ships to production and fails if any high or
 # critical advisory is reported.
 #
@@ -16,13 +16,13 @@ set -euo pipefail
 # All packages that produce a runtime artefact. Tests + scaffolding tools
 # are excluded — supply-chain risk is bound to what actually deploys.
 TARGETS=(
-  "@sijilli/api"
-  "@sijilli/web-citizen"
-  "@sijilli/web-officer"
-  "@sijilli/web-id-issuer"
-  "@sijilli/web-admin"
-  "@sijilli/shared-types"
-  "@sijilli/ui-kit"
+  "@sarh/api"
+  "@sarh/web-citizen"
+  "@sarh/web-officer"
+  "@sarh/web-id-issuer"
+  "@sarh/web-admin"
+  "@sarh/shared-types"
+  "@sarh/ui-kit"
 )
 
 if ! command -v pnpm >/dev/null 2>&1; then

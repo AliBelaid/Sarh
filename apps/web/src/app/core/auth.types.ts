@@ -1,5 +1,5 @@
-// Sijilli roles. Mirrors apps/api/src/auth/types.ts.
-export type SijilliRole =
+// Sarh roles. Mirrors apps/api/src/auth/types.ts.
+export type SarhRole =
   | 'super_admin'
   | 'auditor'
   | 'registry_officer'
@@ -10,7 +10,7 @@ export type SijilliRole =
 export interface AuthUser {
   id: string;
   email: string | null;
-  role: SijilliRole;
+  role: SarhRole;
   officer_id: string | null;
   citizen_id: string | null;
 }
@@ -22,12 +22,13 @@ export interface SignInResponse {
   user: AuthUser;
 }
 
-// Where each role lands after sign-in.
-export const ROLE_HOME: Record<SijilliRole, string> = {
-  super_admin:      '/admin',
-  auditor:          '/admin',
-  registry_officer: '/officer',
-  reviewer:         '/officer',
-  id_issuer:        '/id-issuer',
-  citizen:          '/citizen',
+// Single unified shell — every role lands on /app/dashboard, which
+// renders role-specific tiles. Per-feature role gates live on the routes.
+export const ROLE_HOME: Record<SarhRole, string> = {
+  super_admin:      '/app/dashboard',
+  auditor:          '/app/dashboard',
+  registry_officer: '/app/dashboard',
+  reviewer:         '/app/dashboard',
+  id_issuer:        '/app/dashboard',
+  citizen:          '/app/dashboard',
 };

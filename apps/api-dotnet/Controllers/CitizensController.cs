@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Sijilli.Api.Audit;
-using Sijilli.Api.Auth;
-using Sijilli.Api.Citizens;
-using Sijilli.Api.Common;
+using Sarh.Api.Audit;
+using Sarh.Api.Auth;
+using Sarh.Api.Citizens;
+using Sarh.Api.Common;
 
-namespace Sijilli.Api.Controllers;
+namespace Sarh.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/citizens")]

@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
-using Sijilli.Api.Common.Errors;
+using Sarh.Api.Common.Errors;
 
-namespace Sijilli.Api.Storage;
+namespace Sarh.Api.Storage;
 
 // Local-filesystem storage. Replaces Supabase Storage. Files live under
 // STORAGE_ROOT/<bucket>/<pathPrefix>/<uuid><ext>. The string returned to
@@ -22,7 +22,7 @@ public sealed partial class StorageService
     public StorageService(IConfiguration config, ILogger<StorageService> log)
     {
         _log = log;
-        var dir = config["Sijilli:StorageRoot"]
+        var dir = config["Sarh:StorageRoot"]
             ?? Environment.GetEnvironmentVariable("STORAGE_ROOT")
             ?? Path.Combine(Directory.GetCurrentDirectory(), "storage");
         _root = Path.GetFullPath(dir);
@@ -60,13 +60,13 @@ public sealed partial class StorageService
     public async Task<UploadResult> UploadAsync(UploadFile file, UploadOptions opts, CancellationToken ct)
     {
         if (file.Buffer.Length == 0)
-            throw SijilliException.Validation("الملف فارغ أو غير صالح.", "Empty or invalid file.");
+            throw SarhException.Validation("الملف فارغ أو غير صالح.", "Empty or invalid file.");
         if (file.Size > opts.MaxBytes)
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 $"حجم الملف ({FormatBytes(file.Size)}) يتجاوز الحد المسموح ({FormatBytes(opts.MaxBytes)}).",
                 $"File size {file.Size} exceeds limit {opts.MaxBytes}.");
         if (!opts.AllowedMimeTypes.Contains(file.MimeType))
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 $"نوع الملف \"{file.MimeType}\" غير مدعوم.",
                 $"Unsupported mime type {file.MimeType}.");
 
@@ -93,7 +93,7 @@ public sealed partial class StorageService
     public async Task<byte[]> ReadAsync(string bucket, string path, CancellationToken ct)
     {
         var abs = AbsoluteFor(bucket, path);
-        if (!File.Exists(abs)) throw SijilliException.NotFound("الملف", "File");
+        if (!File.Exists(abs)) throw SarhException.NotFound("الملف", "File");
         return await File.ReadAllBytesAsync(abs, ct);
     }
 
@@ -101,7 +101,7 @@ public sealed partial class StorageService
     public Stream OpenRead(string bucket, string path)
     {
         var abs = AbsoluteFor(bucket, path);
-        if (!File.Exists(abs)) throw SijilliException.NotFound("الملف", "File");
+        if (!File.Exists(abs)) throw SarhException.NotFound("الملف", "File");
         return new FileStream(abs, FileMode.Open, FileAccess.Read, FileShare.Read);
     }
 
@@ -131,7 +131,7 @@ public sealed partial class StorageService
         if (!candidate.StartsWith(bucketRoot + sep, StringComparison.OrdinalIgnoreCase) &&
             !candidate.Equals(bucketRoot, StringComparison.OrdinalIgnoreCase))
         {
-            throw SijilliException.Validation("مسار غير صالح.", "Invalid path.");
+            throw SarhException.Validation("مسار غير صالح.", "Invalid path.");
         }
         return candidate;
     }

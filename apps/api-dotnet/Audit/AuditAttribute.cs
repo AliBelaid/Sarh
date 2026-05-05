@@ -1,4 +1,4 @@
-namespace Sijilli.Api.Audit;
+namespace Sarh.Api.Audit;
 
 // Attribute placed on controller methods to declare what should be audited.
 // The action filter only fires after the handler succeeds — failed

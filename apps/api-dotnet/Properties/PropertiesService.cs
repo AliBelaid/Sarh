@@ -1,16 +1,16 @@
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Auth;
-using Sijilli.Api.Common;
-using Sijilli.Api.Common.Errors;
-using Sijilli.Api.Data;
-using Sijilli.Api.Data.Entities;
-using Sijilli.Api.Notifications;
+using Sarh.Api.Auth;
+using Sarh.Api.Common;
+using Sarh.Api.Common.Errors;
+using Sarh.Api.Data;
+using Sarh.Api.Data.Entities;
+using Sarh.Api.Notifications;
 
-namespace Sijilli.Api.Properties;
+namespace Sarh.Api.Properties;
 
-public sealed class PropertiesService(SijilliDbContext db, NotificationsService notifications)
+public sealed class PropertiesService(SarhDbContext db, NotificationsService notifications)
 {
     private const decimal AREA_TOLERANCE_PCT = 5m;
 
@@ -18,7 +18,7 @@ public sealed class PropertiesService(SijilliDbContext db, NotificationsService 
     public async Task<SubmitResult> SubmitAsync(CreatePropertyDto dto, CurrentUser actor, CancellationToken ct)
     {
         if (actor.CitizenId is null)
-            throw SijilliException.Forbidden("فقط المواطنون يمكنهم تقديم طلبات تسجيل عقار.");
+            throw SarhException.Forbidden("فقط المواطنون يمكنهم تقديم طلبات تسجيل عقار.");
 
         var (wkt, geoJson) = GeoJsonPolygon.ValidateAndConvert(dto.BoundaryPolygon);
 
@@ -28,7 +28,7 @@ public sealed class PropertiesService(SijilliDbContext db, NotificationsService 
 
         if (validation.AreaDiffPct is decimal diff && diff > AREA_TOLERANCE_PCT)
         {
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 $"الفرق بين المساحة المُدخلة ({dto.AreaSqm} م²) والمساحة المحسوبة من الإحداثيات ({validation.ComputedAreaSqm} م²) يتجاوز ±{AREA_TOLERANCE_PCT}%.",
                 $"Claimed area {dto.AreaSqm} differs from computed {validation.ComputedAreaSqm} by {diff}% (max {AREA_TOLERANCE_PCT}%).",
                 new { computed_area_sqm = validation.ComputedAreaSqm, area_diff_pct = diff });
@@ -36,7 +36,7 @@ public sealed class PropertiesService(SijilliDbContext db, NotificationsService 
 
         if (validation.HasApprovedCentroidMatch)
         {
-            throw SijilliException.Conflict(
+            throw SarhException.Conflict(
                 $"يوجد عقار معتمد مسبقاً بنفس الإحداثيات (الرمز {validation.MatchedPropertyCode}).",
                 $"An approved property with the same centroid exists (code {validation.MatchedPropertyCode}).");
         }
@@ -95,7 +95,7 @@ public sealed class PropertiesService(SijilliDbContext db, NotificationsService 
 
         if (actor.Role == "citizen")
         {
-            if (actor.CitizenId is null) throw SijilliException.Forbidden();
+            if (actor.CitizenId is null) throw SarhException.Forbidden();
             query = query.Where(p => p.OwnerCitizenId == actor.CitizenId);
         }
         else if (actor.Role is "super_admin" or "auditor")
@@ -106,9 +106,9 @@ public sealed class PropertiesService(SijilliDbContext db, NotificationsService 
         {
             // registry_officer / reviewer / id_issuer scope to own region.
             if (actor.RegionId is null)
-                throw SijilliException.Forbidden("الموظف غير مرتبط بمنطقة محدّدة.");
+                throw SarhException.Forbidden("الموظف غير مرتبط بمنطقة محدّدة.");
             if (q.RegionId is not null && q.RegionId != actor.RegionId)
-                throw SijilliException.Forbidden("لا يمكنك عرض عقارات من خارج منطقتك.");
+                throw SarhException.Forbidden("لا يمكنك عرض عقارات من خارج منطقتك.");
             query = query.Where(p => p.RegionId == actor.RegionId);
         }
 
@@ -142,13 +142,13 @@ public sealed class PropertiesService(SijilliDbContext db, NotificationsService 
     public async Task<PropertyView> GetByIdAsync(Guid id, CurrentUser actor, CancellationToken ct)
     {
         var p = await db.Properties.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw SijilliException.NotFound("العقار", "Property");
+            ?? throw SarhException.NotFound("العقار", "Property");
 
         if (actor.Role == "citizen" && p.OwnerCitizenId != actor.CitizenId)
-            throw SijilliException.Forbidden();
+            throw SarhException.Forbidden();
         if (actor.Role is "registry_officer" or "reviewer" or "id_issuer" &&
             actor.RegionId is not null && p.RegionId != actor.RegionId)
-            throw SijilliException.Forbidden("العقار خارج منطقتك.");
+            throw SarhException.Forbidden("العقار خارج منطقتك.");
 
         return PropertyView.From(p);
     }
@@ -257,7 +257,7 @@ public sealed class PropertiesService(SijilliDbContext db, NotificationsService 
 
         await using var r = await cmd.ExecuteReaderAsync(ct);
         if (!await r.ReadAsync(ct))
-            throw SijilliException.Upstream("validate returned no row");
+            throw SarhException.Upstream("validate returned no row");
         return new ValidationRow(
             r.GetDecimal(0),
             r.IsDBNull(1) ? null : r.GetDecimal(1),
@@ -296,7 +296,7 @@ public sealed class PropertiesService(SijilliDbContext db, NotificationsService 
             new SqlParameter("@p_depth_m",  SqlDbType.Decimal) { Value = (object?)dto.DepthM ?? DBNull.Value },
         });
         var id = (Guid?)await cmd.ExecuteScalarAsync(ct)
-            ?? throw SijilliException.Upstream("insert_property_with_polygon returned no id");
+            ?? throw SarhException.Upstream("insert_property_with_polygon returned no id");
         return id;
     }
 
@@ -308,7 +308,7 @@ public sealed class PropertiesService(SijilliDbContext db, NotificationsService 
         cmd.CommandText = "EXEC dbo.next_registration_request_no @p_year;";
         cmd.Parameters.Add(new SqlParameter("@p_year", SqlDbType.Int) { Value = year });
         var s = (string?)await cmd.ExecuteScalarAsync(ct)
-            ?? throw SijilliException.Upstream("next_registration_request_no returned null");
+            ?? throw SarhException.Upstream("next_registration_request_no returned null");
         return s;
     }
 }

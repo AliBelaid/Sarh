@@ -1,9 +1,9 @@
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Data;
+using Sarh.Api.Data;
 
-namespace Sijilli.Api.Audit;
+namespace Sarh.Api.Audit;
 
 public sealed class AuditEntry
 {
@@ -21,7 +21,7 @@ public sealed class AuditEntry
 // Append-only writer for the audit_log table. Inserts use a parameterised
 // raw command rather than EF entity tracking — audit_log uses
 // BIGINT IDENTITY for ordering and never participates in the request DbContext.
-public sealed class AuditService(SijilliDbContext db, ILogger<AuditService> log)
+public sealed class AuditService(SarhDbContext db, ILogger<AuditService> log)
 {
     public async Task RecordAsync(AuditEntry entry, CancellationToken ct)
     {

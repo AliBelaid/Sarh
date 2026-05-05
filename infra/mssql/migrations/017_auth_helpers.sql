@@ -1,13 +1,13 @@
 -- =========================================================================
--- 017_auth_helpers.sql — local auth_users table + Sijilli claims helper
+-- 017_auth_helpers.sql — local auth_users table + Sarh claims helper
 --
 -- Postgres + Supabase shipped `auth.users`. Local SQL Server has none, so
 -- we own that table here. Password hashes are bcrypt (60 chars). The API's
 -- AuthService (apps/api/src/auth/auth.service.ts) handles sign-in/up; this
--- migration just creates the storage and the same `sijilli_auth_claims`
+-- migration just creates the storage and the same `sarh_auth_claims`
 -- helper the JWT issuer used.
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE auth_users (
@@ -34,7 +34,7 @@ GO
 
 -- Returns a JSON object with the same shape the API expects for JWT
 -- enrichment. Resolves officer first, then citizen via app metadata.
-CREATE OR ALTER PROCEDURE dbo.sijilli_auth_claims
+CREATE OR ALTER PROCEDURE dbo.sarh_auth_claims
     @p_auth_user_id UNIQUEIDENTIFIER,
     @claims_json    NVARCHAR(MAX) OUTPUT
 AS
@@ -57,7 +57,7 @@ BEGIN
     IF @officer_id IS NOT NULL
     BEGIN
         SET @claims_json = (
-            SELECT  @role            AS sijilli_role,
+            SELECT  @role            AS sarh_role,
                     @officer_id      AS officer_id,
                     @region_id       AS region_id,
                     @municipality_id AS municipality_id,
@@ -74,7 +74,7 @@ BEGIN
     IF @meta IS NOT NULL AND JSON_VALUE(@meta, N'$.citizen_id') IS NOT NULL
     BEGIN
         SET @claims_json = (
-            SELECT  N'citizen' AS sijilli_role,
+            SELECT  N'citizen' AS sarh_role,
                     JSON_VALUE(@meta, N'$.citizen_id') AS citizen_id
             FOR JSON PATH, WITHOUT_ARRAY_WRAPPER, INCLUDE_NULL_VALUES
         );

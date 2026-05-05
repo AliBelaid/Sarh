@@ -1,21 +1,21 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Auth;
-using Sijilli.Api.Common;
-using Sijilli.Api.Common.Errors;
-using Sijilli.Api.Data;
-using Sijilli.Api.Data.Entities;
+using Sarh.Api.Auth;
+using Sarh.Api.Common;
+using Sarh.Api.Common.Errors;
+using Sarh.Api.Data;
+using Sarh.Api.Data.Entities;
 
-namespace Sijilli.Api.Citizens;
+namespace Sarh.Api.Citizens;
 
-public sealed class CitizensService(SijilliDbContext db)
+public sealed class CitizensService(SarhDbContext db)
 {
     private const int UNIQUE_VIOLATION = 2627;
     private const int UNIQUE_VIOLATION_INDEX = 2601;
 
     public async Task<CitizenView> CreateAsync(CreateCitizenDto dto, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.OfficerId is null) throw SijilliException.Forbidden();
+        if (actor.OfficerId is null) throw SarhException.Forbidden();
 
         var c = new Citizen
         {
@@ -53,7 +53,7 @@ public sealed class CitizensService(SijilliDbContext db)
         }
         catch (DbUpdateException ex) when (IsUnique(ex))
         {
-            throw SijilliException.Conflict(
+            throw SarhException.Conflict(
                 "يوجد مواطن مسجّل مسبقاً برقم وطني أو هاتف أو بريد إلكتروني مماثل.",
                 "A citizen already exists with the same national/phone/email.");
         }
@@ -62,7 +62,7 @@ public sealed class CitizensService(SijilliDbContext db)
 
     public async Task<CursorPage<CitizenView>> ListAsync(ListCitizensQuery q, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.OfficerId is null) throw SijilliException.Forbidden();
+        if (actor.OfficerId is null) throw SarhException.Forbidden();
 
         IQueryable<Citizen> query = db.Citizens.AsNoTracking().Where(c => c.IsActive);
 
@@ -70,7 +70,7 @@ public sealed class CitizensService(SijilliDbContext db)
         if (actor.Role is not ("super_admin" or "auditor"))
         {
             if (q.RegionId is not null && actor.RegionId is not null && q.RegionId != actor.RegionId)
-                throw SijilliException.Forbidden("لا يمكنك عرض مواطنين من خارج منطقتك.");
+                throw SarhException.Forbidden("لا يمكنك عرض مواطنين من خارج منطقتك.");
             if (actor.RegionId is not null)
                 query = query.Where(c => c.RegionId == actor.RegionId);
         }
@@ -119,19 +119,19 @@ public sealed class CitizensService(SijilliDbContext db)
 
     public async Task<CitizenView> GetByIdAsync(Guid id, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.Role == "citizen" && actor.CitizenId != id) throw SijilliException.Forbidden();
+        if (actor.Role == "citizen" && actor.CitizenId != id) throw SarhException.Forbidden();
 
         var c = await db.Citizens.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw SijilliException.NotFound("المواطن", "Citizen");
+            ?? throw SarhException.NotFound("المواطن", "Citizen");
         return CitizenView.From(c);
     }
 
     public async Task<CitizenView> UpdateAsync(Guid id, UpdateCitizenDto dto, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.OfficerId is null) throw SijilliException.Forbidden();
+        if (actor.OfficerId is null) throw SarhException.Forbidden();
 
         var c = await db.Citizens.FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw SijilliException.NotFound("المواطن", "Citizen");
+            ?? throw SarhException.NotFound("المواطن", "Citizen");
 
         if (dto.FirstNameEn is not null) c.FirstNameEn = dto.FirstNameEn;
         if (dto.FatherNameEn is not null) c.FatherNameEn = dto.FatherNameEn;
@@ -156,7 +156,7 @@ public sealed class CitizensService(SijilliDbContext db)
         }
         catch (DbUpdateException ex) when (IsUnique(ex))
         {
-            throw SijilliException.Conflict(
+            throw SarhException.Conflict(
                 "تعارض في رقم الهاتف أو البريد الإلكتروني.",
                 "Conflict on phone or email.");
         }

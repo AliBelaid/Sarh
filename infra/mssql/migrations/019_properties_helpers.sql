@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 019_properties_helpers.sql — submission helpers
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 -- Sequential per-year request numbers (REQ-YYYY-000001, ...).
@@ -168,7 +168,7 @@ BEGIN
 END
 GO
 
--- Tiny GeoJSON-Polygon-to-WKT converter. Handles only the shape Sijilli
+-- Tiny GeoJSON-Polygon-to-WKT converter. Handles only the shape Sarh
 -- emits: { "type":"Polygon", "coordinates": [ [ [lng,lat], ... ] ] }.
 -- Anything more elaborate should be converted client-side.
 CREATE OR ALTER FUNCTION dbo.fn_geojson_polygon_to_wkt(@geojson NVARCHAR(MAX))

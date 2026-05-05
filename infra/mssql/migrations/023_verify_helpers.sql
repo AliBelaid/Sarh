@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 023_verify_helpers.sql — public verify endpoint helper
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE OR ALTER PROCEDURE dbo.property_polygon_geojson

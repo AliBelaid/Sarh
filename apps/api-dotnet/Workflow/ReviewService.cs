@@ -1,14 +1,21 @@
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Auth;
-using Sijilli.Api.Common.Errors;
-using Sijilli.Api.Data;
-using Sijilli.Api.Data.Entities;
-using Sijilli.Api.Notifications;
-using Sijilli.Api.Properties;
+using Sarh.Api.Auth;
+using Sarh.Api.Common.Errors;
+using Sarh.Api.Data;
+using Sarh.Api.Data.Entities;
+using Sarh.Api.Notifications;
+using Sarh.Api.Properties;
+using Sarh.Api.Storage;
 
-namespace Sijilli.Api.Workflow;
+namespace Sarh.Api.Workflow;
 
-public sealed class ReviewService(SijilliDbContext db, NotificationsService notifications, ILogger<ReviewService> log)
+public sealed class ReviewService(
+    SarhDbContext db,
+    NotificationsService notifications,
+    DeedPdfBuilder deedBuilder,
+    StorageService storage,
+    IConfiguration config,
+    ILogger<ReviewService> log)
 {
     private static readonly HashSet<string> Reviewable = ["pending", "under_review", "needs_clarification"];
     private static readonly HashSet<string> ReviewerRoles = ["registry_officer", "reviewer", "super_admin"];
@@ -16,26 +23,26 @@ public sealed class ReviewService(SijilliDbContext db, NotificationsService noti
     public async Task<ReviewResult> ReviewAsync(Guid propertyId, ReviewDecisionDto dto, CurrentUser actor, CancellationToken ct)
     {
         if (actor.OfficerId is null || !ReviewerRoles.Contains(actor.Role))
-            throw SijilliException.Forbidden("فقط موظّفو السجلّ يمكنهم اعتماد أو رفض الطلبات.");
+            throw SarhException.Forbidden("فقط موظّفو السجلّ يمكنهم اعتماد أو رفض الطلبات.");
 
         if ((dto.Decision is "reject" or "needs_clarification") && string.IsNullOrWhiteSpace(dto.Note))
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "الملاحظة إلزامية عند الرفض أو طلب التوضيح.",
                 "A note is required when rejecting or requesting clarification.");
 
         var property = await db.Properties.FirstOrDefaultAsync(p => p.Id == propertyId, ct)
-            ?? throw SijilliException.NotFound("العقار", "Property");
+            ?? throw SarhException.NotFound("العقار", "Property");
 
         if (actor.Role != "super_admin")
         {
             if (actor.RegionId is null)
-                throw SijilliException.Forbidden("الموظف غير مرتبط بمنطقة محدّدة.");
+                throw SarhException.Forbidden("الموظف غير مرتبط بمنطقة محدّدة.");
             if (property.RegionId != actor.RegionId)
-                throw SijilliException.Forbidden("العقار خارج منطقتك.");
+                throw SarhException.Forbidden("العقار خارج منطقتك.");
         }
 
         if (!Reviewable.Contains(property.Status))
-            throw SijilliException.Conflict(
+            throw SarhException.Conflict(
                 $"لا يمكن مراجعة عقار حالته \"{property.Status}\".",
                 $"Property in status \"{property.Status}\" is not reviewable.");
 
@@ -53,21 +60,47 @@ public sealed class ReviewService(SijilliDbContext db, NotificationsService noti
             ? await db.Regions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == rid, ct)
             : null;
         if (region is null)
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "لا يمكن اعتماد عقار بدون منطقة.",
                 "Cannot approve a property without a region.");
 
         var propertyCode = await NextPropertyCodeAsync(region.Code, DateTime.UtcNow.Year, ct);
+        var approvedAt = DateTimeOffset.UtcNow;
+        var verifyUrl = BuildVerifyUrl(propertyCode);
 
-        // Phase 5/6 will replace these placeholders with real PDF + SSI VC.
-        var deedPath = $"property_deeds/{property.Id}/deed.pdf";
-        var deedHash = "placeholder_sha256";
-        var verifyUrl = $"https://verify.sijilli.ly/{propertyCode}";
+        var owner = await db.Citizens.AsNoTracking().FirstOrDefaultAsync(c => c.Id == property.OwnerCitizenId, ct)
+            ?? throw SarhException.NotFound("المالك", "Owner");
+        var officerName = await db.Officers.AsNoTracking()
+            .Where(o => o.Id == actor.OfficerId)
+            .Select(o => o.FullNameAr)
+            .FirstOrDefaultAsync(ct) ?? "موظف السجل";
+
+        // Generate the actual PDF deed and write it via StorageService.
+        // The returned Sha256 is the canonical "deed_signed_hash" — what the
+        // verify endpoint and any downstream PAdES wrapper compute against.
+        var pdfBytes = deedBuilder.Render(new DeedPdfBuilder.DeedInputs
+        {
+            Property = property,
+            Owner = owner,
+            Region = region,
+            PropertyCode = propertyCode,
+            DecreeNumber = dto.ApprovalDecreeNo ?? "—",
+            OfficerName = officerName,
+            ApprovedAt = approvedAt,
+            VerifyUrl = verifyUrl,
+        });
+
+        var deedRel = $"{property.Id}/deed.pdf";
+        var written = await storage.WriteRawAsync("property_deeds", deedRel, pdfBytes, "application/pdf", ct);
+        var deedPath = $"property_deeds/{written.Path}";
+        var deedHash = written.Sha256;
+
+        // SSI VC issuance still placeholder-fallback — see SSI module migration backlog.
         var vcId = $"urn:placeholder:vc:property_deed:{Guid.NewGuid()}";
 
         property.Status = "approved";
         property.PropertyCode = propertyCode;
-        property.ReviewedAt = DateTimeOffset.UtcNow;
+        property.ReviewedAt = approvedAt;
         property.ReviewedByOfficerId = actor.OfficerId;
         property.ApprovalDecreeNo = dto.ApprovalDecreeNo;
         property.RejectionReason = null;
@@ -135,6 +168,14 @@ public sealed class ReviewService(SijilliDbContext db, NotificationsService noti
         return new ReviewResult { Property = PropertyView.From(property) };
     }
 
+    private string BuildVerifyUrl(string propertyCode)
+    {
+        var baseUrl = (config["Sarh:VerifyBaseUrl"]
+            ?? Environment.GetEnvironmentVariable("VERIFY_BASE_URL")
+            ?? "https://verify.sarh.ly").TrimEnd('/');
+        return $"{baseUrl}/{propertyCode}";
+    }
+
     private async Task<string> NextPropertyCodeAsync(string regionCode, int year, CancellationToken ct)
     {
         var conn = (Microsoft.Data.SqlClient.SqlConnection)db.Database.GetDbConnection();
@@ -144,7 +185,7 @@ public sealed class ReviewService(SijilliDbContext db, NotificationsService noti
         cmd.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@p_region_code", System.Data.SqlDbType.NVarChar, 8) { Value = regionCode });
         cmd.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@p_year", System.Data.SqlDbType.Int) { Value = year });
         var s = (string?)await cmd.ExecuteScalarAsync(ct)
-            ?? throw SijilliException.Upstream("next_property_code returned null");
+            ?? throw SarhException.Upstream("next_property_code returned null");
         return s;
     }
 

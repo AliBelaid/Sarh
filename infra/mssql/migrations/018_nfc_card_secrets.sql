@@ -7,7 +7,7 @@
 --  - RLS is replaced by application-layer guards. The SUPABASE service
 --    key model becomes the privileged-only DB user the API connects with.
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE nfc_card_secrets (

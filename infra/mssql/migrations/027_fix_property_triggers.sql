@@ -11,7 +11,7 @@
 -- Fix: bail out of both triggers early when there's nothing left to do.
 -- TRIGGER_NESTLEVEL() guard is the canonical SQL Server idiom for this.
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 -- Spatial-index operations inside the trigger body require QUOTED_IDENTIFIER ON

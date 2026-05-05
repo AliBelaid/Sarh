@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000" role="img" aria-label="Sijilli Architecture">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000" role="img" aria-label="Sarh Architecture">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0F1A14"/>
+      <stop offset="0%" stop-color="#0F172A"/>
       <stop offset="100%" stop-color="#000"/>
     </linearGradient>
     <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
@@ -9,11 +9,11 @@
       <stop offset="100%" stop-color="#9B7A1E"/>
     </linearGradient>
     <linearGradient id="redLayer" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#E70013" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#DC2626" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#A8000E" stop-opacity="0.15"/>
     </linearGradient>
     <linearGradient id="greenLayer" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#239E46" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#0891B2" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#1A7234" stop-opacity="0.15"/>
     </linearGradient>
     <linearGradient id="blackLayer" x1="0" y1="0" x2="1" y2="0">
@@ -21,7 +21,7 @@
       <stop offset="100%" stop-color="#0a0a0a" stop-opacity="0.4"/>
     </linearGradient>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#D4AF37"/>
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#F97316"/>
     </marker>
   </defs>
 
@@ -29,18 +29,18 @@
 
   <!-- Title -->
   <text x="700" y="50" text-anchor="middle" font-family="'Amiri', serif"
-        font-size="32" font-weight="700" fill="url(#gold)">معمارية نظام سِجِلّي</text>
+        font-size="32" font-weight="700" fill="url(#gold)">معمارية نظام صَرح</text>
   <text x="700" y="78" text-anchor="middle" font-family="'Cormorant Garamond', serif"
-        font-size="16" fill="#D4AF37" letter-spacing="4">SIJILLI · SYSTEM ARCHITECTURE</text>
+        font-size="16" fill="#F97316" letter-spacing="4">SARH · SYSTEM ARCHITECTURE</text>
 
   <!-- ============ LAYER 1: CLIENTS ============ -->
-  <rect x="60" y="120" width="1280" height="160" rx="6" fill="url(#redLayer)" stroke="#E70013" stroke-width="1" stroke-opacity="0.6"/>
-  <text x="80" y="148" font-family="'Amiri', serif" font-size="16" fill="#E70013" font-weight="700">طبقة العملاء — Client Layer</text>
+  <rect x="60" y="120" width="1280" height="160" rx="6" fill="url(#redLayer)" stroke="#DC2626" stroke-width="1" stroke-opacity="0.6"/>
+  <text x="80" y="148" font-family="'Amiri', serif" font-size="16" fill="#DC2626" font-weight="700">طبقة العملاء — Client Layer</text>
 
   <!-- Mobile App -->
   <g transform="translate(120, 170)">
-    <rect width="220" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="18" font-weight="700" fill="#D4AF37">تطبيق المواطن</text>
+    <rect width="220" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="18" font-weight="700" fill="#F97316">تطبيق المواطن</text>
     <text x="110" y="50" text-anchor="middle" font-family="monospace" font-size="11" fill="#F4D77A">Flutter · iOS / Android</text>
     <text x="110" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="12" fill="#aaa">SSI Wallet · NFC Reader · GPS</text>
     <text x="110" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="12" fill="#aaa">رفع وثائق · إشعارات SignalR</text>
@@ -48,8 +48,8 @@
 
   <!-- Web Citizen Portal -->
   <g transform="translate(370, 170)">
-    <rect width="220" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="18" font-weight="700" fill="#D4AF37">بوابة المواطن</text>
+    <rect width="220" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="18" font-weight="700" fill="#F97316">بوابة المواطن</text>
     <text x="110" y="50" text-anchor="middle" font-family="monospace" font-size="11" fill="#F4D77A">Angular 17+ · RTL</text>
     <text x="110" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="12" fill="#aaa">تسجيل عقار · متابعة طلبات</text>
     <text x="110" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="12" fill="#aaa">عرض الوثائق العقارية</text>
@@ -57,8 +57,8 @@
 
   <!-- Officer Web App -->
   <g transform="translate(620, 170)">
-    <rect width="220" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="18" font-weight="700" fill="#D4AF37">لوحة الموظف</text>
+    <rect width="220" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="18" font-weight="700" fill="#F97316">لوحة الموظف</text>
     <text x="110" y="50" text-anchor="middle" font-family="monospace" font-size="11" fill="#F4D77A">Angular · Officer Portal</text>
     <text x="110" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="12" fill="#aaa">مراجعة · موافقة / رفض</text>
     <text x="110" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="12" fill="#aaa">تعارض الإحداثيات · تقارير</text>
@@ -66,8 +66,8 @@
 
   <!-- Data Entry / ID Issuer -->
   <g transform="translate(870, 170)">
-    <rect width="220" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="18" font-weight="700" fill="#D4AF37">محطة إصدار الهوية</text>
+    <rect width="220" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="18" font-weight="700" fill="#F97316">محطة إصدار الهوية</text>
     <text x="110" y="50" text-anchor="middle" font-family="monospace" font-size="11" fill="#F4D77A">Angular · Web Cam · NFC</text>
     <text x="110" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="12" fill="#aaa">إدخال بيانات المواطن</text>
     <text x="110" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="12" fill="#aaa">طباعة بطاقة + ترميز NFC</text>
@@ -75,67 +75,67 @@
 
   <!-- Admin Console -->
   <g transform="translate(1120, 170)">
-    <rect width="220" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="18" font-weight="700" fill="#D4AF37">لوحة المسؤول</text>
+    <rect width="220" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="18" font-weight="700" fill="#F97316">لوحة المسؤول</text>
     <text x="110" y="50" text-anchor="middle" font-family="monospace" font-size="11" fill="#F4D77A">Angular · Super Admin</text>
     <text x="110" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="12" fill="#aaa">صلاحيات · موظفين</text>
     <text x="110" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="12" fill="#aaa">تدقيق · إعدادات</text>
   </g>
 
   <!-- Arrows down to API -->
-  <line x1="230" y1="280" x2="230" y2="330" stroke="#D4AF37" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <line x1="480" y1="280" x2="480" y2="330" stroke="#D4AF37" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <line x1="730" y1="280" x2="730" y2="330" stroke="#D4AF37" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <line x1="980" y1="280" x2="980" y2="330" stroke="#D4AF37" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <line x1="1230" y1="280" x2="1230" y2="330" stroke="#D4AF37" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="230" y1="280" x2="230" y2="330" stroke="#F97316" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="480" y1="280" x2="480" y2="330" stroke="#F97316" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="730" y1="280" x2="730" y2="330" stroke="#F97316" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="980" y1="280" x2="980" y2="330" stroke="#F97316" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="1230" y1="280" x2="1230" y2="330" stroke="#F97316" stroke-width="1.5" marker-end="url(#arrow)"/>
 
   <!-- ============ LAYER 2: API GATEWAY ============ -->
   <rect x="60" y="340" width="1280" height="120" rx="6" fill="url(#blackLayer)" stroke="url(#gold)" stroke-width="1" stroke-opacity="0.6"/>
   <text x="80" y="368" font-family="'Amiri', serif" font-size="16" fill="url(#gold)" font-weight="700">طبقة الخدمات — API &amp; Realtime Layer</text>
 
   <g transform="translate(120, 385)">
-    <rect width="280" height="60" rx="4" fill="#0F1A14" stroke="url(#gold)" stroke-width="1"/>
-    <text x="140" y="25" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#D4AF37">REST / GraphQL API</text>
+    <rect width="280" height="60" rx="4" fill="#0F172A" stroke="url(#gold)" stroke-width="1"/>
+    <text x="140" y="25" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#F97316">REST / GraphQL API</text>
     <text x="140" y="46" text-anchor="middle" font-family="monospace" font-size="11" fill="#aaa">Node.js · NestJS · TypeScript</text>
   </g>
 
   <g transform="translate(420, 385)">
-    <rect width="220" height="60" rx="4" fill="#0F1A14" stroke="url(#gold)" stroke-width="1"/>
-    <text x="110" y="25" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#D4AF37">Realtime / Push</text>
+    <rect width="220" height="60" rx="4" fill="#0F172A" stroke="url(#gold)" stroke-width="1"/>
+    <text x="110" y="25" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#F97316">Realtime / Push</text>
     <text x="110" y="46" text-anchor="middle" font-family="monospace" font-size="11" fill="#aaa">Supabase Realtime · WebSocket</text>
   </g>
 
   <g transform="translate(660, 385)">
-    <rect width="220" height="60" rx="4" fill="#0F1A14" stroke="url(#gold)" stroke-width="1"/>
-    <text x="110" y="25" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#D4AF37">SSI / DID Service</text>
+    <rect width="220" height="60" rx="4" fill="#0F172A" stroke="url(#gold)" stroke-width="1"/>
+    <text x="110" y="25" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#F97316">SSI / DID Service</text>
     <text x="110" y="46" text-anchor="middle" font-family="monospace" font-size="11" fill="#aaa">Hyperledger Aries · VC Issuer</text>
   </g>
 
   <g transform="translate(900, 385)">
-    <rect width="200" height="60" rx="4" fill="#0F1A14" stroke="url(#gold)" stroke-width="1"/>
-    <text x="100" y="25" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#D4AF37">NFC Encoding</text>
+    <rect width="200" height="60" rx="4" fill="#0F172A" stroke="url(#gold)" stroke-width="1"/>
+    <text x="100" y="25" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#F97316">NFC Encoding</text>
     <text x="100" y="46" text-anchor="middle" font-family="monospace" font-size="11" fill="#aaa">NDEF · NTAG 424 DNA</text>
   </g>
 
   <g transform="translate(1120, 385)">
-    <rect width="200" height="60" rx="4" fill="#0F1A14" stroke="url(#gold)" stroke-width="1"/>
-    <text x="100" y="25" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#D4AF37">Auth Guard</text>
+    <rect width="200" height="60" rx="4" fill="#0F172A" stroke="url(#gold)" stroke-width="1"/>
+    <text x="100" y="25" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#F97316">Auth Guard</text>
     <text x="100" y="46" text-anchor="middle" font-family="monospace" font-size="11" fill="#aaa">JWT · Digital ID Verify</text>
   </g>
 
   <!-- Arrows down to Supabase -->
-  <line x1="700" y1="460" x2="700" y2="510" stroke="#D4AF37" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="700" y1="460" x2="700" y2="510" stroke="#F97316" stroke-width="1.5" marker-end="url(#arrow)"/>
 
   <!-- ============ LAYER 3: SUPABASE ============ -->
-  <rect x="60" y="520" width="1280" height="220" rx="6" fill="url(#greenLayer)" stroke="#239E46" stroke-width="1" stroke-opacity="0.6"/>
+  <rect x="60" y="520" width="1280" height="220" rx="6" fill="url(#greenLayer)" stroke="#0891B2" stroke-width="1" stroke-opacity="0.6"/>
   <text x="80" y="548" font-family="'Amiri', serif" font-size="16" fill="#2BB857" font-weight="700">طبقة البيانات — Supabase Platform</text>
 
   <!-- PostgreSQL + PostGIS -->
   <g transform="translate(120, 575)">
-    <rect width="300" height="140" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="150" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#D4AF37">PostgreSQL + PostGIS</text>
+    <rect width="300" height="140" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="150" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#F97316">PostgreSQL + PostGIS</text>
     <text x="150" y="50" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">RLS · Geospatial · Full Text</text>
-    <line x1="20" y1="60" x2="280" y2="60" stroke="#D4AF37" stroke-opacity="0.3"/>
+    <line x1="20" y1="60" x2="280" y2="60" stroke="#F97316" stroke-opacity="0.3"/>
     <text x="20" y="78" font-family="'Amiri', serif" font-size="11" fill="#aaa">• citizens · digital_id_cards</text>
     <text x="20" y="93" font-family="'Amiri', serif" font-size="11" fill="#aaa">• properties · property_geometry</text>
     <text x="20" y="108" font-family="'Amiri', serif" font-size="11" fill="#aaa">• documents · registrations</text>
@@ -144,10 +144,10 @@
 
   <!-- Storage -->
   <g transform="translate(440, 575)">
-    <rect width="220" height="140" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#D4AF37">Storage</text>
+    <rect width="220" height="140" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#F97316">Storage</text>
     <text x="110" y="50" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">Encrypted Buckets</text>
-    <line x1="20" y1="60" x2="200" y2="60" stroke="#D4AF37" stroke-opacity="0.3"/>
+    <line x1="20" y1="60" x2="200" y2="60" stroke="#F97316" stroke-opacity="0.3"/>
     <text x="20" y="78" font-family="'Amiri', serif" font-size="11" fill="#aaa">• صور المواطنين</text>
     <text x="20" y="93" font-family="'Amiri', serif" font-size="11" fill="#aaa">• الوثائق العقارية (PDF)</text>
     <text x="20" y="108" font-family="'Amiri', serif" font-size="11" fill="#aaa">• شهادات المساحة</text>
@@ -156,10 +156,10 @@
 
   <!-- Auth -->
   <g transform="translate(680, 575)">
-    <rect width="220" height="140" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#D4AF37">Supabase Auth</text>
+    <rect width="220" height="140" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="110" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#F97316">Supabase Auth</text>
     <text x="110" y="50" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">JWT · MFA · OTP</text>
-    <line x1="20" y1="60" x2="200" y2="60" stroke="#D4AF37" stroke-opacity="0.3"/>
+    <line x1="20" y1="60" x2="200" y2="60" stroke="#F97316" stroke-opacity="0.3"/>
     <text x="20" y="78" font-family="'Amiri', serif" font-size="11" fill="#aaa">• تحقق رقم الهاتف SMS</text>
     <text x="20" y="93" font-family="'Amiri', serif" font-size="11" fill="#aaa">• ربط بالهوية الرقمية</text>
     <text x="20" y="108" font-family="'Amiri', serif" font-size="11" fill="#aaa">• Biometric (Mobile)</text>
@@ -168,10 +168,10 @@
 
   <!-- Edge Functions -->
   <g transform="translate(920, 575)">
-    <rect width="200" height="140" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#D4AF37">Edge Functions</text>
+    <rect width="200" height="140" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#F97316">Edge Functions</text>
     <text x="100" y="50" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">Deno · Serverless</text>
-    <line x1="20" y1="60" x2="180" y2="60" stroke="#D4AF37" stroke-opacity="0.3"/>
+    <line x1="20" y1="60" x2="180" y2="60" stroke="#F97316" stroke-opacity="0.3"/>
     <text x="20" y="78" font-family="'Amiri', serif" font-size="11" fill="#aaa">• توليد VC للهوية</text>
     <text x="20" y="93" font-family="'Amiri', serif" font-size="11" fill="#aaa">• فحص تعارض الإحداثيات</text>
     <text x="20" y="108" font-family="'Amiri', serif" font-size="11" fill="#aaa">• توقيع رقمي للوثائق</text>
@@ -180,10 +180,10 @@
 
   <!-- Realtime -->
   <g transform="translate(1140, 575)">
-    <rect width="180" height="140" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="90" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#D4AF37">Realtime</text>
+    <rect width="180" height="140" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="90" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="16" font-weight="700" fill="#F97316">Realtime</text>
     <text x="90" y="50" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">Postgres CDC</text>
-    <line x1="20" y1="60" x2="160" y2="60" stroke="#D4AF37" stroke-opacity="0.3"/>
+    <line x1="20" y1="60" x2="160" y2="60" stroke="#F97316" stroke-opacity="0.3"/>
     <text x="20" y="78" font-family="'Amiri', serif" font-size="11" fill="#aaa">• حالة الطلب</text>
     <text x="20" y="93" font-family="'Amiri', serif" font-size="11" fill="#aaa">• إشعارات فورية</text>
     <text x="20" y="108" font-family="'Amiri', serif" font-size="11" fill="#aaa">• مزامنة الموظفين</text>
@@ -191,55 +191,55 @@
   </g>
 
   <!-- Arrows down to External -->
-  <line x1="700" y1="740" x2="700" y2="790" stroke="#D4AF37" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="700" y1="740" x2="700" y2="790" stroke="#F97316" stroke-width="1.5" marker-end="url(#arrow)"/>
 
   <!-- ============ LAYER 4: EXTERNAL & HARDWARE ============ -->
-  <rect x="60" y="800" width="1280" height="160" rx="6" fill="url(#redLayer)" stroke="#E70013" stroke-width="1" stroke-opacity="0.6"/>
-  <text x="80" y="828" font-family="'Amiri', serif" font-size="16" fill="#E70013" font-weight="700">التكاملات والأجهزة — Integrations &amp; Hardware</text>
+  <rect x="60" y="800" width="1280" height="160" rx="6" fill="url(#redLayer)" stroke="#DC2626" stroke-width="1" stroke-opacity="0.6"/>
+  <text x="80" y="828" font-family="'Amiri', serif" font-size="16" fill="#DC2626" font-weight="700">التكاملات والأجهزة — Integrations &amp; Hardware</text>
 
   <g transform="translate(120, 850)">
-    <rect width="200" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="15" font-weight="700" fill="#D4AF37">السجل المدني</text>
+    <rect width="200" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="15" font-weight="700" fill="#F97316">السجل المدني</text>
     <text x="100" y="48" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">National Civil Registry</text>
     <text x="100" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="11" fill="#aaa">تحقق من الجد · العائلة</text>
     <text x="100" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="11" fill="#aaa">(مرحلة لاحقة)</text>
   </g>
 
   <g transform="translate(340, 850)">
-    <rect width="200" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="15" font-weight="700" fill="#D4AF37">مصلحة المساحة</text>
+    <rect width="200" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="15" font-weight="700" fill="#F97316">مصلحة المساحة</text>
     <text x="100" y="48" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">Survey Authority</text>
     <text x="100" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="11" fill="#aaa">رقم القطعة · الإحداثيات</text>
     <text x="100" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="11" fill="#aaa">شهادات المساحة</text>
   </g>
 
   <g transform="translate(560, 850)">
-    <rect width="200" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="15" font-weight="700" fill="#D4AF37">قارئة NFC</text>
+    <rect width="200" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="15" font-weight="700" fill="#F97316">قارئة NFC</text>
     <text x="100" y="48" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">ACR122U / Mobile NFC</text>
     <text x="100" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="11" fill="#aaa">تحقق من البطاقة</text>
     <text x="100" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="11" fill="#aaa">قراءة UID + Signature</text>
   </g>
 
   <g transform="translate(780, 850)">
-    <rect width="200" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="15" font-weight="700" fill="#D4AF37">طابعة بطاقات</text>
+    <rect width="200" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="15" font-weight="700" fill="#F97316">طابعة بطاقات</text>
     <text x="100" y="48" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">Zebra ZC350 / Evolis</text>
     <text x="100" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="11" fill="#aaa">طباعة + ترميز NFC</text>
     <text x="100" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="11" fill="#aaa">CardPress SDK</text>
   </g>
 
   <g transform="translate(1000, 850)">
-    <rect width="200" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="15" font-weight="700" fill="#D4AF37">SMS Gateway</text>
+    <rect width="200" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="100" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="15" font-weight="700" fill="#F97316">SMS Gateway</text>
     <text x="100" y="48" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">Libyana / Almadar</text>
     <text x="100" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="11" fill="#aaa">OTP · إشعارات</text>
     <text x="100" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="11" fill="#aaa">تأكيد الطلبات</text>
   </g>
 
   <g transform="translate(1220, 850)">
-    <rect width="100" height="90" rx="6" fill="#0F1A14" stroke="url(#gold)" stroke-width="1.5"/>
-    <text x="50" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="13" font-weight="700" fill="#D4AF37">GIS</text>
+    <rect width="100" height="90" rx="6" fill="#0F172A" stroke="url(#gold)" stroke-width="1.5"/>
+    <text x="50" y="28" text-anchor="middle" font-family="'Amiri', serif" font-size="13" font-weight="700" fill="#F97316">GIS</text>
     <text x="50" y="48" text-anchor="middle" font-family="monospace" font-size="10" fill="#aaa">Mapbox</text>
     <text x="50" y="68" text-anchor="middle" font-family="'Amiri', serif" font-size="10" fill="#aaa">خرائط</text>
     <text x="50" y="82" text-anchor="middle" font-family="'Amiri', serif" font-size="10" fill="#aaa">الموقع</text>
@@ -247,7 +247,7 @@
 
   <!-- Footer -->
   <text x="700" y="985" text-anchor="middle" font-family="'Amiri', serif"
-        font-size="11" fill="#D4AF37" opacity="0.5">
+        font-size="11" fill="#F97316" opacity="0.5">
     LVCT · شركة رؤية ليبيا للاتصالات وتقنية المعلومات — © 2026
   </text>
 </svg>

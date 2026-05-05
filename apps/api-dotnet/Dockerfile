@@ -1,20 +1,20 @@
-# Sijilli .NET API — multi-stage build.
+# Sarh .NET API — multi-stage build.
 #
 # Build context is the repo root (see infra/docker/docker-compose.production.yml
-# `context: ../../`) so the COPY paths below are relative to D:/Sijilli.
+# `context: ../../`) so the COPY paths below are relative to D:/Sarh.
 
 # ---- 1) Restore + publish ---------------------------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy only the csproj first to maximise NuGet layer caching.
-COPY apps/api-dotnet/Sijilli.Api.csproj ./apps/api-dotnet/
-RUN dotnet restore ./apps/api-dotnet/Sijilli.Api.csproj
+COPY apps/api-dotnet/Sarh.Api.csproj ./apps/api-dotnet/
+RUN dotnet restore ./apps/api-dotnet/Sarh.Api.csproj
 
 # Copy the rest of the .NET source.
 COPY apps/api-dotnet/ ./apps/api-dotnet/
 
-RUN dotnet publish ./apps/api-dotnet/Sijilli.Api.csproj \
+RUN dotnet publish ./apps/api-dotnet/Sarh.Api.csproj \
     -c Release -o /publish \
     --no-restore \
     /p:UseAppHost=false
@@ -43,4 +43,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD curl -fsS http://127.0.0.1:3000/api/v1/health || exit 1
 
-ENTRYPOINT ["dotnet", "Sijilli.Api.dll"]
+ENTRYPOINT ["dotnet", "Sarh.Api.dll"]

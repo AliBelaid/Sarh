@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 import '../../core/api/repositories.dart';
-import '../../core/theme/sijilli_colors.dart';
+import '../../core/theme/sarh_colors.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -31,10 +31,10 @@ class NotificationsScreen extends ConsumerWidget {
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: n.isUnread
-                          ? SijilliColors.accent
-                          : SijilliColors.outline,
+                          ? SarhColors.accent
+                          : SarhColors.outline,
                       child: const Icon(Icons.notifications_outlined,
-                          color: SijilliColors.primary),
+                          color: SarhColors.primary),
                     ),
                     title: Text(
                       n.titleAr,

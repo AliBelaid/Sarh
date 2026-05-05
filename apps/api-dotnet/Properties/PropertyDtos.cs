@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
-using Sijilli.Api.Data.Entities;
+using Sarh.Api.Data.Entities;
 
-namespace Sijilli.Api.Properties;
+namespace Sarh.Api.Properties;
 
 public sealed class CreatePropertyDto
 {

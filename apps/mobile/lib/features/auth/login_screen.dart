@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/models/api_error.dart';
-import '../../core/theme/sijilli_colors.dart';
+import '../../core/theme/sarh_colors.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -97,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             nfcCmac: _nfcCmac,
           );
       if (mounted) context.go(AppRoutes.home);
-    } on SijilliApiError catch (e) {
+    } on SarhApiError catch (e) {
       setState(() => _statusAr = e.messageAr);
     } catch (e) {
       setState(() => _statusAr = 'تعذّر تسجيل الدخول.');
@@ -159,7 +159,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 8),
                 Text(
                   _statusAr!,
-                  style: TextStyle(color: SijilliColors.warn),
+                  style: TextStyle(color: SarhColors.warn),
                 ),
               ],
               const SizedBox(height: 16),
@@ -213,7 +213,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await ref.read(authControllerProvider.notifier).loginAsDemo();
       if (mounted) context.go(AppRoutes.home);
-    } on SijilliApiError catch (e) {
+    } on SarhApiError catch (e) {
       setState(() => _statusAr = e.messageAr);
     } catch (e) {
       setState(() => _statusAr = 'تعذّر الدخول التجريبي.');
@@ -239,7 +239,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password: result.password,
           );
       if (mounted) context.go(AppRoutes.home);
-    } on SijilliApiError catch (e) {
+    } on SarhApiError catch (e) {
       setState(() => _statusAr = e.messageAr);
     } catch (e) {
       setState(() => _statusAr = 'تعذّر تسجيل الدخول.');

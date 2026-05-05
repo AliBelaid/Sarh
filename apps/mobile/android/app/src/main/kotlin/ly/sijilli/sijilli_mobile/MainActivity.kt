@@ -1,4 +1,4 @@
-package ly.sijilli.sijilli_mobile
+package ly.sarh.sarh_mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

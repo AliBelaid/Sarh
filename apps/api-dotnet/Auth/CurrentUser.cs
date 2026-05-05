@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using Sijilli.Api.Common.Errors;
+using Sarh.Api.Common.Errors;
 
-namespace Sijilli.Api.Auth;
+namespace Sarh.Api.Auth;
 
 public sealed record CurrentUser(
     Guid AuthUserId,
@@ -17,8 +17,8 @@ public static class CurrentUserExtensions
     public static CurrentUser RequireUser(this ClaimsPrincipal principal)
     {
         var sub = principal.FindFirst("sub")?.Value;
-        var role = principal.FindFirst("sijilli_role")?.Value;
-        if (sub is null || role is null) throw SijilliException.Unauthorized();
+        var role = principal.FindFirst("sarh_role")?.Value;
+        if (sub is null || role is null) throw SarhException.Unauthorized();
 
         return new CurrentUser(
             AuthUserId: Guid.Parse(sub),

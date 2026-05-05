@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../api/sijilli_api_client.dart';
+import '../api/sarh_api_client.dart';
 import '../models/api_error.dart';
 import '../models/citizen.dart';
 
@@ -26,7 +26,7 @@ class AuthState {
 }
 
 class AuthController extends StateNotifier<AuthState> {
-  final SijilliApiClient client;
+  final SarhApiClient client;
 
   AuthController(this.client) : super(const AuthState()) {
     _restore();
@@ -164,7 +164,7 @@ class AuthController extends StateNotifier<AuthState> {
       final citizenJson =
           (data['citizen'] as Map?)?.cast<String, dynamic>() ?? const {};
       if (token == null) {
-        throw SijilliApiError.unknown('لم يصل رمز الدخول.');
+        throw SarhApiError.unknown('لم يصل رمز الدخول.');
       }
       await client.writeToken(token);
       state = AuthState(
@@ -173,10 +173,10 @@ class AuthController extends StateNotifier<AuthState> {
         token: token,
       );
     } on DioException catch (e) {
-      if (e.error is SijilliApiError) {
-        throw e.error as SijilliApiError;
+      if (e.error is SarhApiError) {
+        throw e.error as SarhApiError;
       }
-      throw SijilliApiError.unknown(e.message);
+      throw SarhApiError.unknown(e.message);
     }
   }
 
@@ -217,7 +217,7 @@ class AuthController extends StateNotifier<AuthState> {
     final session = auth.session;
     final user = auth.user;
     if (session == null || user == null) {
-      throw SijilliApiError.unknown(
+      throw SarhApiError.unknown(
         'تمّ إنشاء الحساب التجريبي لكن المشروع يطلب تأكيد البريد. '
         'افتح Supabase → Authentication → Providers → Email وعطّل '
         '"Confirm email"، ثم أعد المحاولة.',
@@ -270,13 +270,13 @@ class AuthController extends StateNotifier<AuthState> {
           e.message.toLowerCase().contains('row-level') ||
           e.message.toLowerCase().contains('policy');
       if (isRls) {
-        throw SijilliApiError.unknown(
+        throw SarhApiError.unknown(
           'تمّ تسجيل الدخول لكن لا تتوفّر صلاحيات لإنشاء ملفّ المواطن. '
           'افتح Supabase → SQL Editor والصق محتوى الملف '
           'infra/supabase/migrations/025_demo_open_rls.sql ثم أعد المحاولة.',
         );
       }
-      throw SijilliApiError.unknown('تعذّر إنشاء ملفّ المواطن: ${e.message}');
+      throw SarhApiError.unknown('تعذّر إنشاء ملفّ المواطن: ${e.message}');
     }
 
     state = AuthState(
@@ -301,7 +301,7 @@ class AuthController extends StateNotifier<AuthState> {
       );
       final session = auth.session;
       if (session == null) {
-        throw SijilliApiError.unknown('لم يصل رمز الدخول.');
+        throw SarhApiError.unknown('لم يصل رمز الدخول.');
       }
       await client.writeToken(session.accessToken);
       final citizen = auth.user != null
@@ -315,12 +315,12 @@ class AuthController extends StateNotifier<AuthState> {
     } on AuthException catch (e) {
       final m = e.message.toLowerCase();
       if (m.contains('invalid login credentials')) {
-        throw SijilliApiError.unknown('بيانات الدخول غير صحيحة.');
+        throw SarhApiError.unknown('بيانات الدخول غير صحيحة.');
       }
       if (m.contains('email not confirmed')) {
-        throw SijilliApiError.unknown('يجب تأكيد البريد الإلكتروني أولاً.');
+        throw SarhApiError.unknown('يجب تأكيد البريد الإلكتروني أولاً.');
       }
-      throw SijilliApiError.unknown(e.message);
+      throw SarhApiError.unknown(e.message);
     }
   }
 

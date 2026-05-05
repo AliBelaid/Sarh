@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 007_documents.sql — supporting documents uploaded for each property
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE property_documents (

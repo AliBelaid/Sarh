@@ -1,11 +1,11 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Common.Errors;
-using Sijilli.Api.Data;
-using Sijilli.Api.Data.Entities;
+using Sarh.Api.Common.Errors;
+using Sarh.Api.Data;
+using Sarh.Api.Data.Entities;
 
-namespace Sijilli.Api.Auth;
+namespace Sarh.Api.Auth;
 
 public sealed class SignInRequest
 {
@@ -31,13 +31,13 @@ public sealed class SignInResponse
     public required SignInUser User { get; init; }
 }
 
-public sealed class AuthService(SijilliDbContext db, JwtTokenService jwt)
+public sealed class AuthService(SarhDbContext db, JwtTokenService jwt)
 {
     public async Task<SignInResponse> SignInAsync(SignInRequest dto, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
         {
-            throw SijilliException.Validation(
+            throw SarhException.Validation(
                 "البريد الإلكتروني وكلمة المرور مطلوبان.",
                 "Email and password are required.");
         }
@@ -46,23 +46,23 @@ public sealed class AuthService(SijilliDbContext db, JwtTokenService jwt)
         var user = await db.AuthUsers.AsNoTracking()
             .Where(u => u.Email == email)
             .FirstOrDefaultAsync(ct)
-            ?? throw SijilliException.Unauthorized();
+            ?? throw SarhException.Unauthorized();
 
         var ok = BCrypt.Net.BCrypt.Verify(dto.Password, user.EncryptedPassword);
-        if (!ok) throw SijilliException.Unauthorized();
+        if (!ok) throw SarhException.Unauthorized();
 
         var officer = await db.Officers.AsNoTracking()
             .Where(o => o.AuthUserId == user.Id)
             .FirstOrDefaultAsync(ct);
 
         var (role, citizenId) = ResolveRoleAndCitizen(user, officer);
-        if (role is null) throw SijilliException.Unauthorized();
+        if (role is null) throw SarhException.Unauthorized();
 
-        var payload = new SijilliJwtPayload
+        var payload = new SarhJwtPayload
         {
             Sub = user.Id.ToString(),
             Email = user.Email,
-            SijilliRole = role,
+            SarhRole = role,
             CitizenId = citizenId,
             OfficerId = officer?.IsActive == true ? officer.Id.ToString() : null,
             RegionId = officer?.RegionId,
@@ -107,7 +107,7 @@ public sealed class AuthService(SijilliDbContext db, JwtTokenService jwt)
             try
             {
                 using var doc = JsonDocument.Parse(user.RawAppMetaData);
-                if (doc.RootElement.TryGetProperty("sijilli_role", out var r) && r.ValueKind == JsonValueKind.String)
+                if (doc.RootElement.TryGetProperty("sarh_role", out var r) && r.ValueKind == JsonValueKind.String)
                     appRole = r.GetString();
                 if (doc.RootElement.TryGetProperty("citizen_id", out var c) && c.ValueKind == JsonValueKind.String)
                     citizenId = c.GetString();

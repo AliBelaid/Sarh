@@ -1,10 +1,10 @@
-namespace Sijilli.Api.Common;
+namespace Sarh.Api.Common;
 
-// Bridges the canonical Sijilli env-var names (used by docker-compose,
-// scripts/, and the legacy NestJS app) onto the .NET-style "Sijilli:*"
+// Bridges the canonical Sarh env-var names (used by docker-compose,
+// scripts/, and the legacy NestJS app) onto the .NET-style "Sarh:*"
 // configuration keys the rest of this app reads. Keeps a single source of
 // truth for env names: the user does not have to maintain two parallel
-// copies named e.g. `SIJILLI_JWT_SECRET` AND `Sijilli__JwtSecret`.
+// copies named e.g. `SARH_JWT_SECRET` AND `Sarh__JwtSecret`.
 public static class EnvBootstrap
 {
     public static void ApplyEnvOverrides(IConfigurationBuilder cfg)
@@ -12,34 +12,34 @@ public static class EnvBootstrap
         var pairs = new Dictionary<string, string?>(StringComparer.Ordinal);
 
         // JWT
-        Pair(pairs, "Sijilli:JwtSecret", "SIJILLI_JWT_SECRET");
-        Pair(pairs, "Sijilli:JwtAccessTtlSeconds", "SIJILLI_JWT_TTL_SECONDS");
+        Pair(pairs, "Sarh:JwtSecret", "SARH_JWT_SECRET");
+        Pair(pairs, "Sarh:JwtAccessTtlSeconds", "SARH_JWT_TTL_SECONDS");
 
         // Storage + KMS
-        Pair(pairs, "Sijilli:StorageRoot", "STORAGE_ROOT");
-        Pair(pairs, "Sijilli:KmsMasterKey", "KMS_MASTER_KEY");
-        Pair(pairs, "Sijilli:NfcSunBaseUrl", "NFC_SUN_BASE_URL");
+        Pair(pairs, "Sarh:StorageRoot", "STORAGE_ROOT");
+        Pair(pairs, "Sarh:KmsMasterKey", "KMS_MASTER_KEY");
+        Pair(pairs, "Sarh:NfcSunBaseUrl", "NFC_SUN_BASE_URL");
 
         // CORS — comma- or whitespace-separated list. Convert to indexed keys
-        // because IConfiguration arrays are bound from "Sijilli:CorsOrigins:0",
-        // "Sijilli:CorsOrigins:1", etc.
+        // because IConfiguration arrays are bound from "Sarh:CorsOrigins:0",
+        // "Sarh:CorsOrigins:1", etc.
         var cors = Environment.GetEnvironmentVariable("CORS_ORIGINS");
         if (!string.IsNullOrWhiteSpace(cors))
         {
             var origins = cors.Split(new[] { ',', ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             for (int i = 0; i < origins.Length; i++)
-                pairs[$"Sijilli:CorsOrigins:{i}"] = origins[i];
+                pairs[$"Sarh:CorsOrigins:{i}"] = origins[i];
         }
 
-        // Connection string. Prefer Sijilli:ConnectionString / DATABASE_URL
+        // Connection string. Prefer Sarh:ConnectionString / DATABASE_URL
         // when set; otherwise build from the MSSQL_* split that the existing
         // compose / .env file already provides.
         var explicitConn =
-            Environment.GetEnvironmentVariable("Sijilli__ConnectionString")
+            Environment.GetEnvironmentVariable("Sarh__ConnectionString")
             ?? Environment.GetEnvironmentVariable("DATABASE_URL");
         if (!string.IsNullOrWhiteSpace(explicitConn))
         {
-            pairs["Sijilli:ConnectionString"] = explicitConn;
+            pairs["Sarh:ConnectionString"] = explicitConn;
         }
         else
         {
@@ -47,12 +47,12 @@ public static class EnvBootstrap
             if (!string.IsNullOrWhiteSpace(server))
             {
                 var port = Environment.GetEnvironmentVariable("MSSQL_PORT") ?? "1433";
-                var db = Environment.GetEnvironmentVariable("MSSQL_DATABASE") ?? "sijilli";
-                var user = Environment.GetEnvironmentVariable("MSSQL_USER") ?? "sijilli_app";
+                var db = Environment.GetEnvironmentVariable("MSSQL_DATABASE") ?? "sarh";
+                var user = Environment.GetEnvironmentVariable("MSSQL_USER") ?? "sarh_app";
                 var pwd = Environment.GetEnvironmentVariable("MSSQL_PASSWORD") ?? "";
                 var encrypt = (Environment.GetEnvironmentVariable("MSSQL_ENCRYPT") ?? "true").ToLowerInvariant();
                 var trust = (Environment.GetEnvironmentVariable("MSSQL_TRUST_CERT") ?? "true").ToLowerInvariant();
-                pairs["Sijilli:ConnectionString"] =
+                pairs["Sarh:ConnectionString"] =
                     $"Server={server},{port};Database={db};User Id={user};Password={pwd};" +
                     $"Encrypt={(encrypt == "true" ? "True" : "False")};" +
                     $"TrustServerCertificate={(trust == "true" ? "True" : "False")};";

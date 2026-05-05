@@ -8,7 +8,7 @@
 -- Kept as an empty placeholder so the migration numbering matches the
 -- Postgres history and `docs/migrations.md` cross-references still work.
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 -- Add the optional auth_user_id linkage on citizens that the demo path

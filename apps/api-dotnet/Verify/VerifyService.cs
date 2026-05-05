@@ -2,22 +2,22 @@ using System.Data;
 using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Sijilli.Api.Common.Errors;
-using Sijilli.Api.Data;
+using Sarh.Api.Common.Errors;
+using Sarh.Api.Data;
 
-namespace Sijilli.Api.Verify;
+namespace Sarh.Api.Verify;
 
 // Public verification of a deed by property_code. The response is a
 // SANITIZED view: only the citizen's first and family names are returned
 // in full; middle names are masked. PII (phone, dob, etc.) never leaves
 // the API. Endpoint is unauthenticated by design — verify QRs are public.
-public sealed class VerifyService(SijilliDbContext db)
+public sealed class VerifyService(SarhDbContext db)
 {
     public async Task<PublicDeedView> ByPropertyCodeAsync(string code, CancellationToken ct)
     {
         var propertyCode = code.Trim();
         if (string.IsNullOrEmpty(propertyCode))
-            throw SijilliException.NotFound("السند العقاري", "Deed");
+            throw SarhException.NotFound("السند العقاري", "Deed");
 
         var p = await db.Properties.AsNoTracking()
             .Where(x => x.PropertyCode == propertyCode && x.Status == "approved")
@@ -32,10 +32,11 @@ public sealed class VerifyService(SijilliDbContext db)
                 x.ReviewedAt,
                 x.VcCredentialId,
                 x.DeedPdfPath,
+                x.DeedSignedHash,
                 x.OwnerCitizenId,
             })
             .FirstOrDefaultAsync(ct)
-            ?? throw SijilliException.NotFound("السند العقاري", "Deed");
+            ?? throw SarhException.NotFound("السند العقاري", "Deed");
 
         var owner = await db.Citizens.AsNoTracking()
             .Where(c => c.Id == p.OwnerCitizenId)
@@ -69,19 +70,20 @@ public sealed class VerifyService(SijilliDbContext db)
             OwnerDisplayName = ownerDisplay,
             BoundaryPolygonGeojson = polygon,
             DeedPdfSignedUrl = deedSignedUrl,
+            DeedSignedHash = p.DeedSignedHash,
         };
     }
 
-    public async Task<(string PropertyCode, string DeedPdfPath)> ResolveDeedPathAsync(string code, CancellationToken ct)
+    public async Task<(string PropertyCode, string DeedPdfPath, string? DeedSignedHash)> ResolveDeedPathAsync(string code, CancellationToken ct)
     {
         var propertyCode = code.Trim();
         var row = await db.Properties.AsNoTracking()
             .Where(p => p.PropertyCode == propertyCode && p.Status == "approved")
-            .Select(p => new { p.PropertyCode, p.DeedPdfPath })
+            .Select(p => new { p.PropertyCode, p.DeedPdfPath, p.DeedSignedHash })
             .FirstOrDefaultAsync(ct);
         if (row is null || string.IsNullOrEmpty(row.DeedPdfPath))
-            throw SijilliException.NotFound("السند العقاري", "Deed");
-        return (row.PropertyCode!, row.DeedPdfPath!);
+            throw SarhException.NotFound("السند العقاري", "Deed");
+        return (row.PropertyCode!, row.DeedPdfPath!, row.DeedSignedHash);
     }
 
     private async Task<JsonElement?> LoadPolygonGeoJsonAsync(Guid propertyId, CancellationToken ct)

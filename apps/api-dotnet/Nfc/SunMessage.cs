@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.WebUtilities;
 
-namespace Sijilli.Api.Nfc;
+namespace Sarh.Api.Nfc;
 
 // NTAG 424 DNA SUN (Secure Unique NFC) message encode + verify.
 // Reference: NXP AN12196 §11. Mirrors apps/api/src/nfc/crypto/sun-message.ts

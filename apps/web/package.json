@@ -1,8 +1,8 @@
 {
-  "name": "@sijilli/web",
+  "name": "@sarh/web",
   "version": "0.1.0",
   "private": true,
-  "description": "Sijilli — single Angular app (citizen + officer + id-issuer + admin + verify)",
+  "description": "Sarh — single Angular app (citizen + officer + id-issuer + admin + verify)",
   "packageManager": "pnpm@9.12.0",
   "scripts": {
     "ng": "ng",
@@ -14,23 +14,26 @@
   "prettier": {
     "printWidth": 100,
     "singleQuote": true,
-    "overrides": [{ "files": "*.html", "options": { "parser": "angular" } }]
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
   },
   "dependencies": {
     "@angular/animations": "^21.1.0",
-    "@angular/cdk": "^21.1.0",
     "@angular/common": "^21.1.0",
     "@angular/compiler": "^21.1.0",
     "@angular/core": "^21.1.0",
     "@angular/forms": "^21.1.0",
-    "@angular/material": "^21.1.0",
     "@angular/platform-browser": "^21.1.0",
     "@angular/router": "^21.1.0",
     "@jsverse/transloco": "^7.5.1",
-    "@ngrx/effects": "^19.0.0",
-    "@ngrx/store": "^19.0.0",
-    "@ngrx/store-devtools": "^19.0.0",
-    "@sijilli/shared-types": "workspace:*",
+    "@sarh/shared-types": "workspace:*",
+    "leaflet": "^1.9.4",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
@@ -38,6 +41,7 @@
     "@angular/build": "^21.1.3",
     "@angular/cli": "^21.1.3",
     "@angular/compiler-cli": "^21.1.0",
+    "@types/leaflet": "^1.9.12",
     "typescript": "~5.9.2"
   }
 }

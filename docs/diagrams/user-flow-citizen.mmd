@@ -1,0 +1,36 @@
+---
+title: Sarh — Citizen user flow
+---
+flowchart TD
+    A([Landing page]) --> B[Sign in / Register]
+    B --> C{Has account?}
+    C -- No --> C1[Visit ID-Issuer station<br/>to be enrolled] --> END1([End])
+    C -- Yes --> D[/Dashboard/]
+    D --> E[My Properties]
+    D --> F[My Digital ID]
+    D --> G[Profile]
+
+    E --> E1{Properties?}
+    E1 -- None --> E2[Register new property]
+    E1 -- Has --> E3[Property list]
+    E3 --> E4[View detail / status]
+
+    E2 --> E5[Step 1: type + region + address]
+    E5 --> E6[Step 2: parcel/plan numbers]
+    E6 --> E7[Step 3: pin polygon on map]
+    E7 --> E8[Step 4: upload documents]
+    E8 --> E9[Submit]
+    E9 --> E10{Server validation}
+    E10 -- ok --> E11[(status=pending)]
+    E10 -- area mismatch --> E5
+    E11 --> E12[Wait for officer review]
+    E12 --> E13{Decision}
+    E13 -- approved --> E14[Receive deed PDF<br/>+ SSI VC]
+    E13 -- needs clarification --> E15[Add docs / reply]
+    E15 --> E12
+    E13 -- rejected --> E16[See reason]
+
+    F --> F1[See current card]
+    F1 --> F2{Expiring < 90d?}
+    F2 -- yes --> F3[Visit ID-Issuer station]
+    F2 -- no --> F4([Done])

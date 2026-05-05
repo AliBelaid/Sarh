@@ -1,7 +1,7 @@
 -- =========================================================================
 -- 010_notifications.sql — outbound notification queue
 -- =========================================================================
-USE [sijilli];
+USE [sarh];
 GO
 
 CREATE TABLE notifications (

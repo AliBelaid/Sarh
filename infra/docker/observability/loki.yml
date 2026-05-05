@@ -1,4 +1,4 @@
-# Sijilli — Loki single-node config. Sized for the pilot deployment; revisit
+# Sarh — Loki single-node config. Sized for the pilot deployment; revisit
 # storage class + retention once daily ingest exceeds 5 GB.
 
 auth_enabled: false
@@ -31,7 +31,7 @@ schema_config:
       object_store: filesystem
       schema: v13
       index:
-        prefix: sijilli_
+        prefix: sarh_
         period: 24h
 
 storage_config:

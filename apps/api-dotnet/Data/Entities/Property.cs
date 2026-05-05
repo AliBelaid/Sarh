@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Sijilli.Api.Data.Entities;
+namespace Sarh.Api.Data.Entities;
 
 [Table("properties")]
 public class Property

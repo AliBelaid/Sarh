@@ -1,0 +1,81 @@
+---
+title: Sarh — End-to-end system flow
+---
+flowchart LR
+    classDef citizen fill:#3b82f6,stroke:#1e40af,color:#fff
+    classDef officer fill:#239E46,stroke:#15803d,color:#fff
+    classDef issuer  fill:#D4AF37,stroke:#B8941F,color:#0F1A14
+    classDef admin   fill:#0F1A14,stroke:#000,color:#D4AF37
+    classDef api     fill:#f4f1e8,stroke:#94a39c,color:#0F1A14
+    classDef db      fill:#fdf2f8,stroke:#ec4899,color:#831843
+    classDef store   fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef public  fill:#e0e7ff,stroke:#6366f1,color:#312e81
+
+    subgraph CIT[المواطن &middot; Citizen]
+      C1[تسجيل / دخول]:::citizen
+      C2[تقديم عقار جديد<br/>+ مستندات + إحداثيات]:::citizen
+      C3[استلام السند الموقع<br/>+ شهادة VC]:::citizen
+    end
+
+    subgraph OFF[موظف التسجيل / المراجع]
+      O1[قائمة المراجعة]:::officer
+      O2{قرار}:::officer
+      O3[طلب توضيح]:::officer
+      O4[رفض مع سبب]:::officer
+      O5[اعتماد + رقم قرار]:::officer
+    end
+
+    subgraph ISS[مصدر الهويات]
+      I1[إصدار بطاقة NFC جديدة]:::issuer
+      I2[ربط NTAG 424 DNA<br/>+ كتابة المفاتيح]:::issuer
+      I3[إعادة إصدار / استبدال]:::issuer
+    end
+
+    subgraph ADM[الإدارة / المدقق]
+      A1[لوحة التحكم<br/>إحصائيات وتقارير]:::admin
+      A2[سجل التدقيق<br/>append-only]:::admin
+      A3[إدارة المستخدمين]:::admin
+    end
+
+    subgraph BACK[الخادم &middot; .NET 8 API + SignalR]
+      API[/api/v1/*<br/>JWT HS256/]:::api
+      DB[(SQL Server 2019<br/>geography + audit triggers)]:::db
+      FS[(Local filesystem<br/>storage_root)]:::store
+      SSI[ACA-Py<br/>Hyperledger Aries]:::api
+    end
+
+    subgraph PUB[الجمهور &middot; Public]
+      V1[التحقق من سند<br/>عبر QR أو رمز]:::public
+      V2[تحقق NFC<br/>SUN counter]:::public
+    end
+
+    C1 --> API
+    C2 --> API
+    API --> DB
+    API --> FS
+
+    DB --> O1
+    O1 --> O2
+    O2 -->|needs_clarification| O3 --> C2
+    O2 -->|reject| O4 --> C2
+    O2 -->|approve| O5
+
+    O5 --> API
+    API -->|"PDF + PAdES sign"| FS
+    API -->|"VC issue"| SSI
+    SSI --> DB
+    DB --> C3
+
+    C1 -. "first time" .-> I1
+    I1 --> I2
+    I2 --> DB
+    I2 --> FS
+    I3 --> I2
+
+    DB --> A1
+    DB --> A2
+    DB --> A3
+
+    V1 --> API
+    V2 --> API
+    API -->|verify hash + signature| DB

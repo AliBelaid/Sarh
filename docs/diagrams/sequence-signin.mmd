@@ -1,0 +1,37 @@
+---
+title: Sarh — Sign-in sequence (POST /api/v1/auth/sign-in)
+---
+sequenceDiagram
+    autonumber
+    actor User as Citizen / Officer
+    participant Web as apps/web<br/>(Angular)
+    participant Proxy as Dev proxy /<br/>nginx
+    participant API as .NET 8 API<br/>AuthController
+    participant DB as SQL Server<br/>(auth_users + officers)
+    participant JWT as JwtTokenService<br/>(HS256)
+
+    User->>Web: enters email + password
+    Web->>Proxy: POST /api/v1/auth/sign-in<br/>{email, password}
+    Proxy->>API: forwards (origin=:5000)
+
+    API->>DB: SELECT auth_users WHERE email=?
+    alt user not found
+        DB-->>API: null
+        API-->>Web: 401 ERR_UNAUTHORIZED
+    else user found
+        DB-->>API: user row
+        Note over API: BCrypt.Verify(password, hash)
+        alt wrong password
+            API-->>Web: 401 ERR_UNAUTHORIZED
+        else correct password
+            API->>DB: SELECT officers WHERE auth_user_id=?
+            DB-->>API: officer row or null
+            Note over API: ResolveRoleAndCitizen()<br/>officer.role ?? raw_app_meta_data.sarh_role
+            API->>JWT: SignAccessToken({sub, email,<br/>sarh_role, citizen_id, officer_id})
+            JWT-->>API: { token, expires_in }
+            API->>DB: UPDATE auth_users<br/>SET last_sign_in_at = NOW()
+            API-->>Web: 200 { access_token, refresh_token,<br/>expires_in, user }
+            Web->>Web: localStorage.setItem('sarh.access_token')
+            Web->>Web: navigate to homeFor(role) → /app/dashboard
+        end
+    end
