@@ -31,9 +31,9 @@
 
 **طبقة العملاء** — تطبيق المواطن (Flutter)، بوابة المواطن (Angular ويب)، لوحة موظف السجل العقاري (Angular)، محطة إصدار الهوية الرقمية (Angular مع كاميرا وقارئة NFC)، ولوحة المسؤول العام.
 
-**طبقة الخدمات** — REST API مبنية على Node.js / NestJS بـ TypeScript، خدمة SSI / DID لإصدار الـ Verifiable Credentials، خدمة ترميز NFC لبطاقات NTAG 424 DNA، وحارس مصادقة JWT مرتبط بالهوية الرقمية.
+**طبقة الخدمات** — REST API مبنية على ASP.NET Core 8 (.NET 8) بـ C# 12 و EF Core 8، خدمة SSI / DID (Hyperledger ACA-Py) لإصدار الـ Verifiable Credentials، خدمة ترميز NFC لبطاقات NTAG 424 DNA، وحارس مصادقة JWT (HS256) مرتبط بالهوية الرقمية.
 
-**طبقة البيانات (Supabase)** — PostgreSQL مفعَّل عليها PostGIS للإحداثيات والمساحات الجغرافية، Storage لوثائق الملكية والصور، Auth للمصادقة متعددة العوامل، Edge Functions لتوليد VC وفحص تعارض الإحداثيات، وRealtime لإشعارات حالة الطلبات.
+**طبقة البيانات** — Microsoft SQL Server 2019/2022 مع نوع `geography` للإحداثيات والمضلّعات (SRID 4326)، تخزين محلي على نظام الملفات لوثائق الملكية والصور تحت `STORAGE_ROOT`، مصادقة عبر `auth_users` + bcrypt، سجل تدقيق غير قابل للتعديل عبر `INSTEAD OF UPDATE/DELETE` triggers، وSignalR للاشعارات اللحظية.
 
 **طبقة التكاملات والأجهزة** — السجل المدني الوطني (مستقبلاً)، مصلحة المساحة، قارئات NFC (ACR122U)، طابعات بطاقات (Zebra ZC350)، بوابة SMS (ليبيانا)، وMapbox للخرائط.
 
@@ -113,17 +113,16 @@ SMS للحالات الحرجة (الموافقة، الرفض، إصدار ال
 
 | الطبقة | التقنية |
 |---|---|
-| تطبيق الموبايل | Flutter 3.x · Riverpod · go_router · flutter_nfc_kit |
-| تطبيق الويب | Angular 17+ · Angular Material · NgRx · RTL |
-| الخادم | Node.js 20 · NestJS · TypeScript · Prisma |
-| قاعدة البيانات | Supabase (PostgreSQL 15 + PostGIS 3 + TimescaleDB) |
-| التخزين | Supabase Storage (S3-compatible) |
-| المصادقة | Supabase Auth + JWT مخصّص للهوية الرقمية |
-| Realtime | Supabase Realtime (Postgres CDC) |
-| SSI | Hyperledger Aries Cloud Agent Python (ACA-Py) |
-| NFC | NTAG 424 DNA · NDEF · SUN Message |
-| الخرائط | Mapbox GL JS / Mapbox Maps SDK Flutter |
-| التوقيع الرقمي | node-signpdf + iText · معايير PAdES |
+| تطبيق الموبايل | Flutter 3.22+ · Dart 3.4 · Riverpod 2.x · go_router · flutter_nfc_kit · mapbox_maps_flutter |
+| تطبيق الويب | Angular 21 standalone · Signals · `@if`/`@for` · transloco (RTL) · Leaflet/OSM · brand SCSS tokens |
+| الخادم | ASP.NET Core 8 · C# 12 · EF Core 8 · `Microsoft.Data.SqlClient` · QuestPDF · QRCoder |
+| قاعدة البيانات | SQL Server 2019/2022 · `geography` (SRID 4326) · فهرس بحث نصي عربي · `INSTEAD OF` triggers لسجل التدقيق |
+| التخزين | نظام ملفات محلّي تحت `STORAGE_ROOT` (مع ClamAV) |
+| المصادقة | bcrypt (`BCrypt.Net-Next`) + JWT HS256 مخصّص (`SARH_JWT_SECRET`) |
+| SSI | Hyperledger Aries Cloud Agent Python (ACA-Py) v0.12+ · did:sov |
+| NFC | NTAG 424 DNA · NDEF · SUN Message مع عدّاد متجدّد |
+| الخرائط | Mapbox Maps SDK Flutter (موبايل) · Leaflet + OSM (ويب) |
+| التوقيع الرقمي | QuestPDF + QRCoder · SHA-256 على القرص + هدر `X-Deed-SHA256` · معايير PAdES (مرحلة الإنتاج) |
 | CI/CD | GitHub Actions · Docker · Nginx |
 | المراقبة | Grafana + Prometheus + Loki |
 
@@ -144,7 +143,7 @@ SMS للحالات الحرجة (الموافقة، الرفض، إصدار ال
 
 ## 7. الأمان
 
-تشفير الوثائق في Storage بـ AES-256، اتصالات TLS 1.3 إجبارية، Row Level Security مفعَّلة على كل الجداول الحساسة، توقيع رقمي PAdES للوثائق، NFC NTAG 424 DNA يمنع نسخ البطاقة (كل قراءة تُولّد رمز ديناميكي SUN)، نسخ احتياطي يومي مشفَّر، سجل تدقيق غير قابل للحذف، فصل صلاحيات الموظفين بدقة.
+تشفير الوثائق المرفوعة بـ AES-256، اتصالات TLS 1.3 إجبارية على بوابة nginx، فحص فيروسات على كل وثيقة عبر ClamAV، توقيع رقمي PAdES للوثائق مع SHA-256 محفوظ في `properties.deed_signed_hash` ومقارنته عند كل تنزيل عبر `verify`، NFC NTAG 424 DNA يمنع نسخ البطاقة (كل قراءة تُولّد رمز ديناميكي SUN مع عدّاد متجدّد)، نسخ احتياطي يومي مشفَّر لـ SQL Server، سجل تدقيق غير قابل للحذف عبر `INSTEAD OF UPDATE/DELETE` triggers على جدول `audit_log`، خريطة صلاحيات JSON على `officers.permissions` بدلاً من فحص أدوار نصّي.
 
 ---
 
@@ -155,7 +154,8 @@ SMS للحالات الحرجة (الموافقة، الرفض، إصدار ال
 | `logo-sarh.svg` | الشعار الرئيسي |
 | `login-background.svg` | خلفية شاشة الدخول الكاملة |
 | `architecture-diagram.svg` | مخطط المعمارية الكامل |
-| `schema.sql` | مخطط قاعدة البيانات لـ Supabase |
+| `infra/mssql/migrations/` | مخطط قاعدة بيانات SQL Server (000–027) |
+| `docs/Sarh.pdf` | الوثيقة الفنية الأكاديمية الكاملة (٤ ١ صفحة، إنجليزية) |
 | `CLAUDE.md` | ملف السياق لـ Claude Code CLI |
 | `PROMPTS.md` | تسلسل أوامر البناء بالـ CLI |
 

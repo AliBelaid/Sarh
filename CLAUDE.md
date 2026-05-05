@@ -17,10 +17,10 @@
 7. **No free-text role checking in code** — always go through the JSON permission map on `officers.permissions`.
 
 ## Tech Stack (Pinned)
-- **Backend**: ASP.NET Core 8 (.NET 8), C# 12, EF Core 8 (`Microsoft.EntityFrameworkCore.SqlServer`) + `Microsoft.Data.SqlClient`. Lives at `apps/api-dotnet/`. The legacy NestJS service (`apps/api/`) was retired in Phase 7 — `git checkout 949a57d -- apps/api/` resurrects it if needed
+- **Backend**: ASP.NET Core 8 (.NET 8), C# 12, EF Core 8 (`Microsoft.EntityFrameworkCore.SqlServer`) + `Microsoft.Data.SqlClient`. Lives at `apps/api-dotnet/`. The legacy NestJS service (`apps/api/`) was retired then deleted; `git checkout 949a57d -- apps/api/` resurrects it if needed
 - **Database**: Local **SQL Server 2019/2022** with `geography` for geometry, full-text catalog (Arabic) for name search, `INSTEAD OF` triggers for the append-only audit log. Migrations live in `infra/mssql/migrations/000–025.sql` and run via `pnpm db:reset` → `scripts/db/run-migrations.ps1` (sqlcmd-based)
 - **Mobile**: Flutter 3.22+, Dart 3.4, Riverpod 2.x, go_router, flutter_nfc_kit, mapbox_maps_flutter
-- **Web**: Single Angular 21 app at `apps/web/` (citizen + officer + id-issuer + admin + verify behind role-based routing) with Material 21, transloco (RTL), Sarh brand SCSS tokens. The four legacy `apps/web-{citizen,officer,id-issuer,admin}/` apps remain in the repo only as a source for component migration; they no longer build into the prod compose stack as primaries
+- **Web**: Single Angular 21 app at `apps/web/` (citizen + officer + id-issuer + admin + verify behind role-based routing) with brand SCSS tokens (no Material). The four legacy `apps/web-{citizen,officer,id-issuer,admin}/` apps were deleted; recover from git history at `949a57d` if a component port is needed.
 - **SSI**: Hyperledger Aries Cloud Agent Python (ACA-Py) v0.12+, did:sov method
 - **Auth**: Custom HS256 JWT (`SARH_JWT_SECRET`) + bcrypt (`BCrypt.Net-Next`); `auth_users` table + `sarh_auth_claims` proc emit the same `citizen_id`/`officer_id`/`role`/`permissions` shape the rest of the app expects. `apps/api-dotnet/Auth/JwtTokenService.cs` signs/verifies; the global `[Authorize]` attribute + per-method `[OfficerOnly(...)]` filter validate locally with no DB roundtrip
 - **Storage**: Local filesystem under `STORAGE_ROOT`; `apps/api-dotnet/Storage/StorageService.cs` exposes `UploadAsync` / `ReadAsync` / `OpenRead` / `WriteRawAsync`. The verify deed PDF is streamed via the public route `GET /api/v1/verify/:code/deed.pdf`
@@ -31,25 +31,19 @@
 sarh/
 ├── apps/
 │   ├── api-dotnet/           # ASP.NET Core 8 backend (mssql + bcrypt + JWT)
-│   ├── web/                  # Single Angular app (current; ports 4200)
-│   ├── web-citizen/          # LEGACY — kept for component migration only
-│   ├── web-officer/          # LEGACY — kept for component migration only
-│   ├── web-id-issuer/        # LEGACY — kept for component migration only
-│   ├── web-admin/            # LEGACY — kept for component migration only
+│   ├── web/                  # Single Angular 21 app (port 4200)
 │   └── mobile/               # Flutter
 ├── packages/
-│   ├── shared-types/         # TS interfaces shared across web apps
+│   ├── shared-types/         # TS interfaces shared across the web app
 │   ├── ui-kit/               # Angular UI components (RTL)
 │   └── flutter-shared/       # Dart shared widgets/models
 ├── infra/
-│   ├── mssql/migrations/     # Active T-SQL migrations 000_database…025
-│   ├── supabase/             # LEGACY — Postgres history; do not run
+│   ├── mssql/migrations/     # T-SQL migrations 000_database…027
 │   ├── docker/               # Dockerfiles + production compose
 │   └── nginx/                # Reverse proxy config
-├── docs/
+├── docs/                     # Diagrams, wireframes, Sarh.pdf, runbook
 └── scripts/
-    ├── db/run-migrations.ps1 # SQL Server migration runner (sqlcmd)
-    └── deploy/               # VPS deploy scripts
+    └── db/run-migrations.ps1 # SQL Server migration runner (sqlcmd)
 ```
 
 ## Database Conventions
