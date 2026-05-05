@@ -31,7 +31,7 @@ interface QuickRole {
         </button>
 
         <div class="card-head">
-          <div class="seal" aria-hidden="true">س</div>
+          <div class="seal" aria-hidden="true">ص</div>
           <h1 class="display">صَرح</h1>
           <p class="sub mono">SARH · LIBYAN REGISTRY + DIGITAL ID</p>
         </div>

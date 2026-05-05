@@ -1,4 +1,4 @@
-# Sijilli — repo-root dockerignore. Each app Dockerfile builds from this
+# Sarh — repo-root dockerignore. Each app Dockerfile builds from this
 # context, so the more we ignore here the faster + smaller the build.
 
 # Node / JS

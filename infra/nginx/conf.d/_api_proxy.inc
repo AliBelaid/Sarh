@@ -1,4 +1,4 @@
-# Sijilli — /api/v1 reverse proxy. Included by every front-end vhost so a
+# Sarh — /api/v1 reverse proxy. Included by every front-end vhost so a
 # single API service serves all five hostnames under same-origin.
 #
 # CLAUDE.md: rate limit /auth/* and /verify/*. We add the global API zone
@@ -9,14 +9,14 @@
 # single PIN entry that fires multiple validation calls isn't rejected.
 location ~ ^/api/v1/auth/ {
     limit_req zone=auth_zone burst=5 nodelay;
-    proxy_pass http://sijilli_api;
+    proxy_pass http://sarh_api;
     include /etc/nginx/conf.d/_proxy_common.inc;
 }
 
 # Verify lookups (server-side path) — same shape as the SPA route guard.
 location ~ ^/api/v1/verify/ {
     limit_req zone=verify_zone burst=20 nodelay;
-    proxy_pass http://sijilli_api;
+    proxy_pass http://sarh_api;
     include /etc/nginx/conf.d/_proxy_common.inc;
 }
 
@@ -25,20 +25,20 @@ location ~ ^/api/v1/verify/ {
 # session that batches updates.
 location = /api/v1/properties/submit {
     limit_req zone=auth_zone burst=5 nodelay;
-    proxy_pass http://sijilli_api;
+    proxy_pass http://sarh_api;
     include /etc/nginx/conf.d/_proxy_common.inc;
 }
 
 # Generic /api/v1 catchall — soft global cap.
 location /api/v1/ {
     limit_req zone=api_zone burst=60 nodelay;
-    proxy_pass http://sijilli_api;
+    proxy_pass http://sarh_api;
     include /etc/nginx/conf.d/_proxy_common.inc;
 }
 
 # Liveness check exposed to host load balancer / uptime monitor.
 location = /healthz {
     access_log off;
-    proxy_pass http://sijilli_api/api/v1/health;
+    proxy_pass http://sarh_api/api/v1/health;
     include /etc/nginx/conf.d/_proxy_common.inc;
 }

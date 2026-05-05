@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "ly.sijilli.sijilli_mobile"
+    namespace = "ly.sarh.sarh_mobile"
     compileSdk = flutter.compileSdkVersion
     // Pinned to the locally-installed NDK. The Flutter-default 26.3.11579264
     // is half-installed on this machine (missing source.properties); 27 is
@@ -24,10 +24,10 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "ly.sijilli.sijilli_mobile"
+        applicationId = "ly.sarh.sarh_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // flutter_nfc_kit requires API 24+. Sijilli targets identity-bearing
+        // flutter_nfc_kit requires API 24+. Sarh targets identity-bearing
         // citizens, all of whom are on Android 7+ devices in practice, so
         // raising the floor doesn't lose meaningful coverage.
         minSdk = 24

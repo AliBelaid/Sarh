@@ -1,4 +1,4 @@
-# Sijilli — shared reverse-proxy directives. Included by every `location`
+# Sarh — shared reverse-proxy directives. Included by every `location`
 # block that proxies to an upstream container.
 
 proxy_http_version 1.1;
