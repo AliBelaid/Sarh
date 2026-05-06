@@ -21,6 +21,10 @@ erDiagram
     ssi_wallets ||--o{ ssi_credentials : "issued VCs"
     citizens   ||--o{ notifications : "recipient"
     auth_users ||--o{ audit_log : "actor"
+    properties ||--o| property_nfts : "tokenised as"
+    properties ||--o{ ownership_history : "transfer chain"
+    property_nfts ||--o{ ownership_history : "transferred"
+    officers   ||--o{ property_nfts : "minted by (manager)"
 
     auth_users {
         UNIQUEIDENTIFIER id PK
@@ -37,7 +41,7 @@ erDiagram
         UNIQUEIDENTIFIER auth_user_id FK
         NVARCHAR employee_no
         NVARCHAR full_name_ar
-        NVARCHAR role "super_admin/registry_officer/reviewer/auditor/id_issuer"
+        NVARCHAR role "super_admin/registry_officer/reviewer/auditor/id_issuer/department_manager"
         INT region_id FK
         INT municipality_id
         NVARCHAR permissions "JSON"
@@ -167,4 +171,34 @@ erDiagram
         NVARCHAR code
         NVARCHAR name_ar
         NVARCHAR name_en
+    }
+
+    property_nfts {
+        UNIQUEIDENTIFIER id PK
+        UNIQUEIDENTIFIER property_id FK
+        NVARCHAR token_id "uint256 as string"
+        NVARCHAR contract_address "0x… EVM addr"
+        NVARCHAR network "ethereum-sepolia / hyperledger-fabric"
+        NVARCHAR standard "ERC-721 / chaincode"
+        NVARCHAR owner_did "did:sov:…"
+        NVARCHAR metadata_uri "ipfs://… or https://"
+        NVARCHAR metadata_sha256
+        NVARCHAR mint_tx_hash
+        BIGINT mint_block_number
+        UNIQUEIDENTIFIER minted_by_officer_id FK "department_manager"
+        DATETIMEOFFSET minted_at
+        NVARCHAR status "pending/minted/transferred/burned"
+    }
+
+    ownership_history {
+        UNIQUEIDENTIFIER id PK
+        UNIQUEIDENTIFIER property_id FK
+        UNIQUEIDENTIFIER nft_id FK
+        NVARCHAR from_did "null on first mint"
+        NVARCHAR to_did
+        UNIQUEIDENTIFIER from_citizen_id FK
+        UNIQUEIDENTIFIER to_citizen_id FK
+        NVARCHAR transfer_tx_hash
+        NVARCHAR reason "initial_mint/sale/inheritance/court_order"
+        DATETIMEOFFSET transferred_at
     }

@@ -1,16 +1,20 @@
 ---
-title: Sarh — Property submission, review, and deed issuance
+title: Sarh — Property submission, review, manager approval, NFT minting, and verify
 ---
 sequenceDiagram
     autonumber
     actor C as Citizen
     actor O as Registry officer
+    actor M as Department<br/>Manager
     participant W as apps/web (Angular)
     participant API as .NET 8 API
     participant DB as SQL Server
     participant FS as Storage<br/>(local FS)
     participant PDF as PAdES signer
     participant SSI as ACA-Py<br/>(Hyperledger Aries)
+    participant IPFS as IPFS<br/>(metadata pin)
+    participant BC as Blockchain<br/>(Ethereum / Hyperledger)
+    participant SC as Smart Contract<br/>(ERC-721)
     actor V as Public verifier
 
     rect rgb(239, 246, 255)
@@ -24,20 +28,33 @@ sequenceDiagram
     end
 
     rect rgb(254, 252, 232)
-    Note over O,DB: 2) Review
+    Note over O,DB: 2) Officer review (technical + spatial)
     O->>W: open /app/queue
     W->>API: GET /api/v1/properties?status=pending
     API->>DB: SELECT
     DB-->>W: list
-    O->>W: open detail, read docs, view map
-    O->>W: click "Approve" + decree no
-    W->>API: POST /api/v1/properties/:id/review { decision: 'approve', approval_decree_no }
-    API->>DB: UPDATE properties SET status='approved',<br/>reviewed_by_officer_id, approval_decree_no
+    O->>W: open detail, read docs, view map, run conflict check
+    O->>W: click "Recommend approval" + technical note
+    W->>API: POST /api/v1/properties/:id/review { decision: 'recommend_approval' }
+    API->>DB: UPDATE properties SET status='under_review',<br/>reviewed_by_officer_id
     DB->>DB: AFTER UPDATE trigger → audit_log INSERT
     end
 
+    rect rgb(252, 231, 243)
+    Note over M,DB: 3) Department Manager final approval
+    M->>W: open /app/approvals
+    W->>API: GET /api/v1/properties?status=under_review
+    API->>DB: SELECT
+    DB-->>W: list
+    M->>W: review officer recommendation + decree no
+    M->>W: click "Final approve"
+    W->>API: POST /api/v1/properties/:id/final-approve { approval_decree_no }
+    API->>DB: UPDATE properties SET status='approved',<br/>approved_by_manager_id, approval_decree_no
+    DB->>DB: audit_log INSERT
+    end
+
     rect rgb(236, 253, 245)
-    Note over API,SSI: 3) Deed + VC issuance
+    Note over API,SSI: 4) Deed PDF + SSI VC issuance
     API->>PDF: generate deed PDF<br/>(citizen, polygon, decree)
     PDF-->>API: signed PAdES bytes + SHA256
     API->>FS: write deeds/<id>.pdf
@@ -45,18 +62,34 @@ sequenceDiagram
     API->>SSI: issue VC (PropertyDeed) for citizen DID
     SSI-->>API: credential_id
     API->>DB: UPDATE properties SET vc_credential_id
-    API->>DB: INSERT notifications (citizen, "deed ready")
+    end
+
+    rect rgb(224, 231, 255)
+    Note over API,SC: 5) NFT licence minting on blockchain
+    API->>API: build token metadata<br/>(propertyCode, polygon GeoJSON,<br/>deed SHA256, ownerDID, decree)
+    API->>IPFS: pin metadata.json
+    IPFS-->>API: ipfs://Qm…CID
+    API->>BC: mint(toAddress, tokenId, tokenURI)
+    BC->>SC: invoke mint()
+    SC-->>BC: Transfer(0x0, owner, tokenId)
+    BC-->>API: txHash + blockNumber
+    API->>DB: INSERT property_nfts<br/>(token_id, contract, network, metadata_uri,<br/>mint_tx_hash, minted_by_manager_id)
+    API->>DB: INSERT ownership_history<br/>(from=null, to=owner_did, reason='initial_mint')
+    API->>DB: UPDATE properties SET status='minted'
+    API->>DB: INSERT notifications (citizen, "deed + NFT licence ready")
     end
 
     rect rgb(254, 226, 226)
-    Note over C,V: 4) Delivery + public verify
-    C->>W: open /app/my/properties → download PDF
+    Note over C,V: 6) Delivery + public verify (PDF + on-chain)
+    C->>W: open /app/my/properties → download PDF + view NFT
     W->>API: GET /api/v1/storage/deeds/<id>.pdf
     API->>FS: read file
     FS-->>C: PDF (with QR pointing to /verify/<code>)
 
     V->>W: scan QR / open /verify/<code>
     W->>API: GET /api/v1/verify/:code
-    API->>DB: SELECT property + verify hash
-    API-->>V: 200 { owner, area, decree, signed: true }
+    API->>DB: SELECT property + verify hash + nft
+    API->>BC: ownerOf(tokenId)
+    BC-->>API: current owner address
+    API-->>V: 200 { owner, area, decree, signed: true,<br/>nft: { tokenId, contract, network, txHash, currentOwner } }
     end

@@ -1,5 +1,5 @@
 ---
-title: Sarh — Class diagram (.NET 8 backend domain)
+title: Sarh — Class diagram (.NET 8 backend domain + blockchain)
 ---
 classDiagram
     direction LR
@@ -14,6 +14,7 @@ classDiagram
         +DateTime BirthDate
         +Gender Gender
         +int RegionId
+        +string Did "did:sov:..."
         +bool IsActive
         +DateTimeOffset CreatedAt
     }
@@ -23,10 +24,20 @@ classDiagram
         +Guid AuthUserId
         +string EmployeeNo
         +string FullNameAr
-        +OfficerRole Role
+        +OfficerRole Role "registry_officer/reviewer/id_issuer/auditor/super_admin"
         +int RegionId
         +Json Permissions
         +bool IsActive
+    }
+
+    class DepartmentManager {
+        +Guid Id
+        +Guid AuthUserId
+        +string FullNameAr
+        +string Department
+        +int RegionId
+        +ApproveRequest(requestId, decreeNo) Property
+        +TriggerNftMint(propertyId) PropertyNft
     }
 
     class Property {
@@ -38,13 +49,15 @@ classDiagram
         +Geography BoundaryPolygon
         +Geography Centroid
         +decimal AreaSqm
-        +PropertyStatus Status
+        +PropertyStatus Status "draft/pending/under_review/approved/minted/transferred"
         +Guid ReviewedByOfficerId
+        +Guid ApprovedByManagerId
         +string DeedPdfPath
         +string DeedSignedHash
         +string VcCredentialId
         +Submit() void
         +Approve(officerId) void
+        +FinalApprove(managerId, decreeNo) void
         +Reject(reason) void
     }
 
@@ -52,8 +65,83 @@ classDiagram
         +Guid Id
         +string RequestNo
         +Guid PropertyId
-        +RequestStatus CurrentStatus
+        +Guid CitizenId
+        +RequestStatus CurrentStatus "pending/under_review/needs_clarification/approved/rejected/minted"
         +DateTimeOffset SubmittedAt
+        +DateTimeOffset ReviewedAt
+        +DateTimeOffset FinalApprovedAt
+    }
+
+    class PropertyNft {
+        +Guid Id
+        +Guid PropertyId
+        +string TokenId "uint256 as string"
+        +string ContractAddress
+        +string Network "ethereum-sepolia / hyperledger-fabric"
+        +string Standard "ERC-721"
+        +string OwnerDid
+        +string MetadataUri "ipfs://..."
+        +string MetadataSha256
+        +string MintTxHash
+        +long MintBlockNumber
+        +Guid MintedByOfficerId
+        +DateTimeOffset MintedAt
+        +NftStatus Status "pending/minted/transferred/burned"
+    }
+
+    class OwnershipHistory {
+        +Guid Id
+        +Guid PropertyId
+        +Guid NftId
+        +string FromDid
+        +string ToDid
+        +Guid FromCitizenId
+        +Guid ToCitizenId
+        +string TransferTxHash
+        +string Reason "initial_mint/sale/inheritance/court_order"
+        +DateTimeOffset TransferredAt
+    }
+
+    class BlockchainService {
+        -string RpcUrl
+        -string ContractAddress
+        -string MinterPrivateKeyEnc
+        +MintAsync(propertyId, ownerDid, metadataUri) MintResult
+        +TransferAsync(tokenId, fromDid, toDid) TxReceipt
+        +OwnerOfAsync(tokenId) string
+        +GetTransferEventsAsync(tokenId) List~TransferEvent~
+    }
+
+    class SmartContract {
+        <<solidity / chaincode>>
+        +mint(to, tokenId, uri) void
+        +safeTransferFrom(from, to, tokenId) void
+        +ownerOf(tokenId) address
+        +tokenURI(tokenId) string
+        +event Transfer(from, to, tokenId)
+    }
+
+    class IpfsService {
+        -string GatewayUrl
+        +PinJsonAsync(metadata) string "cid"
+        +PinFileAsync(stream) string "cid"
+    }
+
+    class Notification {
+        +Guid Id
+        +Guid RecipientCitizenId
+        +string TitleAr
+        +string BodyAr
+        +NotificationChannel Channel "in_app/sms/email/push"
+        +bool Read
+    }
+
+    class Document {
+        +Guid Id
+        +Guid PropertyId
+        +string DocType
+        +string StoragePath
+        +string Sha256
     }
 
     class DigitalIdCard {
@@ -90,7 +178,7 @@ classDiagram
     class SsiCredential {
         +Guid Id
         +Guid WalletId
-        +CredentialType Type
+        +CredentialType Type "PropertyDeed/CitizenIdentity"
         +Json CredData
     }
 
@@ -121,13 +209,26 @@ classDiagram
     }
 
     Citizen --> Property : owns
+    Citizen --> RegistrationRequest : submits
     Citizen --> DigitalIdCard : holds
     Citizen --> SsiWallet : controls
-    Officer --> Property : reviews
+    Officer --> RegistrationRequest : reviews
     Officer --> DigitalIdCard : issues
+    DepartmentManager --> RegistrationRequest : final approve
+    DepartmentManager --> PropertyNft : triggers mint
     Property --> RegistrationRequest : submission
+    Property --> Document : attachments
+    Property --> PropertyNft : tokenised as
+    Property --> OwnershipHistory : transfer chain
+    PropertyNft --> OwnershipHistory : transfers
+    PropertyNft --> SsiCredential : linked VC
+    BlockchainService --> SmartContract : calls
+    BlockchainService --> PropertyNft : creates
+    BlockchainService --> IpfsService : pins metadata
     DigitalIdCard --> NfcCardSecret : encoded
     SsiWallet --> SsiCredential : stores
     Property --> PadesSigner : signs deed
     DigitalIdCard --> StorageService : photo
+    Citizen --> Notification : receives
     Officer --> AuditLog : writes
+    DepartmentManager --> AuditLog : writes

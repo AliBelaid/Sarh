@@ -125,13 +125,39 @@ Role gating is enforced both client-side (`roleGuard`) **and** server-side (`[Of
 
 ## Wireframes (this doc)
 
-See `docs/wireframes/` — five hand-drawn-style SVG mockups:
+See `docs/wireframes/` — six hand-drawn-style SVG mockups:
 
 1. `01-login.svg` — glass card on dark gradient with quick-fill chips.
 2. `02-dashboard.svg` — admin-flavoured dashboard with KPI tiles and a region distribution chart.
 3. `03-property-registration.svg` — split master-detail: form on the right, Leaflet polygon picker on the left.
 4. `04-officer-review.svg` — hero details + map + 3-button decision toggle.
 5. `05-public-verify.svg` — anonymous verify page with QR, signed-deed download and the property's location.
+6. `06-license-issuance.svg` — Department Manager final approval with NFT licence preview, decree input, and a 5-step minting progress strip (PAdES → SSI VC → IPFS pin → mint() → confirm).
+
+## Property Licence (NFT) screen — `/app/approvals/:id` (department_manager)
+
+A new role and a new page are introduced for the on-chain licence flow:
+
+- **Role**: `department_manager` — sits between `reviewer` and `super_admin`. Their dashboard tile is the **Approvals queue** (status=`under_review`).
+- **Page layout** (`docs/wireframes/06-license-issuance.svg`):
+  - Two-column hero. Left column = property summary card + officer recommendation banner (cyan accent ✓). Right column = dark NFT preview card (gold band, polygon art, token-id placeholder, contract address) + decree number input + auto-mint checkbox.
+  - Below the hero, a **minting progress strip** with five circular pills: 1) PAdES sign, 2) SSI VC issue, 3) IPFS pin metadata.json, 4) `mint()` call, 5) save tokenId + tx_hash + notify. Pills go cyan-filled when complete, gold-filled when active, hollow when pending.
+  - Footer action bar: ghost "Reject" + ghost "Request clarification" + primary "اعتماد وإصدار NFT ↗" (black with gold text). The primary button is disabled until the decree number is filled.
+- **State**: the page subscribes to a SignalR channel `nft:mint:{propertyId}` while minting is in progress and updates the pill colours live; reaching pill 5 navigates to `/app/digital-ids` style detail page for the new NFT.
+- **Network selector** lives in `/app/admin/blockchain` (super_admin only) — never on the manager screen, so the manager can't accidentally swap chains.
+
+## NFT licences ledger — `/app/nft-licences` (admin / auditor)
+
+Mirror the existing `/app/digital-ids` table style: cursor-paginated rows of `{property_code, owner, token_id, contract, network, mint_tx_hash, status pill, minted_at}`. Status pill mapping:
+
+| Status | Pill colour | Arabic label |
+|---|---|---|
+| `pending` | `--muted` grey | قيد السكّ |
+| `minted` | `--good` cyan | معتمدة |
+| `transferred` | `--accent` gold | محوَّلة |
+| `burned` | `--warn` red | ملغاة |
+
+Clicking a row opens a detail drawer showing the full ownership_history timeline and a button to view the transaction on the configured block explorer (`etherscan.io/tx/...` or the Hyperledger Explorer URL).
 
 ## Accessibility checklist
 

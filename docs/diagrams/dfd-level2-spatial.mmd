@@ -1,0 +1,26 @@
+---
+title: Sarh — DFD Level 2 (decomposition of process 3.0 — spatial & technical auditing)
+---
+flowchart LR
+    classDef proc  fill:#bae6fd,stroke:#0284c7,color:#0c4a6e,rx:50,ry:50
+    classDef ext   fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef store fill:#fef9c3,stroke:#ca8a04,color:#713f12
+
+    MAP[Map Service API]:::ext
+    Officer[Registry officer]:::ext
+
+    D2[(D2<br/>Claims & Properties store)]:::store
+
+    P31((3.1<br/>Document Review)):::proc
+    P32((3.2<br/>Spatial Conflict Check)):::proc
+    P33((3.3<br/>Technical Map Generation)):::proc
+    P34((3.4<br/>Status Update)):::proc
+
+    D2 -->|"Claim data for auditing"| P31
+    P31 -->|"Approval documents"| P32
+    MAP -->|"Coordinates + maps"| P32
+    P32 -->|"Spatial validation result"| P33
+    P33 -->|"Map verification + report"| P34
+    P34 -->|"Updated application status"| D2
+    P34 -->|"Map verification + report"| Officer
+    Officer -->|"Requests for review"| P31

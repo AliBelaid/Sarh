@@ -1,0 +1,41 @@
+---
+title: Sarh — Data-flow Context diagram (DFD Level 0 / Single process)
+---
+flowchart LR
+    classDef ext   fill:#bae6fd,stroke:#0284c7,color:#0c4a6e
+    classDef sarh  fill:#0F172A,stroke:#000,color:#F97316,rx:80,ry:80
+    classDef svc   fill:#fef3c7,stroke:#f59e0b,color:#78350f
+
+    Citizen[Citizen]:::ext
+    Officer[Registry officer]:::ext
+    Manager[Department manager]:::ext
+
+    SARH(((Sarh Platform))):::sarh
+
+    SSI[SSI Provider]:::svc
+    MAP[Map Service API]:::svc
+    NOTIF[Notification Service]:::svc
+    NFT[NFT Minting Service<br/>Smart Contract]:::svc
+
+    Citizen -->|"Land docs + GPS coords"| SARH
+    SARH -->|"Profile + identity info"| Citizen
+    SARH -->|"Notifications + application status"| Citizen
+    SARH -->|"Deed PDF + NFT token URI"| Citizen
+
+    Officer -->|"Map verification + report"| SARH
+    SARH -->|"Requests for review"| Officer
+
+    Manager -->|"Approval response"| SARH
+    SARH -->|"Approval requests + decree drafts"| Manager
+
+    SARH -->|"Request identity verification"| SSI
+    SSI -->|"Verifiable credential result"| SARH
+
+    SARH -->|"Coordinates + boundary check"| MAP
+    MAP -->|"Spatial validation result"| SARH
+
+    SARH -->|"Notification content + user contact"| NOTIF
+    NOTIF -->|"Delivery status"| SARH
+
+    SARH -->|"Property metadata + owner DID"| NFT
+    NFT -->|"Token id + tx hash + minting confirmation"| SARH

@@ -1,4 +1,5 @@
-// Renders Mermaid .mmd files to PNG via mermaid.ink (no Puppeteer download).
+// Renders Mermaid .mmd files to PNG.
+// Primary backend: mermaid.ink (GET, fast). Fallback for big diagrams: kroki.io (POST).
 // Usage: node render.mjs [name1 name2 ...]   (defaults to all .mmd files)
 import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +13,23 @@ const b64url = (s) =>
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
+
+async function tryMermaidInk(body) {
+  const url = `https://mermaid.ink/img/${b64url(body)}?type=png&bgColor=FBFAF6`;
+  const res = await fetch(url);
+  if (!res.ok) return { ok: false, status: res.status };
+  return { ok: true, buf: Buffer.from(await res.arrayBuffer()) };
+}
+
+async function tryKroki(body) {
+  const res = await fetch('https://kroki.io/mermaid/png', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body,
+  });
+  if (!res.ok) return { ok: false, status: res.status };
+  return { ok: true, buf: Buffer.from(await res.arrayBuffer()) };
+}
 
 const targets = process.argv.slice(2).length
   ? process.argv.slice(2)
@@ -28,19 +46,20 @@ for (const name of targets) {
     console.error(`skip: ${name}.mmd not found`);
     continue;
   }
-  // mermaid.ink accepts /img/<base64url-of-the-mmd> — bgColor as query.
-  const url = `https://mermaid.ink/img/${b64url(body)}?type=png&bgColor=FBFAF6`;
   process.stdout.write(`Rendering ${name} ... `);
   try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.error(`HTTP ${res.status}`);
+    let r = await tryMermaidInk(body);
+    if (!r.ok && (r.status === 414 || r.status >= 500)) {
+      process.stdout.write(`mermaid.ink ${r.status}, retrying via kroki ... `);
+      r = await tryKroki(body);
+    }
+    if (!r.ok) {
+      console.error(`HTTP ${r.status}`);
       failed++;
       continue;
     }
-    const buf = Buffer.from(await res.arrayBuffer());
-    await writeFile(pngPath, buf);
-    console.log(`${(buf.length / 1024).toFixed(1)} KB`);
+    await writeFile(pngPath, r.buf);
+    console.log(`${(r.buf.length / 1024).toFixed(1)} KB`);
   } catch (e) {
     console.error(e?.message ?? e);
     failed++;

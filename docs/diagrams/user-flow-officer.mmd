@@ -1,21 +1,21 @@
 ---
-title: Sarh — Officer user flow
+title: Sarh — Officer + Department Manager user flow (with NFT minting)
 ---
 flowchart TD
-    A([Officer signs in]) --> B[/Dashboard/]
+    A([Officer / manager signs in]) --> B[/Dashboard/]
     B --> C{Role?}
     C -- registry_officer / reviewer --> Q[Queue]
+    C -- department_manager --> M[Approvals queue]
     C -- id_issuer --> I[Issue station]
     C -- super_admin / auditor --> AD[Admin console]
 
     Q --> Q1[Filter: pending / under_review / needs_clarification]
     Q1 --> Q2[Open property]
-    Q2 --> Q3[Review hero details + map]
+    Q2 --> Q3[Review hero details + map<br/>+ run spatial conflict check]
     Q3 --> Q4{Decision}
-    Q4 -- Approve --> Q5[Enter decree number<br/>+ optional note]
-    Q5 --> Q6[POST /properties/:id/review<br/>decision=approve]
-    Q6 --> Q7[Server: PAdES-sign deed<br/>+ issue SSI VC<br/>+ stamp QR]
-    Q7 --> Q8[Notify owner]
+    Q4 -- Recommend approval --> Q5[Optional technical note]
+    Q5 --> Q6[POST /properties/:id/review<br/>decision=recommend_approval]
+    Q6 --> Q7[status=under_review<br/>routed to manager]
 
     Q4 -- Needs clarification --> Q9[Required note]
     Q9 --> Q10[POST review<br/>decision=needs_clarification]
@@ -25,6 +25,16 @@ flowchart TD
     Q12 --> Q13[POST review<br/>decision=reject]
     Q13 --> Q14[Owner notified + reason]
 
+    M --> M1[Filter: under_review]
+    M1 --> M2[Open property + officer report]
+    M2 --> M3{Final decision}
+    M3 -- Reject --> M4[Required reason]
+    M4 --> M5[POST /final-approve<br/>decision=reject]
+    M3 -- Approve --> M6[Enter decree number]
+    M6 --> M7[POST /final-approve<br/>decision=approve + decree]
+    M7 --> M8[Server: PAdES-sign deed<br/>+ issue SSI VC<br/>+ pin metadata to IPFS<br/>+ mint NFT on blockchain<br/>+ stamp QR]
+    M8 --> M9[Notify owner — deed + NFT ready]
+
     I --> I1[5-step wizard:<br/>identity → photo → signature →<br/>fingerprint → review]
     I1 --> I2[Create citizen record]
     I2 --> I3[Issue card +<br/>encode NFC + sign VC]
@@ -32,5 +42,6 @@ flowchart TD
     AD --> AD1[Properties map]
     AD --> AD2[Citizens / Officers users]
     AD --> AD3[Digital IDs roster]
-    AD --> AD4[Audit log]
-    AD --> AD5[Reports KPIs]
+    AD --> AD4[NFT licences ledger]
+    AD --> AD5[Audit log]
+    AD --> AD6[Reports KPIs]

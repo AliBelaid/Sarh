@@ -1,5 +1,5 @@
 ---
-title: Sarh — Citizen user flow
+title: Sarh — Citizen user flow (with NFT licence)
 ---
 flowchart TD
     A([Landing page]) --> B[Sign in / Register]
@@ -8,7 +8,8 @@ flowchart TD
     C -- Yes --> D[/Dashboard/]
     D --> E[My Properties]
     D --> F[My Digital ID]
-    D --> G[Profile]
+    D --> G[My Wallet<br/>NFT licences]
+    D --> H[Profile]
 
     E --> E1{Properties?}
     E1 -- None --> E2[Register new property]
@@ -24,11 +25,18 @@ flowchart TD
     E10 -- ok --> E11[(status=pending)]
     E10 -- area mismatch --> E5
     E11 --> E12[Wait for officer review]
-    E12 --> E13{Decision}
-    E13 -- approved --> E14[Receive deed PDF<br/>+ SSI VC]
+    E12 --> E13{Officer decision}
     E13 -- needs clarification --> E15[Add docs / reply]
     E15 --> E12
     E13 -- rejected --> E16[See reason]
+    E13 -- recommend approval --> E17[Wait for manager approval]
+    E17 --> E18{Manager decision}
+    E18 -- rejected --> E16
+    E18 -- approved --> E19[Receive deed PDF<br/>+ SSI VC<br/>+ NFT licence minted on-chain]
+
+    G --> G1[List of NFT licences]
+    G1 --> G2[View token id, contract,<br/>tx hash, current owner]
+    G1 --> G3[Initiate transfer<br/>sale / inheritance]
 
     F --> F1[See current card]
     F1 --> F2{Expiring < 90d?}

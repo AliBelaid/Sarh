@@ -1,21 +1,36 @@
 ---
-title: Sarh — Conceptual ERD (high-level entities)
+title: Sarh — Conceptual ERD (high-level entities, including NFT licence)
 ---
 erDiagram
     CITIZEN ||--o{ PROPERTY : "owns"
     CITIZEN ||--o| DIGITAL_ID_CARD : "holds"
     CITIZEN ||--o| SSI_WALLET : "controls"
     CITIZEN ||--o{ NOTIFICATION : "receives"
+    CITIZEN ||--o{ REGISTRATION_REQUEST : "submits"
+
     OFFICER ||--o{ REGISTRATION_REQUEST : "reviews"
     OFFICER ||--o{ DIGITAL_ID_CARD : "issues"
     OFFICER ||--o{ AUDIT_ENTRY : "writes"
+
+    DEPARTMENT_MANAGER ||--o{ REGISTRATION_REQUEST : "final approves"
+    DEPARTMENT_MANAGER ||--o{ PROPERTY_NFT : "triggers minting"
+
     PROPERTY ||--|| REGISTRATION_REQUEST : "submitted as"
     PROPERTY ||--o{ PROPERTY_DOCUMENT : "has"
     PROPERTY ||--o| DEED_PDF : "produces"
+    PROPERTY ||--o| PROPERTY_NFT : "is tokenised as"
+    PROPERTY ||--o{ OWNERSHIP_HISTORY : "transfer chain"
+
+    PROPERTY_NFT ||--|| BLOCKCHAIN_TX : "minted via"
+    PROPERTY_NFT }o--|| SMART_CONTRACT : "governed by"
+    PROPERTY_NFT ||--o{ OWNERSHIP_HISTORY : "transferred"
+
     DEED_PDF ||--|| VERIFY_QR : "embeds"
     DIGITAL_ID_CARD ||--|| NFC_CARD : "encoded as"
     DIGITAL_ID_CARD ||--o{ ID_ISSUANCE_EVENT : "tracked by"
     SSI_WALLET ||--o{ VERIFIABLE_CREDENTIAL : "stores"
+    PROPERTY_NFT ||--o| VERIFIABLE_CREDENTIAL : "linked to"
+
     REGION ||--o{ CITIZEN : "scopes"
     REGION ||--o{ PROPERTY : "scopes"
     REGION ||--o{ OFFICER : "scopes"
@@ -23,20 +38,46 @@ erDiagram
     CITIZEN {
         string national_id
         string full_name_ar
+        string did
         string region
     }
     OFFICER {
-        string role
+        string role "registry_officer / reviewer / id_issuer"
         string region
+    }
+    DEPARTMENT_MANAGER {
+        string role "department_manager"
+        string department
     }
     PROPERTY {
         string property_code
-        string status
+        string status "approved/minted/transferred"
         polygon boundary
     }
     REGISTRATION_REQUEST {
         string request_no
         string current_status
+    }
+    PROPERTY_NFT {
+        string token_id
+        string contract_address
+        string owner_did
+        string metadata_uri
+    }
+    BLOCKCHAIN_TX {
+        string tx_hash
+        string network "Ethereum / Hyperledger"
+        bigint block_number
+    }
+    SMART_CONTRACT {
+        string address
+        string standard "ERC-721 / Fabric chaincode"
+    }
+    OWNERSHIP_HISTORY {
+        string from_did
+        string to_did
+        datetime transfer_at
+        string reason
     }
     DIGITAL_ID_CARD {
         string digital_id_number

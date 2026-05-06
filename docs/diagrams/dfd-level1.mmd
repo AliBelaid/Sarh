@@ -1,0 +1,53 @@
+---
+title: Sarh — DFD Level 1 (main processes inside Sarh Platform)
+---
+flowchart LR
+    classDef proc  fill:#bae6fd,stroke:#0284c7,color:#0c4a6e,rx:60,ry:60
+    classDef ext   fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef store fill:#fef9c3,stroke:#ca8a04,color:#713f12
+
+    Citizen[Citizen]:::ext
+    Officer[Registry officer]:::ext
+    Manager[Department manager]:::ext
+    SSI[SSI Provider]:::ext
+    MAP[Map Service API]:::ext
+    NOTIF[Notification Service]:::ext
+    NFT[NFT Minting Service]:::ext
+
+    P1((1.0<br/>Account &<br/>Identity Mgmt)):::proc
+    P2((2.0<br/>Land Claim<br/>Processing)):::proc
+    P3((3.0<br/>Spatial &<br/>Technical Auditing)):::proc
+    P4((4.0<br/>NFT Documentation<br/>& NFT Minting)):::proc
+    P5((5.0<br/>Notifications)):::proc
+
+    D1[(D1<br/>Users / DID file)]:::store
+    D2[(D2<br/>Claims & Properties store)]:::store
+    D3[(D3<br/>Blockchain Ledger file<br/>property_nfts + ownership_history)]:::store
+    D4[(D4<br/>Audit log)]:::store
+
+    Citizen -->|"Profile + identity info"| P1
+    P1 -->|"Request identity verification"| SSI
+    SSI -->|"Verification result"| P1
+    P1 -->|"Store verified user profile"| D1
+
+    Citizen -->|"Land documents + GPS coordinates"| P2
+    P2 -->|"Store new request data"| D2
+    P2 -->|"Claim data for auditing"| P3
+
+    Officer -->|"Map verification + report"| P3
+    P3 -->|"API coordinates"| MAP
+    MAP -->|"Spatial validation result"| P3
+    P3 -->|"Store audited report"| D2
+    P3 -->|"Requests for review"| Officer
+
+    P3 -->|"Approval requests"| P4
+    Manager -->|"Approval response"| P4
+    P4 -->|"Token id + minting confirmation"| NFT
+    NFT -->|"Tx hash + token id"| P4
+    P4 -->|"Store NFT record"| D3
+    P4 -->|"Audit entry"| D4
+
+    P4 -->|"Notification content + user contact"| P5
+    P5 -->|"Push / SMS / Email"| NOTIF
+    NOTIF -->|"Delivery status"| P5
+    P5 -->|"Status update"| Citizen

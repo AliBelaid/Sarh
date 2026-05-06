@@ -1,28 +1,36 @@
 ---
-title: Sarh — End-to-end system flow
+title: Sarh — End-to-end system flow (with NFT licence on blockchain)
 ---
 flowchart LR
     classDef citizen fill:#3b82f6,stroke:#1e40af,color:#fff
     classDef officer fill:#239E46,stroke:#15803d,color:#fff
+    classDef manager fill:#8b5cf6,stroke:#6d28d9,color:#fff
     classDef issuer  fill:#D4AF37,stroke:#B8941F,color:#0F1A14
     classDef admin   fill:#0F1A14,stroke:#000,color:#D4AF37
     classDef api     fill:#f4f1e8,stroke:#94a39c,color:#0F1A14
     classDef db      fill:#fdf2f8,stroke:#ec4899,color:#831843
     classDef store   fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef chain   fill:#1e293b,stroke:#0f172a,color:#F97316
     classDef public  fill:#e0e7ff,stroke:#6366f1,color:#312e81
 
     subgraph CIT[المواطن &middot; Citizen]
       C1[تسجيل / دخول]:::citizen
       C2[تقديم عقار جديد<br/>+ مستندات + إحداثيات]:::citizen
-      C3[استلام السند الموقع<br/>+ شهادة VC]:::citizen
+      C3[استلام السند الموقع<br/>+ شهادة VC + رخصة NFT]:::citizen
     end
 
     subgraph OFF[موظف التسجيل / المراجع]
       O1[قائمة المراجعة]:::officer
-      O2{قرار}:::officer
+      O2{قرار فني}:::officer
       O3[طلب توضيح]:::officer
       O4[رفض مع سبب]:::officer
-      O5[اعتماد + رقم قرار]:::officer
+      O5[توصية بالاعتماد]:::officer
+    end
+
+    subgraph MGR[مدير الإدارة &middot; Department Manager]
+      M1[قائمة الاعتمادات النهائية]:::manager
+      M2[اعتماد نهائي + رقم القرار]:::manager
+      M3[رفض الاعتماد]:::manager
     end
 
     subgraph ISS[مصدر الهويات]
@@ -39,14 +47,21 @@ flowchart LR
 
     subgraph BACK[الخادم &middot; .NET 8 API + SignalR]
       API[/api/v1/*<br/>JWT HS256/]:::api
-      DB[(SQL Server 2019<br/>geography + audit triggers)]:::db
+      DB[(SQL Server 2019<br/>geography + audit triggers<br/>+ property_nfts + ownership_history)]:::db
       FS[(Local filesystem<br/>storage_root)]:::store
       SSI[ACA-Py<br/>Hyperledger Aries]:::api
+      IPFS[IPFS pinning]:::store
+    end
+
+    subgraph CHAIN[سلسلة الكتل &middot; Blockchain]
+      BC[Ethereum / Hyperledger]:::chain
+      SC[Smart Contract<br/>ERC-721 / chaincode]:::chain
     end
 
     subgraph PUB[الجمهور &middot; Public]
       V1[التحقق من سند<br/>عبر QR أو رمز]:::public
       V2[تحقق NFC<br/>SUN counter]:::public
+      V3[تحقق من رخصة NFT<br/>على السلسلة]:::public
     end
 
     C1 --> API
@@ -58,12 +73,23 @@ flowchart LR
     O1 --> O2
     O2 -->|needs_clarification| O3 --> C2
     O2 -->|reject| O4 --> C2
-    O2 -->|approve| O5
+    O2 -->|recommend_approval| O5
 
-    O5 --> API
+    O5 --> API --> DB --> M1
+    M1 --> M2
+    M1 --> M3 --> C2
+
+    M2 --> API
     API -->|"PDF + PAdES sign"| FS
     API -->|"VC issue"| SSI
     SSI --> DB
+    API -->|"pin metadata.json"| IPFS
+    IPFS --> API
+    API -->|"mint(tokenId, ownerDID, tokenURI)"| BC
+    BC --> SC
+    SC -->|"Transfer event + tx hash"| BC
+    BC --> API
+    API --> DB
     DB --> C3
 
     C1 -. "first time" .-> I1
@@ -78,4 +104,6 @@ flowchart LR
 
     V1 --> API
     V2 --> API
-    API -->|verify hash + signature| DB
+    V3 --> API
+    API -->|"verify hash + signature"| DB
+    API -->|"ownerOf(tokenId)"| BC
