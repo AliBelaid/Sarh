@@ -27,7 +27,8 @@ public sealed class ListPropertiesQuery
 {
     public string? Cursor { get; set; }
     [Range(1, 100)] public int Limit { get; set; } = 20;
-    [RegularExpression("^(draft|pending|under_review|approved|rejected|needs_clarification|frozen)$")]
+    // Mirror of ck_properties_status in 028_property_nfts_ownership_history.sql.
+    [RegularExpression("^(draft|pending|under_review|approved|rejected|needs_clarification|frozen|minted|transferred)$")]
     public string? Status { get; set; }
     [Microsoft.AspNetCore.Mvc.FromQuery(Name = "region_id")]
     public int? RegionId { get; set; }
