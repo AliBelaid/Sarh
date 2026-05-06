@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { DigitalIdCard, DigitalIdCardsService, CardStatus } from '@core/digital-id-cards.service';
 import { CARD_STATUS } from '../../../shared/status-pills';
 
@@ -8,7 +9,7 @@ import { CARD_STATUS } from '../../../shared/status-pills';
   selector: 'app-admin-digital-ids',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="page">
       <header class="head">
@@ -16,19 +17,25 @@ import { CARD_STATUS } from '../../../shared/status-pills';
           <h1 class="display">الهويات الرقمية</h1>
           <p class="sub">كل بطاقات NFC المُصدرة وحالاتها.</p>
         </div>
-        <div class="kpis">
-          <div class="kpi">
-            <span class="kpi-num good">{{ countByStatus()['active'] }}</span>
-            <span class="kpi-lbl">نشطة</span>
+        <div class="head-right">
+          <div class="kpis">
+            <div class="kpi">
+              <span class="kpi-num good">{{ countByStatus()['active'] }}</span>
+              <span class="kpi-lbl">نشطة</span>
+            </div>
+            <div class="kpi">
+              <span class="kpi-num warn">{{ countByStatus()['frozen'] }}</span>
+              <span class="kpi-lbl">مجمّدة</span>
+            </div>
+            <div class="kpi">
+              <span class="kpi-num bad">{{ countByStatus()['revoked'] }}</span>
+              <span class="kpi-lbl">ملغاة</span>
+            </div>
           </div>
-          <div class="kpi">
-            <span class="kpi-num warn">{{ countByStatus()['frozen'] }}</span>
-            <span class="kpi-lbl">مجمّدة</span>
-          </div>
-          <div class="kpi">
-            <span class="kpi-num bad">{{ countByStatus()['revoked'] }}</span>
-            <span class="kpi-lbl">ملغاة</span>
-          </div>
+          <a routerLink="/app/digital-ids/new" class="btn primary">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            إصدار جديد
+          </a>
         </div>
       </header>
 
@@ -62,11 +69,12 @@ import { CARD_STATUS } from '../../../shared/status-pills';
                 <th>تاريخ الإصدار</th>
                 <th>الانتهاء</th>
                 <th>الحالة</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               @for (c of filtered(); track c.id) {
-                <tr>
+                <tr class="row" (click)="open(c.id)">
                   <td dir="ltr"><span class="mono code">{{ c.digital_id_number }}</span></td>
                   <td dir="ltr" class="mono small">{{ c.card_serial }}</td>
                   <td dir="ltr" class="mono small">{{ c.nfc_uid ?? '—' }}</td>
@@ -77,6 +85,7 @@ import { CARD_STATUS } from '../../../shared/status-pills';
                       {{ status(c.status).ar }}
                     </span>
                   </td>
+                  <td class="chev" aria-hidden="true">←</td>
                 </tr>
               }
             </tbody>
@@ -87,11 +96,30 @@ import { CARD_STATUS } from '../../../shared/status-pills';
   `,
   styles: [`
     :host { display: block; }
-    .page { max-width: 1280px; margin: 0 auto; }
+    .page { width: 100%; }
 
     .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
     .head h1 { font-size: 22px; margin: 0 0 4px; color: var(--ink); }
     .sub { font-size: 13px; color: var(--muted); margin: 0; }
+    .head-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 12.5px; font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: inherit;
+      border: 1.5px solid transparent;
+      transition: all .15s;
+    }
+    .btn.primary {
+      background: linear-gradient(135deg, var(--primary), #1e293b);
+      color: var(--accent);
+      box-shadow: 0 3px 12px rgba(15,23,42,0.18);
+    }
+    .btn.primary:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(15,23,42,0.25); }
 
     .kpis { display: flex; gap: 10px; }
     .kpi { display: flex; flex-direction: column; align-items: center; padding: 9px 16px; background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; min-width: 80px; }
@@ -111,7 +139,11 @@ import { CARD_STATUS } from '../../../shared/status-pills';
     .tbl thead th { text-align: start; padding: 12px 14px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; background: rgba(249, 115, 22, 0.04); border-bottom: 1px solid var(--rule); }
     .tbl tbody td { padding: 12px 14px; border-bottom: 1px solid var(--rule); color: var(--ink); }
     .tbl tbody tr:last-child td { border-bottom: 0; }
-    .tbl tbody tr:hover { background: rgba(249, 115, 22, 0.03); }
+    .tbl tbody tr.row { cursor: pointer; transition: background .12s; }
+    .tbl tbody tr.row:hover { background: rgba(249, 115, 22, 0.05); }
+    .chev { color: var(--muted); font-size: 16px; width: 24px; }
+    [dir='rtl'] .chev { transform: scaleX(1); }
+    [dir='ltr'] .chev { transform: scaleX(-1); }
 
     .code { font-weight: 700; font-size: 12.5px; }
     .small { font-size: 12px; }
@@ -127,6 +159,7 @@ import { CARD_STATUS } from '../../../shared/status-pills';
 })
 export class AdminDigitalIdsPage implements OnInit {
   private readonly api = inject(DigitalIdCardsService);
+  private readonly router = inject(Router);
 
   readonly items = signal<DigitalIdCard[]>([]);
   readonly loading = signal(false);
@@ -164,6 +197,10 @@ export class AdminDigitalIdsPage implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  open(id: string): void {
+    void this.router.navigate(['/app/digital-ids', id]);
   }
 
   status(s: string) { return CARD_STATUS[s] ?? { ar: s, color: '#94a3b8' }; }

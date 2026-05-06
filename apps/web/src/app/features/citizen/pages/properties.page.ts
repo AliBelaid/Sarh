@@ -79,7 +79,7 @@ import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-
   `,
   styles: [`
     :host { display: block; }
-    .page { max-width: 1180px; margin: 0 auto; }
+    .page { width: 100%; }
 
     .head {
       display: flex; align-items: flex-end; justify-content: space-between;

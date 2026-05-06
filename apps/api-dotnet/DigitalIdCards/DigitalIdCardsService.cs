@@ -24,9 +24,18 @@ public sealed partial class DigitalIdCardsService(
     // ---------------- LIST ----------------
     public async Task<CursorPage<CardView>> ListAsync(ListCardsQuery q, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.OfficerId is null) throw SarhException.Forbidden();
-
         IQueryable<DigitalIdCard> query = db.DigitalIdCards.AsNoTracking();
+
+        // Citizens can only see their own card. Officers see what they query.
+        if (actor.OfficerId is null)
+        {
+            if (actor.CitizenId is null) throw SarhException.Forbidden();
+            query = query.Where(c => c.CitizenId == actor.CitizenId.Value);
+        }
+        else if (q.CitizenId is Guid cid)
+        {
+            query = query.Where(c => c.CitizenId == cid);
+        }
 
         if (!string.IsNullOrEmpty(q.Status)) query = query.Where(c => c.Status == q.Status);
         if (!string.IsNullOrWhiteSpace(q.Cursor) && DateTimeOffset.TryParse(q.Cursor, out var cursorTs))
@@ -77,7 +86,7 @@ public sealed partial class DigitalIdCardsService(
     {
         if (actor.OfficerId is null) throw SarhException.Forbidden();
 
-        var citizen = await db.Citizens.AsNoTracking().FirstOrDefaultAsync(c => c.Id == dto.CitizenId, ct);
+        var citizen = await db.Citizens.FirstOrDefaultAsync(c => c.Id == dto.CitizenId, ct);
         if (citizen is null || !citizen.IsActive) throw SarhException.NotFound("المواطن", "Citizen");
 
         var hasActive = await db.DigitalIdCards.AsNoTracking()
@@ -86,6 +95,10 @@ public sealed partial class DigitalIdCardsService(
             throw SarhException.Conflict(
                 "يوجد بطاقة فعّالة لهذا المواطن. استخدم إعادة الإصدار بدلاً من إصدار جديد.",
                 "Citizen already has an active card; use /reissue.");
+
+        // Persist the upload onto the citizen so /citizens/:id/photo can serve it.
+        if (!string.IsNullOrEmpty(dto.PhotoBucket) && !string.IsNullOrEmpty(dto.PhotoPath))
+            citizen.PhotoPath = $"{dto.PhotoBucket}/{dto.PhotoPath}";
 
         var photoHash = ResolvePhotoHash(dto, citizen.PhotoPath);
 

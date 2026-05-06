@@ -107,7 +107,7 @@ const QUEUE_STATUSES: PropertyStatus[] = ['pending', 'under_review', 'needs_clar
   `,
   styles: [`
     :host { display: block; }
-    .page { max-width: 1280px; margin: 0 auto; }
+    .page { width: 100%; }
 
     .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
     .head h1 { font-size: 22px; margin: 0 0 4px; color: var(--ink); }

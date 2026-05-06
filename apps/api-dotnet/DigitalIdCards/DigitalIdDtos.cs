@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
 using Sarh.Api.Data.Entities;
 
 namespace Sarh.Api.DigitalIdCards;
@@ -37,6 +38,7 @@ public sealed class ListCardsQuery
     [RegularExpression("^(active|frozen|revoked)$")]
     public string? Status { get; set; }
     public string? Q { get; set; }
+    [FromQuery(Name = "citizen_id")] public Guid? CitizenId { get; set; }
 }
 
 public sealed class CardCitizenSummary

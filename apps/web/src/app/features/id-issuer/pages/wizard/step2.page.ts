@@ -66,7 +66,7 @@ import { IdIssuerWizardService } from '../../wizard.service';
   `,
   styles: [`
     :host { display: block; }
-    .page { max-width: 980px; margin: 0 auto; }
+    .page { width: 100%; }
 
     .head { margin-bottom: 18px; }
     .head h1 { font-size: 22px; margin: 0 0 4px; color: var(--ink); }

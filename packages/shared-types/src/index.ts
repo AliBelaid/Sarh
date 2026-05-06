@@ -8,6 +8,7 @@ export type SarhRole =
   | 'id_issuer'
   | 'auditor'
   | 'reviewer'
+  | 'department_manager'
   | 'citizen';
 
 export type PropertyType =
@@ -25,7 +26,9 @@ export type PropertyStatus =
   | 'approved'
   | 'rejected'
   | 'needs_clarification'
-  | 'frozen';
+  | 'frozen'
+  | 'minted'
+  | 'transferred';
 
 export type DocumentType =
   | 'koreky_certificate'
@@ -159,4 +162,46 @@ export interface ApiErrorEnvelope {
 export interface PaginatedItems<T> {
   items: T[];
   next_cursor: string | null;
+}
+
+// ── NFT licence (issued on the blockchain after manager final approval) ──
+
+export type NftStatus = 'pending' | 'minted' | 'transferred' | 'burned' | 'failed';
+
+export type NftNetwork =
+  | 'ethereum-mainnet'
+  | 'ethereum-sepolia'
+  | 'polygon-mainnet'
+  | 'polygon-amoy'
+  | 'hyperledger-fabric';
+
+export interface PropertyNft {
+  id: string;
+  property_id: string;
+  token_id: string;
+  contract_address: string;
+  network: NftNetwork;
+  standard: 'ERC-721' | 'ERC-1155' | 'chaincode';
+  owner_did: string;
+  owner_address: string;
+  metadata_uri: string;
+  metadata_sha256: string;
+  mint_tx_hash: string;
+  mint_block_number: number | null;
+  minted_by_officer_id: string;
+  minted_at: string;
+  status: NftStatus;
+}
+
+export interface FinalApproveRequest {
+  approval_decree_no?: string;
+  note?: string;
+}
+
+export interface LicenseResult {
+  property: Property;
+  nft: PropertyNft;
+  explorer_tx_url: string;
+  explorer_token_url: string;
+  metadata_gateway_url: string;
 }

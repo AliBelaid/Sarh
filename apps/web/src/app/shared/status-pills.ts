@@ -10,6 +10,16 @@ export const PROPERTY_STATUS: Record<string, { ar: string; color: string }> = {
   approved:             { ar: 'معتمد',           color: '#0891B2' },
   rejected:             { ar: 'مرفوض',           color: '#DC2626' },
   frozen:               { ar: 'مجمّد',           color: '#6b7280' },
+  minted:               { ar: 'رخصة NFT',        color: '#F97316' },
+  transferred:          { ar: 'منقول',           color: '#7c3aed' },
+};
+
+export const NFT_STATUS: Record<string, { ar: string; color: string }> = {
+  pending:     { ar: 'قيد السكّ',  color: '#94a3b8' },
+  minted:      { ar: 'معتمدة',     color: '#0891B2' },
+  transferred: { ar: 'محوَّلة',    color: '#F97316' },
+  burned:      { ar: 'ملغاة',      color: '#DC2626' },
+  failed:      { ar: 'فشل السكّ',  color: '#DC2626' },
 };
 
 export const PROPERTY_TYPE: Record<string, string> = {

@@ -13,7 +13,6 @@ namespace Sarh.Api.Controllers;
 public class DigitalIdCardsController(DigitalIdCardsService cards) : ControllerBase
 {
     [HttpGet]
-    [OfficerOnly("id_issuer", "super_admin", "auditor", "registry_officer")]
     public Task<CursorPage<CardView>> List([FromQuery] ListCardsQuery q, CancellationToken ct)
         => cards.ListAsync(q, User.RequireUser(), ct);
 

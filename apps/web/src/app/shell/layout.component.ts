@@ -15,10 +15,10 @@ interface NavItem {
 
 type NavIcon =
   | 'dashboard' | 'citizens' | 'properties' | 'digital-id' | 'queue'
-  | 'approvals' | 'issue' | 'audit' | 'reports' | 'users' | 'profile' | 'verify';
+  | 'approvals' | 'issue' | 'audit' | 'reports' | 'users' | 'profile' | 'verify' | 'nft';
 
 const ALL_ROLES: readonly SarhRole[] = [
-  'super_admin', 'auditor', 'registry_officer', 'reviewer', 'id_issuer', 'citizen',
+  'super_admin', 'auditor', 'registry_officer', 'reviewer', 'id_issuer', 'department_manager', 'citizen',
 ];
 
 const NAV: NavItem[] = [
@@ -32,6 +32,9 @@ const NAV: NavItem[] = [
   { ar: 'قائمة المراجعة', en: 'Review queue',  path: '/app/queue',     icon: 'queue',     roles: ['registry_officer', 'reviewer', 'super_admin'], group: 'main' },
   { ar: 'الاعتمادات',    en: 'Approvals',     path: '/app/approvals', icon: 'approvals', roles: ['registry_officer', 'reviewer', 'super_admin'], group: 'main' },
 
+  // Department manager (NFT licence final approval)
+  { ar: 'الاعتمادات النهائية', en: 'Final approvals', path: '/app/manager/queue', icon: 'nft', roles: ['department_manager', 'super_admin'], group: 'main' },
+
   // ID issuer
   { ar: 'محطة الإصدار',  en: 'Issue station', path: '/app/issue',     icon: 'issue',     roles: ['id_issuer', 'super_admin'], group: 'main' },
 
@@ -39,6 +42,7 @@ const NAV: NavItem[] = [
   { ar: 'العقارات',       en: 'Properties', path: '/app/properties',   icon: 'properties', roles: ['super_admin', 'auditor'], group: 'admin' },
   { ar: 'المواطنون',      en: 'Citizens',   path: '/app/citizens',     icon: 'citizens',   roles: ['super_admin', 'auditor'], group: 'admin' },
   { ar: 'الهويات الرقمية', en: 'Digital IDs', path: '/app/digital-ids', icon: 'digital-id', roles: ['super_admin', 'auditor'], group: 'admin' },
+  { ar: 'سجل رخص NFT',    en: 'NFT licences', path: '/app/nft-licences', icon: 'nft',        roles: ['super_admin', 'auditor', 'department_manager'], group: 'admin' },
   { ar: 'المستخدمون',    en: 'Users',      path: '/app/users',        icon: 'users',      roles: ['super_admin'], group: 'admin' },
   { ar: 'سجل التدقيق',   en: 'Audit log',  path: '/app/audit',        icon: 'audit',      roles: ['super_admin', 'auditor'], group: 'admin' },
   { ar: 'التقارير',       en: 'Reports',    path: '/app/reports',      icon: 'reports',    roles: ['super_admin', 'auditor'], group: 'admin' },
@@ -57,7 +61,7 @@ const NAV: NavItem[] = [
       <aside class="sidebar" [class.mobile-open]="mobileOpen()">
         <div class="sb-head">
           <a routerLink="/app/dashboard" class="brand">
-            <div class="seal" aria-hidden="true">س</div>
+            <div class="seal" aria-hidden="true">ص</div>
             <div class="brand-text">
               <div class="brand-ar display">صَرح</div>
               <div class="brand-en mono">SARH</div>
@@ -492,6 +496,7 @@ export class LayoutComponent {
       'users':      '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
       'profile':    '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
       'verify':     '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>',
+      'nft':        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
     };
     return ico[name];
   }

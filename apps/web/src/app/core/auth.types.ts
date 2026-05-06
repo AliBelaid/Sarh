@@ -5,6 +5,7 @@ export type SarhRole =
   | 'registry_officer'
   | 'reviewer'
   | 'id_issuer'
+  | 'department_manager'
   | 'citizen';
 
 export interface AuthUser {
@@ -25,10 +26,11 @@ export interface SignInResponse {
 // Single unified shell — every role lands on /app/dashboard, which
 // renders role-specific tiles. Per-feature role gates live on the routes.
 export const ROLE_HOME: Record<SarhRole, string> = {
-  super_admin:      '/app/dashboard',
-  auditor:          '/app/dashboard',
-  registry_officer: '/app/dashboard',
-  reviewer:         '/app/dashboard',
-  id_issuer:        '/app/dashboard',
-  citizen:          '/app/dashboard',
+  super_admin:        '/app/dashboard',
+  auditor:            '/app/dashboard',
+  registry_officer:   '/app/dashboard',
+  reviewer:           '/app/dashboard',
+  id_issuer:          '/app/dashboard',
+  department_manager: '/app/dashboard',
+  citizen:            '/app/dashboard',
 };

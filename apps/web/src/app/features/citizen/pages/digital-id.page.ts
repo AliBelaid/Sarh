@@ -1,7 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '@core/auth.service';
+import { Citizen, CitizensService } from '@core/citizens.service';
 import { DigitalIdCard, DigitalIdCardsService } from '@core/digital-id-cards.service';
+import { API_BASE } from '@core/api-config';
 import { CARD_STATUS } from '../../../shared/status-pills';
 
 @Component({
@@ -33,20 +37,56 @@ import { CARD_STATUS } from '../../../shared/status-pills';
         </div>
       } @else {
         <div class="layout">
-          <div class="card-art">
+          <div class="card-art" id="printable-card">
             <div class="card-bg"></div>
             <div class="card-content">
-              <div class="brand-row">
-                <div class="seal" aria-hidden="true">س</div>
-                <div>
-                  <div class="brand-ar">صَرح</div>
-                  <div class="brand-en mono">LIBYAN DIGITAL ID</div>
+              <div class="card-top">
+                <div class="brand-row">
+                  <div class="seal" aria-hidden="true">ص</div>
+                  <div>
+                    <div class="brand-ar">صَرح</div>
+                    <div class="brand-en mono">LIBYAN DIGITAL ID</div>
+                  </div>
+                </div>
+                <div class="photo">
+                  @if (citizenPhoto()) {
+                    <img [src]="citizenPhoto()!" alt="صورة المواطن" />
+                  } @else {
+                    <span class="initial">{{ initial() }}</span>
+                  }
                 </div>
               </div>
 
-              <div class="did-num mono">{{ card()!.digital_id_number }}</div>
+              <div class="card-mid">
+                <div class="name-block">
+                  <div class="lbl">الاسم</div>
+                  <div class="name-ar">{{ fullNameAr() }}</div>
+                </div>
+                <div class="meta-row">
+                  @if (legacyNo()) {
+                    <div>
+                      <div class="lbl">الرقم الوطني</div>
+                      <div class="iid mono">{{ legacyNo() }}</div>
+                    </div>
+                  }
+                  <div>
+                    <div class="lbl">الجنس</div>
+                    <div class="val small-bold">{{ genderAr() }}</div>
+                  </div>
+                  @if (birthDate()) {
+                    <div>
+                      <div class="lbl">تاريخ الميلاد</div>
+                      <div class="val small-bold mono">{{ birthDate() }}</div>
+                    </div>
+                  }
+                </div>
+              </div>
 
               <div class="card-bottom">
+                <div>
+                  <div class="lbl">رقم الهوية الرقمية</div>
+                  <div class="val mono small">{{ card()!.digital_id_number }}</div>
+                </div>
                 <div>
                   <div class="lbl">رقم البطاقة</div>
                   <div class="val mono">{{ card()!.card_serial }}</div>
@@ -57,6 +97,13 @@ import { CARD_STATUS } from '../../../shared/status-pills';
                 </div>
               </div>
             </div>
+          </div>
+
+          <div class="card-actions no-print">
+            <button class="btn ghost" (click)="print()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              طباعة البطاقة
+            </button>
           </div>
 
           <aside class="info">
@@ -114,7 +161,7 @@ import { CARD_STATUS } from '../../../shared/status-pills';
   `,
   styles: [`
     :host { display: block; }
-    .page { max-width: 1100px; margin: 0 auto; }
+    .page { width: 100%; }
 
     .head { margin-bottom: 22px; }
     .head h1 { font-size: 22px; margin: 0 0 4px; color: var(--ink); }
@@ -128,12 +175,27 @@ import { CARD_STATUS } from '../../../shared/status-pills';
     .card-art {
       position: relative;
       aspect-ratio: 1.586;
-      max-height: 360px;
+      max-height: 420px;
       border-radius: 18px;
       overflow: hidden;
       box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18);
       color: #fff;
     }
+    .card-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 12.5px; font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      border: 1.5px solid transparent;
+      transition: all .15s;
+    }
+    .btn.ghost {
+      background: var(--paper); border-color: var(--rule); color: var(--ink);
+    }
+    .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
     .card-bg {
       position: absolute; inset: 0;
       background:
@@ -151,30 +213,47 @@ import { CARD_STATUS } from '../../../shared/status-pills';
     }
     .card-content {
       position: relative; z-index: 1;
-      padding: 26px;
+      padding: 22px 26px;
       height: 100%;
       display: flex; flex-direction: column; justify-content: space-between;
     }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
     .brand-row { display: flex; align-items: center; gap: 12px; }
     .seal {
-      width: 50px; height: 50px; border-radius: 50%;
+      width: 46px; height: 46px; border-radius: 50%;
       background: linear-gradient(135deg, var(--accent), #C2410C);
       color: var(--primary);
       display: grid; place-items: center;
-      font-weight: 800; font-size: 26px;
+      font-weight: 800; font-size: 24px;
       box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);
     }
-    .brand-ar { font-size: 18px; font-weight: 700; }
-    .brand-en { font-size: 9px; letter-spacing: 0.22em; color: var(--accent); margin-top: 2px; }
+    .brand-ar { font-size: 17px; font-weight: 700; }
+    .brand-en { font-size: 8.5px; letter-spacing: 0.22em; color: var(--accent); margin-top: 2px; }
 
-    .did-num {
-      font-size: 26px; font-weight: 700; letter-spacing: 0.06em;
-      direction: ltr;
+    .photo {
+      width: 76px; height: 92px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      border: 1.5px solid var(--accent);
+      overflow: hidden;
+      display: grid; place-items: center;
+      flex-shrink: 0;
     }
+    .photo img { width: 100%; height: 100%; object-fit: cover; }
+    .initial { font-size: 30px; font-weight: 700; color: var(--accent); }
 
-    .card-bottom { display: flex; justify-content: space-between; gap: 16px; }
-    .card-bottom .lbl { font-size: 9px; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
-    .card-bottom .val { font-size: 13px; font-weight: 600; margin-top: 3px; }
+    .card-mid { display: flex; flex-direction: column; gap: 12px; }
+    .name-block { display: flex; flex-direction: column; gap: 2px; }
+    .name-ar { font-size: 17px; font-weight: 700; line-height: 1.3; }
+    .meta-row { display: flex; gap: 18px; flex-wrap: wrap; }
+    .meta-row > div { display: flex; flex-direction: column; gap: 2px; }
+    .iid { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; direction: ltr; }
+    .small-bold { font-size: 13px; font-weight: 600; }
+
+    .card-bottom { display: flex; justify-content: space-between; gap: 12px; }
+    .card-bottom .lbl, .card-mid .lbl { font-size: 8.5px; letter-spacing: 0.16em; color: var(--accent); text-transform: uppercase; }
+    .card-bottom .val { font-size: 12px; font-weight: 600; margin-top: 2px; }
+    .card-bottom .val.small { font-size: 10.5px; }
 
     .info { display: flex; flex-direction: column; gap: 14px; }
     .info-card {
@@ -231,13 +310,27 @@ import { CARD_STATUS } from '../../../shared/status-pills';
     @media (max-width: 880px) {
       .layout { grid-template-columns: 1fr; }
     }
+
+    @media print {
+      :host > * { display: none !important; }
+      .no-print { display: none !important; }
+      :host .card-art {
+        position: static !important;
+        max-height: none !important;
+        page-break-inside: avoid;
+        box-shadow: none !important;
+      }
+    }
   `],
 })
-export class DigitalIdPage implements OnInit {
+export class DigitalIdPage implements OnInit, OnDestroy {
   private readonly cards = inject(DigitalIdCardsService);
+  private readonly citizens = inject(CitizensService);
   private readonly auth = inject(AuthService);
+  private readonly http = inject(HttpClient);
 
   readonly card = signal<DigitalIdCard | null>(null);
+  readonly citizen = signal<Citizen | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -248,6 +341,34 @@ export class DigitalIdPage implements OnInit {
     return days > 0 && days < 90;
   });
 
+  readonly fullNameAr = computed(() => {
+    const cz = this.citizen() ?? this.card()?.citizen;
+    if (!cz) return '—';
+    return [
+      ('first_name_ar' in cz ? cz.first_name_ar : ''),
+      ('father_name_ar' in cz ? cz.father_name_ar : ''),
+      ('grandfather_name_ar' in cz ? cz.grandfather_name_ar : ''),
+      ('family_name_ar' in cz ? cz.family_name_ar : ''),
+    ].filter(Boolean).join(' ');
+  });
+
+  readonly initial = computed(() => this.fullNameAr().charAt(0) || 'ص');
+
+  readonly legacyNo = computed(() => this.citizen()?.legacy_national_no ?? null);
+
+  readonly birthDate = computed(() => {
+    const d = this.citizen()?.birth_date;
+    if (!d) return null;
+    return new Date(d).toLocaleDateString('en-GB');
+  });
+
+  readonly genderAr = computed(() => {
+    const g = this.citizen()?.gender;
+    return g === 'male' ? 'ذكر' : g === 'female' ? 'أنثى' : '—';
+  });
+
+  readonly citizenPhoto = signal<string | null>(null);
+
   async ngOnInit(): Promise<void> {
     const cid = this.auth.user()?.citizen_id;
     if (!cid) {
@@ -256,8 +377,13 @@ export class DigitalIdPage implements OnInit {
     }
     this.loading.set(true);
     try {
-      const res = await this.cards.list({ citizen_id: cid, limit: 1 });
-      this.card.set(res.items[0] ?? null);
+      const [cardRes, cz] = await Promise.all([
+        this.cards.list({ citizen_id: cid, limit: 1 }),
+        this.citizens.get(cid).catch(() => null),
+      ]);
+      this.card.set(cardRes.items[0] ?? null);
+      this.citizen.set(cz);
+      void this.loadPhoto(cid);
     } catch {
       this.error.set('تعذّر تحميل بطاقة الهوية.');
     } finally {
@@ -265,7 +391,27 @@ export class DigitalIdPage implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    const url = this.citizenPhoto();
+    if (url) URL.revokeObjectURL(url);
+  }
+
+  private async loadPhoto(citizenId: string): Promise<void> {
+    try {
+      const blob = await firstValueFrom(
+        this.http.get(`${API_BASE}/citizens/${citizenId}/photo`, { responseType: 'blob' }),
+      );
+      this.citizenPhoto.set(URL.createObjectURL(blob));
+    } catch {
+      // No photo on file — fall back to initial.
+    }
+  }
+
   cardStatus(s: string) { return CARD_STATUS[s] ?? { ar: s, color: '#94a3b8' }; }
+
+  print(): void {
+    if (typeof window !== 'undefined') window.print();
+  }
 
   shortDate(iso: string): string {
     const d = new Date(iso);

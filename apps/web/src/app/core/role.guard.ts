@@ -11,6 +11,10 @@ export function roleGuard(allowed: readonly SarhRole[]): CanActivateFn {
     const router = inject(Router);
     const user = auth.user();
     if (user && allowed.includes(user.role)) return true;
-    return router.createUrlTree(['/forbidden']);
+    // Logged in but wrong role → bounce to dashboard (universal home), not /forbidden.
+    // /forbidden is reserved for the rare case of no user at all (authGuard would
+    // normally catch that first, so this branch is mostly defensive).
+    if (user) return router.parseUrl(auth.homeFor(user.role));
+    return router.parseUrl('/forbidden');
   };
 }

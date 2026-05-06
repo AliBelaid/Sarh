@@ -4,6 +4,19 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/auth.service';
 
+function canRoleAccess(role: string, path: string): boolean {
+  // Refuse to bounce back to system pages.
+  if (path.startsWith('/forbidden') || path.startsWith('/login')) return false;
+  const officer = ['registry_officer', 'reviewer', 'super_admin'];
+  const issuer  = ['id_issuer', 'super_admin'];
+  const admin   = ['super_admin', 'auditor'];
+  if (path.startsWith('/app/my/'))                                      return role === 'citizen';
+  if (path.startsWith('/app/queue') || path.startsWith('/app/approvals') || path.startsWith('/app/review')) return officer.includes(role);
+  if (path.startsWith('/app/issue'))                                    return issuer.includes(role);
+  if (path.match(/^\/app\/(citizens|properties|digital-ids|users|audit|reports)/)) return admin.includes(role);
+  return true;
+}
+
 interface QuickRole {
   key: 'citizen' | 'admin' | 'officer' | 'issuer';
   ar: string;
@@ -377,7 +390,8 @@ export class LoginPage {
     try {
       const user = await this.auth.signIn(this.email.trim(), this.password);
       const next = this.route.snapshot.queryParamMap.get('next');
-      this.router.navigateByUrl(next ?? this.auth.homeFor(user.role));
+      const target = next && canRoleAccess(user.role, next) ? next : this.auth.homeFor(user.role);
+      this.router.navigateByUrl(target);
     } catch (e: unknown) {
       const err = e as { error?: { error?: { message_ar?: string; message_en?: string } }; status?: number; message?: string };
       this.error.set(

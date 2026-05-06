@@ -11,7 +11,7 @@ namespace Sarh.Api.Controllers;
 [ApiController]
 [Route("api/v1/properties")]
 [Authorize]
-public class PropertiesController(PropertiesService svc, ReviewService review) : ControllerBase
+public class PropertiesController(PropertiesService svc, ReviewService review, LicenseService license) : ControllerBase
 {
     [HttpPost]
     [Audit(Action = AuditActions.Create, Entity = "properties", EntityIdFrom = "property.id")]
@@ -38,4 +38,14 @@ public class PropertiesController(PropertiesService svc, ReviewService review) :
     [Audit(Action = AuditActions.Approve, Entity = "properties", EntityIdFrom = "property.id")]
     public Task<ReviewResult> Review(Guid id, [FromBody] ReviewDecisionDto dto, CancellationToken ct)
         => review.ReviewAsync(id, dto, User.RequireUser(), ct);
+
+    // Department-manager final approval. Mints the on-chain NFT licence
+    // on top of an officer-approved property. See LicenseService for the
+    // full PAdES → SSI → IPFS → mint pipeline (PAdES + SSI are produced
+    // upstream by the officer's /review approve step).
+    [HttpPost("{id:guid}/final-approve")]
+    [OfficerOnly("department_manager", "super_admin")]
+    [Audit(Action = AuditActions.Approve, Entity = "properties", EntityIdFrom = "property.id")]
+    public Task<LicenseResult> FinalApprove(Guid id, [FromBody] FinalApproveDto dto, CancellationToken ct)
+        => license.FinalApproveAsync(id, dto, User.RequireUser(), ct);
 }

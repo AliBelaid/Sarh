@@ -43,14 +43,27 @@ builder.Services.AddDbContext<SarhDbContext>(opt => opt.UseSqlServer(connStr));
 builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<Sarh.Api.Citizens.CitizensService>();
+builder.Services.AddScoped<Sarh.Api.Officers.OfficersService>();
 builder.Services.AddScoped<Sarh.Api.Properties.PropertiesService>();
 builder.Services.AddSingleton<Sarh.Api.Workflow.DeedPdfBuilder>();
 builder.Services.AddScoped<Sarh.Api.Workflow.ReviewService>();
+builder.Services.AddScoped<Sarh.Api.Workflow.LicenseService>();
+builder.Services.AddScoped<Sarh.Api.Workflow.NftsService>();
 builder.Services.AddScoped<Sarh.Api.DigitalIdCards.DigitalIdNumberService>();
 builder.Services.AddScoped<Sarh.Api.DigitalIdCards.DigitalIdCardsService>();
 builder.Services.AddScoped<Sarh.Api.Nfc.NfcKeyStoreService>();
 builder.Services.AddScoped<Sarh.Api.Nfc.NfcService>();
 builder.Services.AddSingleton<Sarh.Api.Storage.StorageService>();
+
+// Blockchain + IPFS — stub by default. To go live, set Sarh:Blockchain:Mode
+// to "ethereum" and add Nethereum.Web3 + a real IIpfsService impl.
+builder.Services.Configure<Sarh.Api.Blockchain.BlockchainOptions>(
+    builder.Configuration.GetSection(Sarh.Api.Blockchain.BlockchainOptions.SectionName));
+builder.Services.Configure<Sarh.Api.Blockchain.IpfsOptions>(
+    builder.Configuration.GetSection(Sarh.Api.Blockchain.IpfsOptions.SectionName));
+builder.Services.AddSingleton<Sarh.Api.Blockchain.IBlockchainService, Sarh.Api.Blockchain.StubBlockchainService>();
+builder.Services.AddSingleton<Sarh.Api.Blockchain.IIpfsService, Sarh.Api.Blockchain.StubIpfsService>();
+
 builder.Services.AddScoped<Sarh.Api.Verify.VerifyService>();
 builder.Services.AddScoped<Sarh.Api.Audit.AuditService>();
 builder.Services.AddScoped<Sarh.Api.Audit.AuditActionFilter>();

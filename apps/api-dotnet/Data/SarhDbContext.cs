@@ -14,6 +14,8 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
     public DbSet<IdIssuanceHistory> IdIssuanceHistory => Set<IdIssuanceHistory>();
     public DbSet<NfcCardSecret> NfcCardSecrets => Set<NfcCardSecret>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<PropertyNft> PropertyNfts => Set<PropertyNft>();
+    public DbSet<OwnershipHistory> OwnershipHistory => Set<OwnershipHistory>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -36,5 +38,18 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
         b.Entity<IdIssuanceHistory>().HasKey(x => x.Id);
         b.Entity<NfcCardSecret>().HasKey(x => x.Id);
         b.Entity<Notification>().HasKey(x => x.Id);
+        b.Entity<PropertyNft>().HasKey(x => x.Id);
+        b.Entity<PropertyNft>().HasIndex(x => x.PropertyId);
+        b.Entity<PropertyNft>().ToTable("property_nfts", t => t.HasTrigger("tr_property_nfts_updated_at"));
+        b.Entity<OwnershipHistory>().HasKey(x => x.Id);
+        b.Entity<OwnershipHistory>().HasIndex(x => x.PropertyId);
+        // ownership_history blocks UPDATE / DELETE via INSTEAD OF triggers in
+        // migration 028 — flag the table so EF doesn't generate OUTPUT clauses
+        // that would conflict.
+        b.Entity<OwnershipHistory>().ToTable("ownership_history", t =>
+        {
+            t.HasTrigger("tr_ownership_history_no_update");
+            t.HasTrigger("tr_ownership_history_no_delete");
+        });
     }
 }

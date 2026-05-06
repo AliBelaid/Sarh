@@ -2,6 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import type {
+  FinalApproveRequest,
+  LicenseResult,
   Property,
   PropertyStatus,
   ReviewDecision,
@@ -47,6 +49,14 @@ export class PropertiesService {
   review(id: string, body: ReviewBody): Promise<ReviewResponse> {
     return firstValueFrom(
       this.http.post<ReviewResponse>(`${API_BASE}/properties/${id}/review`, body),
+    );
+  }
+
+  // Department-manager final approval. Mints the NFT licence on chain.
+  // Backend: LicenseService.FinalApproveAsync (Workflow/LicenseService.cs).
+  finalApprove(id: string, body: FinalApproveRequest = {}): Promise<LicenseResult> {
+    return firstValueFrom(
+      this.http.post<LicenseResult>(`${API_BASE}/properties/${id}/final-approve`, body),
     );
   }
 }

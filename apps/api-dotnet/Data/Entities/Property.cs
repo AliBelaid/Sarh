@@ -25,6 +25,8 @@ public class Property
     [Column("reviewed_by_officer_id")] public Guid? ReviewedByOfficerId { get; set; }
     [Column("rejection_reason")] public string? RejectionReason { get; set; }
     [Column("approval_decree_no")] public string? ApprovalDecreeNo { get; set; }
+    [Column("approved_by_manager_id")] public Guid? ApprovedByManagerId { get; set; }
+    [Column("final_approved_at")] public DateTimeOffset? FinalApprovedAt { get; set; }
     [Column("deed_pdf_path")] public string? DeedPdfPath { get; set; }
     [Column("deed_signed_hash")] public string? DeedSignedHash { get; set; }
     [Column("vc_credential_id")] public string? VcCredentialId { get; set; }

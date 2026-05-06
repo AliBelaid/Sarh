@@ -133,7 +133,7 @@ type Phase = 'idle' | 'issuing' | 'awaiting_card' | 'encoding' | 'printing' | 'd
   `,
   styles: [`
     :host { display: block; }
-    .page { max-width: 1200px; margin: 0 auto; }
+    .page { width: 100%; }
 
     .head { margin-bottom: 22px; }
     .head h1 { font-size: 22px; margin: 0 0 4px; color: var(--ink); }

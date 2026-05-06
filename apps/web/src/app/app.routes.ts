@@ -5,6 +5,7 @@ import { roleGuard } from './core/role.guard';
 const OFFICER_ROLES = ['registry_officer', 'reviewer', 'super_admin'] as const;
 const ID_ISSUER_ROLES = ['id_issuer', 'super_admin'] as const;
 const ADMIN_ROLES = ['super_admin', 'auditor'] as const;
+const MANAGER_ROLES = ['department_manager', 'super_admin'] as const;
 
 export const APP_ROUTES: Routes = [
   // ---- Public --------------------------------------------------------
@@ -86,6 +87,20 @@ export const APP_ROUTES: Routes = [
           import('./features/officer/pages/review.page').then((m) => m.OfficerReviewPage),
       },
 
+      // ---- Department manager (NFT licence final approval) ----------
+      {
+        path: 'manager/queue',
+        canActivate: [roleGuard([...MANAGER_ROLES])],
+        loadComponent: () =>
+          import('./features/manager/pages/manager-queue.page').then((m) => m.ManagerQueuePage),
+      },
+      {
+        path: 'manager/approve/:id',
+        canActivate: [roleGuard([...MANAGER_ROLES])],
+        loadComponent: () =>
+          import('./features/manager/pages/manager-approve.page').then((m) => m.ManagerApprovePage),
+      },
+
       // ---- ID issuer -------------------------------------------------
       {
         path: 'issue',
@@ -152,15 +167,33 @@ export const APP_ROUTES: Routes = [
       },
       {
         path: 'digital-ids',
-        canActivate: [roleGuard([...ADMIN_ROLES])],
+        canActivate: [roleGuard([...ADMIN_ROLES, 'id_issuer'])],
         loadComponent: () =>
           import('./features/admin/pages/digital-ids.page').then((m) => m.AdminDigitalIdsPage),
+      },
+      {
+        path: 'digital-ids/new',
+        canActivate: [roleGuard([...ADMIN_ROLES, 'id_issuer'])],
+        loadComponent: () =>
+          import('./features/admin/pages/digital-id-new.page').then((m) => m.AdminDigitalIdNewPage),
+      },
+      {
+        path: 'digital-ids/:id',
+        canActivate: [roleGuard([...ADMIN_ROLES, 'id_issuer'])],
+        loadComponent: () =>
+          import('./features/admin/pages/digital-id-detail.page').then((m) => m.AdminDigitalIdDetailPage),
       },
       {
         path: 'users',
         canActivate: [roleGuard(['super_admin'])],
         loadComponent: () =>
           import('./features/admin/pages/officers.page').then((m) => m.AdminOfficersPage),
+      },
+      {
+        path: 'nft-licences',
+        canActivate: [roleGuard([...ADMIN_ROLES, 'department_manager'])],
+        loadComponent: () =>
+          import('./features/admin/pages/nft-licences.page').then((m) => m.AdminNftLicencesPage),
       },
       {
         path: 'audit',

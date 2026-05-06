@@ -2,8 +2,17 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Citizen, CitizensService } from '@core/citizens.service';
+import { Officer, OfficersService } from '@core/officers.service';
 
 type Tab = 'citizens' | 'officers' | 'auth';
+
+const ROLE_LABELS: Record<string, { ar: string; color: string }> = {
+  super_admin:      { ar: 'مسؤول عام',  color: '#F97316' },
+  auditor:          { ar: 'مدقق',       color: '#DC2626' },
+  registry_officer: { ar: 'موظف تسجيل',  color: '#0891B2' },
+  reviewer:         { ar: 'مراجع',      color: '#3b82f6' },
+  id_issuer:        { ar: 'مصدر هويات',  color: '#0F172A' },
+};
 
 const REGION_NAMES: Record<number, string> = {
   10: 'طرابلس', 11: 'بنغازي', 12: 'الزاوية', 13: 'تاجوراء', 14: 'مصراتة',
@@ -114,16 +123,69 @@ const REGION_NAMES: Record<number, string> = {
         }
 
         @case ('officers') {
-          <div class="placeholder">
-            <h3>إدارة الموظفين</h3>
-            <p>
-              لا تتوفر بعد نقاط نهاية إدارية لإدارة الموظفين عبر واجهة الويب. تتم
-              إضافة الموظفين حالياً مباشرة عبر قاعدة البيانات (راجع
-              <code class="mono">infra/mssql/migrations/026_seed_demo_officer.sql</code>).
-            </p>
-            <p class="hint">سيتم تفعيل هذا التبويب لاحقاً عند تجهيز
-              <code class="mono">/api/v1/admin/officers</code>.</p>
+          <div class="filters">
+            <input class="search" type="search" [(ngModel)]="officerSearch"
+                   (ngModelChange)="onOfficerSearch()" placeholder="ابحث بالاسم، البريد، أو رقم الموظف…" />
+            <select class="region" [(ngModel)]="officerRoleFilter" (ngModelChange)="reloadOfficers()">
+              <option value="">كل الأدوار</option>
+              @for (r of roleEntries; track r[0]) {
+                <option [value]="r[0]">{{ r[1].ar }}</option>
+              }
+            </select>
           </div>
+
+          @if (officersLoading()) {
+            <div class="empty"><div class="spin"></div><p>جارٍ التحميل…</p></div>
+          } @else if (filteredOfficers().length === 0) {
+            <div class="empty">
+              <p>لا توجد نتائج.</p>
+            </div>
+          } @else {
+            <div class="table-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>الموظف</th>
+                    <th>رقم الموظف</th>
+                    <th>الدور</th>
+                    <th>المنطقة</th>
+                    <th>البريد</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (o of filteredOfficers(); track o.id) {
+                    <tr>
+                      <td>
+                        <div class="name-cell">
+                          <div class="avatar">{{ o.full_name_ar.charAt(0) }}</div>
+                          <div>
+                            <div class="name">{{ o.full_name_ar }}</div>
+                            @if (o.full_name_en) {
+                              <div class="id mono">{{ o.full_name_en }}</div>
+                            }
+                          </div>
+                        </div>
+                      </td>
+                      <td dir="ltr" class="mono small">{{ o.employee_no }}</td>
+                      <td>
+                        <span class="role-pill" [style.background]="roleAccent(o.role)">
+                          {{ roleLabel(o.role) }}
+                        </span>
+                      </td>
+                      <td>{{ regionLabel(o.region_id) }}</td>
+                      <td dir="ltr" class="mono small">{{ o.email ?? '—' }}</td>
+                      <td>
+                        <span class="status" [class.on]="o.is_active" [class.off]="!o.is_active">
+                          {{ o.is_active ? 'نشط' : 'موقوف' }}
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
         }
 
         @case ('auth') {
@@ -151,7 +213,7 @@ const REGION_NAMES: Record<number, string> = {
   `,
   styles: [`
     :host { display: block; }
-    .page { max-width: 1280px; margin: 0 auto; }
+    .page { width: 100%; }
 
     .head {
       display: flex; align-items: flex-end; justify-content: space-between;
@@ -275,6 +337,14 @@ const REGION_NAMES: Record<number, string> = {
     .status.on { background: rgba(8, 145, 178, 0.12); color: var(--good); }
     .status.off { background: rgba(220, 38, 38, 0.10); color: var(--warn); }
 
+    .role-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: 11px; font-weight: 600;
+      color: #fff;
+    }
+
     .empty {
       padding: 60px 20px;
       text-align: center;
@@ -328,17 +398,24 @@ const REGION_NAMES: Record<number, string> = {
 })
 export class AdminOfficersPage implements OnInit {
   private readonly api = inject(CitizensService);
+  private readonly officersApi = inject(OfficersService);
 
   readonly tab = signal<Tab>('citizens');
   readonly citizens = signal<Citizen[]>([]);
+  readonly officers = signal<Officer[]>([]);
   readonly loading = signal(false);
+  readonly officersLoading = signal(false);
   readonly error = signal<string | null>(null);
   search = '';
   regionFilter: number | null = null;
+  officerSearch = '';
+  officerRoleFilter = '';
 
   readonly regionEntries = Object.entries(REGION_NAMES)
     .map(([k, v]) => [Number(k), v] as [number, string])
     .sort((a, b) => a[0] - b[0]);
+
+  readonly roleEntries = Object.entries(ROLE_LABELS) as [string, { ar: string; color: string }][];
 
   readonly filteredCitizens = computed(() => {
     const q = this.search.trim().toLowerCase();
@@ -352,11 +429,30 @@ export class AdminOfficersPage implements OnInit {
     );
   });
 
+  readonly filteredOfficers = computed(() => {
+    const q = this.officerSearch.trim().toLowerCase();
+    const items = this.officers();
+    if (!q) return items;
+    return items.filter((o) =>
+      o.full_name_ar.toLowerCase().includes(q) ||
+      (o.full_name_en ?? '').toLowerCase().includes(q) ||
+      o.employee_no.toLowerCase().includes(q) ||
+      (o.email ?? '').toLowerCase().includes(q),
+    );
+  });
+
+  private officerSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
   async ngOnInit(): Promise<void> {
     await this.reload();
   }
 
-  setTab(t: Tab): void { this.tab.set(t); }
+  async setTab(t: Tab): Promise<void> {
+    this.tab.set(t);
+    if (t === 'officers' && this.officers().length === 0) {
+      await this.reloadOfficers();
+    }
+  }
 
   async reload(): Promise<void> {
     if (this.tab() !== 'citizens') return;
@@ -377,8 +473,30 @@ export class AdminOfficersPage implements OnInit {
     }
   }
 
-  // Debounced server search would be nicer; for now we just refilter locally.
+  async reloadOfficers(): Promise<void> {
+    this.officersLoading.set(true);
+    this.error.set(null);
+    try {
+      const res = await this.officersApi.list({
+        role: this.officerRoleFilter || undefined,
+        q: this.officerSearch.trim() || undefined,
+        limit: 100,
+      });
+      this.officers.set(res.items);
+    } catch {
+      this.error.set('تعذّر تحميل قائمة الموظفين.');
+      this.officers.set([]);
+    } finally {
+      this.officersLoading.set(false);
+    }
+  }
+
   onSearch(): void { /* local filter via computed */ }
+
+  onOfficerSearch(): void {
+    if (this.officerSearchTimer) clearTimeout(this.officerSearchTimer);
+    this.officerSearchTimer = setTimeout(() => void this.reloadOfficers(), 250);
+  }
 
   fullName(c: Citizen): string {
     return [c.first_name_ar, c.father_name_ar, c.grandfather_name_ar, c.family_name_ar]
@@ -389,4 +507,7 @@ export class AdminOfficersPage implements OnInit {
     if (id == null) return '—';
     return REGION_NAMES[id] ?? `منطقة ${id}`;
   }
+
+  roleLabel(role: string): string { return ROLE_LABELS[role]?.ar ?? role; }
+  roleAccent(role: string): string { return ROLE_LABELS[role]?.color ?? '#94a3b8'; }
 }

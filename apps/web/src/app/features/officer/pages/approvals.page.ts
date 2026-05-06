@@ -89,7 +89,7 @@ type Tab = 'approved' | 'rejected' | 'all';
   `,
   styles: [`
     :host { display: block; }
-    .page { max-width: 1280px; margin: 0 auto; }
+    .page { width: 100%; }
 
     .head {
       display: flex; align-items: flex-end; justify-content: space-between;
