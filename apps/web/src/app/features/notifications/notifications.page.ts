@@ -164,7 +164,7 @@ export class NotificationsPage implements OnInit {
     try {
       const [list, count] = await Promise.all([
         this.api.list({ limit: 50 }),
-        this.api.unreadCount().catch(() => 0),
+        this.api.refreshUnread(),
       ]);
       this.items.set(list.items);
       this.nextCursor.set(list.next_cursor);
@@ -194,6 +194,7 @@ export class NotificationsPage implements OnInit {
     try {
       const updated = await this.api.markRead(n.id);
       this.items.update(prev => prev.map(x => x.id === n.id ? updated : x));
+      // Service decrements the shared signal — mirror locally for tab counts.
       this.unreadCount.update(c => Math.max(0, c - 1));
     } catch { /* swallow — let the user retry on click */ }
   }

@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from './api-config';
 
@@ -29,6 +29,12 @@ export interface ListNotificationsParams {
 export class NotificationsService {
   private readonly http = inject(HttpClient);
 
+  // Shared unread-count signal — the layout's topbar badge reads this, the
+  // inbox page writes to it after mark-read / mark-all-read calls. Single
+  // source of truth so the badge stays in sync without prop drilling.
+  private readonly _unread = signal(0);
+  readonly unread = this._unread.asReadonly();
+
   list(params: ListNotificationsParams = {}): Promise<ListNotificationsResponse> {
     let p = new HttpParams();
     if (params.cursor) p = p.set('cursor', params.cursor);
@@ -38,20 +44,33 @@ export class NotificationsService {
       `${API_BASE}/me/notifications`, { params: p }));
   }
 
-  unreadCount(): Promise<number> {
-    return firstValueFrom(
-      this.http.get<{ count: number }>(`${API_BASE}/me/notifications/unread-count`),
-    ).then(r => r.count);
+  // Hits the server and updates the shared signal. Returns the count too
+  // for callers that want to assert/await on it.
+  async refreshUnread(): Promise<number> {
+    try {
+      const res = await firstValueFrom(
+        this.http.get<{ count: number }>(`${API_BASE}/me/notifications/unread-count`));
+      this._unread.set(res.count);
+      return res.count;
+    } catch {
+      // Backend hiccup shouldn't break the badge — keep showing the last
+      // known count rather than zeroing out.
+      return this._unread();
+    }
   }
 
-  markRead(id: string): Promise<SarhNotification> {
-    return firstValueFrom(
+  async markRead(id: string): Promise<SarhNotification> {
+    const res = await firstValueFrom(
       this.http.post<SarhNotification>(`${API_BASE}/me/notifications/${id}/read`, {}));
+    // Decrement optimistically — refreshUnread() reconciles on next poll.
+    this._unread.update(c => Math.max(0, c - 1));
+    return res;
   }
 
-  markAllRead(): Promise<number> {
-    return firstValueFrom(
-      this.http.post<{ updated: number }>(`${API_BASE}/me/notifications/read-all`, {}),
-    ).then(r => r.updated);
+  async markAllRead(): Promise<number> {
+    const res = await firstValueFrom(
+      this.http.post<{ updated: number }>(`${API_BASE}/me/notifications/read-all`, {}));
+    this._unread.set(0);
+    return res.updated;
   }
 }

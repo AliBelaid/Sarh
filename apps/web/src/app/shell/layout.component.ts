@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '@core/auth.service';
 import { SarhRole } from '@core/auth.types';
+import { NotificationsService } from '@core/notifications.service';
 
 interface NavItem {
   ar: string;
@@ -120,6 +121,12 @@ const NAV: NavItem[] = [
           </div>
 
           <div class="tb-right">
+            <a routerLink="/app/notifications" class="tb-btn tb-bell" title="الإشعارات">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              @if (unread() > 0) {
+                <span class="badge">{{ unread() > 9 ? '9+' : unread() }}</span>
+              }
+            </a>
             <a routerLink="/verify" class="tb-btn tb-link" title="التحقق العام">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
               <span class="tb-link-text">التحقق</span>
@@ -330,6 +337,23 @@ const NAV: NavItem[] = [
     .tb-link-text { font-size: 12.5px; }
     .lang-pill { font-size: 11px; font-weight: 700; letter-spacing: .04em; }
 
+    /* Bell + unread badge */
+    .tb-bell { position: relative; padding: 7px 10px; }
+    .tb-bell .badge {
+      position: absolute;
+      inset-block-start: -6px; inset-inline-end: -6px;
+      min-width: 18px; height: 18px;
+      padding: 0 5px;
+      border-radius: 99px;
+      background: var(--warn);
+      color: #fff;
+      font-size: 10px; font-weight: 800;
+      display: grid; place-items: center;
+      box-shadow: 0 0 0 2px #fff;
+      animation: pop .2s ease-out;
+    }
+    @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
     .tb-user { font-size: 13.5px; font-weight: 500; color: var(--ink); }
 
     .tb-logout {
@@ -410,15 +434,24 @@ const NAV: NavItem[] = [
     }
   `],
 })
-export class LayoutComponent {
+export class LayoutComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly notifications = inject(NotificationsService);
 
   readonly collapsed = signal(false);
   readonly mobileOpen = signal(false);
   readonly lang = signal<'ar' | 'en'>(
     typeof localStorage !== 'undefined' ? ((localStorage.getItem('sarh.lang') as 'ar' | 'en') || 'ar') : 'ar',
   );
+
+  // Topbar bell badge — backed by the shared signal in NotificationsService
+  // so the inbox page's mark-read calls update it instantly without prop
+  // drilling, and a 60s poll keeps it fresh for users who park in another
+  // tab. 60s is a deliberate cache-aware choice — frequent enough to feel
+  // live, infrequent enough to not hammer the API.
+  readonly unread = this.notifications.unread;
+  private pollHandle: ReturnType<typeof setInterval> | null = null;
 
   readonly authUser = computed(() => this.auth.user());
 
@@ -450,6 +483,15 @@ export class LayoutComponent {
     const match = NAV.find((n) => url === n.path || url.startsWith(n.path + '/'));
     return match?.ar ?? 'صَرح';
   });
+
+  ngOnInit(): void {
+    void this.notifications.refreshUnread();
+    this.pollHandle = setInterval(() => void this.notifications.refreshUnread(), 60_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollHandle) clearInterval(this.pollHandle);
+  }
 
   toggleCollapsed(): void { this.collapsed.update((v) => !v); }
   openMobile(): void { this.mobileOpen.set(true); }
