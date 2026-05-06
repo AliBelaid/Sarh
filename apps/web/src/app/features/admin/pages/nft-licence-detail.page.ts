@@ -1,13 +1,27 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService } from '@core/auth.service';
+import { CitizensService, type Citizen } from '@core/citizens.service';
 import {
   NftsService,
   type NftLicenseView,
   type OwnershipEvent,
+  type TransferableReason,
   type TransferReason,
 } from '@core/nfts.service';
 import { NFT_STATUS } from '../../../shared/status-pills';
+
+const TRANSFER_OPTIONS: Array<{ key: TransferableReason; ar: string }> = [
+  { key: 'sale',        ar: 'بيع' },
+  { key: 'inheritance', ar: 'إرث' },
+  { key: 'gift',        ar: 'هبة' },
+  { key: 'court_order', ar: 'قرار محكمة' },
+  { key: 'correction',  ar: 'تصحيح إداري' },
+];
+
+const TRANSFERABLE_ROLES = new Set(['super_admin', 'department_manager', 'registry_officer']);
 
 const REASON_AR: Record<TransferReason, string> = {
   initial_mint: 'الإصدار الأولي',
@@ -34,7 +48,7 @@ const REASON_TONE: Record<TransferReason, string> = {
   selector: 'app-nft-licence-detail',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="page">
       <header class="head">
@@ -65,6 +79,15 @@ const REASON_TONE: Record<TransferReason, string> = {
                 <div class="seal" aria-hidden="true">ص</div>
               </div>
             </div>
+
+            @if (canTransfer() && (n.status === 'minted' || n.status === 'transferred')) {
+              <div class="hero-actions">
+                <button class="hero-btn" (click)="openTransfer()">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  نقل الملكية
+                </button>
+              </div>
+            }
 
             <div class="nft-bottom">
               <div>
@@ -147,6 +170,67 @@ const REASON_TONE: Record<TransferReason, string> = {
             }
           </div>
         </div>
+
+        @if (modalOpen()) {
+          <div class="modal-backdrop" (click)="closeTransfer()">
+            <div class="modal" (click)="$event.stopPropagation()">
+              <h3 class="modal-title">نقل ملكية الرخصة</h3>
+              <p class="modal-sub">سيتم تسجيل الحدث في سجل الملكية، ونقل الرمز إلى DID المالك الجديد على السلسلة.</p>
+
+              <label class="lbl">المالك الجديد</label>
+              <input type="search" class="ctl" [(ngModel)]="citizenSearch"
+                     (ngModelChange)="onCitizenSearch()" name="citizenSearch"
+                     placeholder="ابحث بالاسم العربي…" autocomplete="off" />
+              @if (citizenList().length > 0 && !selectedCitizen()) {
+                <ul class="suggest">
+                  @for (c of citizenList(); track c.id) {
+                    <li (click)="pickCitizen(c)">
+                      <div class="avatar">{{ c.first_name_ar.charAt(0) }}</div>
+                      <div>
+                        <div class="cz-name">{{ fullName(c) }}</div>
+                        <div class="cz-meta mono">{{ c.legacy_national_no ?? '—' }} · {{ c.phone ?? '—' }}</div>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              }
+              @if (selectedCitizen(); as c) {
+                <div class="chosen">
+                  <div class="avatar">{{ c.first_name_ar.charAt(0) }}</div>
+                  <div class="meta-block">
+                    <div class="cz-name">{{ fullName(c) }}</div>
+                    <div class="cz-meta mono">{{ c.legacy_national_no ?? '—' }} · {{ c.phone ?? '—' }}</div>
+                  </div>
+                  <button type="button" class="clear" (click)="clearCitizen()">تغيير</button>
+                </div>
+              }
+
+              <label class="lbl">سبب النقل</label>
+              <select class="ctl" [(ngModel)]="reason" name="reason">
+                @for (o of transferOptions; track o.key) {
+                  <option [value]="o.key">{{ o.ar }}</option>
+                }
+              </select>
+
+              <label class="lbl">ملاحظة <span class="muted">(إلزامية لقرار المحكمة والتصحيح الإداري)</span></label>
+              <textarea class="ctl" rows="3" [(ngModel)]="notesAr" name="notesAr"
+                        placeholder="سياق إضافي يُحفظ في سجل الملكية"></textarea>
+
+              @if (transferError(); as err) {
+                <div class="banner err"><span class="banner-mark">!</span>{{ err }}</div>
+              }
+
+              <div class="modal-actions">
+                <button class="btn ghost" (click)="closeTransfer()" [disabled]="transferring()">إلغاء</button>
+                <button class="btn primary" (click)="confirmTransfer()"
+                        [disabled]="!canSubmit() || transferring()">
+                  @if (transferring()) { <span class="spin sm"></span> جارٍ النقل… }
+                  @else { تأكيد النقل }
+                </button>
+              </div>
+            </div>
+          </div>
+        }
       }
     </section>
   `,
@@ -219,17 +303,99 @@ const REASON_TONE: Record<TransferReason, string> = {
     .empty { padding: 60px 24px; text-align: center; color: var(--muted); background: var(--paper); border: 1px dashed var(--rule); border-radius: 14px; }
     .empty p { font-size: 13px; margin: 0; }
     .spin { width: 24px; height: 24px; border: 2.5px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; margin: 0 auto 10px; }
+    .spin.sm { width: 14px; height: 14px; border-width: 2px; margin: 0; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Hero transfer button */
+    .hero-actions { position: absolute; bottom: 22px; inset-inline-end: 30px; z-index: 2; }
+    .hero-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 9px 18px; border-radius: 99px;
+      background: rgba(249, 115, 22, 0.95); color: var(--primary);
+      border: 0; font-family: inherit;
+      font-size: 12.5px; font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);
+      transition: all .15s;
+    }
+    .hero-btn:hover { transform: translateY(-1px); background: var(--accent); }
+    [dir='rtl'] .hero-btn svg { transform: scaleX(-1); }
+
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); display: grid; place-items: center; z-index: 200; padding: 16px; }
+    .modal { width: 100%; max-width: 520px; background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 20px 60px rgba(15, 23, 42, 0.4); display: flex; flex-direction: column; gap: 10px; max-height: 90vh; overflow-y: auto; }
+    .modal-title { font-size: 17px; font-weight: 800; color: var(--ink); margin: 0; }
+    .modal-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 6px; line-height: 1.6; }
+    .lbl { font-size: 12px; font-weight: 600; color: #334155; margin-top: 4px; }
+    .lbl .muted { font-weight: 400; color: var(--muted); margin-inline-start: 4px; font-size: 11px; }
+    .ctl {
+      width: 100%; box-sizing: border-box;
+      padding: 10px 12px; font-size: 13px; color: var(--ink);
+      background: var(--paper);
+      border: 1.5px solid var(--rule); border-radius: 8px;
+      font-family: inherit;
+    }
+    .ctl:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.15); }
+    textarea.ctl { resize: vertical; min-height: 64px; }
+
+    .suggest { list-style: none; margin: 4px 0 0; padding: 4px; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid var(--rule); border-radius: 8px; }
+    .suggest li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+    .suggest li:hover { background: rgba(249,115,22,0.08); }
+    .avatar { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--good)); color: var(--primary); display: grid; place-items: center; font-weight: 700; flex-shrink: 0; }
+    .cz-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .cz-meta { font-size: 11px; color: var(--muted); }
+
+    .chosen { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #fff; border: 1.5px solid var(--good); border-radius: 8px; }
+    .chosen .meta-block { flex: 1; min-width: 0; }
+    .clear { padding: 5px 10px; background: transparent; border: 1px solid var(--rule); border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--muted); cursor: pointer; font-family: inherit; }
+    .clear:hover { color: var(--warn); border-color: var(--warn); }
+
+    .banner { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
+    .banner.err { background: #fff5f5; color: var(--warn); border: 1px solid #fecaca; }
+    .banner-mark { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--warn); color: #fff; font-size: 11px; font-weight: 700; }
+
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 8px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; border: 1.5px solid transparent; transition: all .12s; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.primary { background: linear-gradient(135deg, var(--primary), #1e293b); color: var(--accent); }
+    .btn.primary:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn.ghost { background: #fff; border-color: var(--rule); color: var(--ink); }
+    .btn.ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   `],
 })
 export class AdminNftLicenceDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(NftsService);
+  private readonly auth = inject(AuthService);
+  private readonly citizens = inject(CitizensService);
 
   readonly nft = signal<NftLicenseView | null>(null);
   readonly history = signal<OwnershipEvent[]>([]);
   readonly loading = signal(true);
+
+  // Transfer modal state.
+  readonly transferOptions = TRANSFER_OPTIONS;
+  readonly modalOpen = signal(false);
+  readonly transferring = signal(false);
+  readonly transferError = signal<string | null>(null);
+  readonly citizenList = signal<Citizen[]>([]);
+  readonly selectedCitizen = signal<Citizen | null>(null);
+  citizenSearch = '';
+  reason: TransferableReason = 'sale';
+  notesAr = '';
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  readonly canTransfer = computed(() => {
+    const u = this.auth.user();
+    return !!u && TRANSFERABLE_ROLES.has(u.role);
+  });
+
+  readonly canSubmit = computed(() => {
+    if (!this.selectedCitizen() || !this.reason) return false;
+    if ((this.reason === 'court_order' || this.reason === 'correction') && !this.notesAr.trim()) return false;
+    return true;
+  });
 
   async ngOnInit(): Promise<void> {
     const id = this.route.snapshot.paramMap.get('id');
@@ -250,6 +416,85 @@ export class AdminNftLicenceDetailPage implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  // ── Transfer flow ────────────────────────────────────────────
+  openTransfer(): void {
+    this.modalOpen.set(true);
+    this.transferError.set(null);
+    this.citizenSearch = '';
+    this.selectedCitizen.set(null);
+    this.reason = 'sale';
+    this.notesAr = '';
+    void this.preloadCitizens();
+  }
+
+  closeTransfer(): void { this.modalOpen.set(false); }
+
+  private async preloadCitizens(): Promise<void> {
+    try {
+      const res = await this.citizens.list({ limit: 20 });
+      // Filter out the current owner so they can't be re-selected as recipient.
+      const ownerId = this.nft()?.owner_citizen_id;
+      this.citizenList.set(res.items.filter(c => c.id !== ownerId));
+    } catch {
+      this.citizenList.set([]);
+    }
+  }
+
+  onCitizenSearch(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(async () => {
+      try {
+        const q = this.citizenSearch.trim();
+        const res = await this.citizens.list({ q: q || undefined, limit: 20 });
+        const ownerId = this.nft()?.owner_citizen_id;
+        this.citizenList.set(res.items.filter(c => c.id !== ownerId));
+      } catch {
+        this.citizenList.set([]);
+      }
+    }, 250);
+  }
+
+  pickCitizen(c: Citizen): void {
+    this.selectedCitizen.set(c);
+    this.citizenList.set([]);
+  }
+
+  clearCitizen(): void {
+    this.selectedCitizen.set(null);
+    this.citizenSearch = '';
+    void this.preloadCitizens();
+  }
+
+  async confirmTransfer(): Promise<void> {
+    const n = this.nft();
+    const c = this.selectedCitizen();
+    if (!n || !c || !this.canSubmit()) return;
+
+    this.transferring.set(true);
+    this.transferError.set(null);
+    try {
+      const res = await this.api.transfer(n.id, {
+        to_citizen_id: c.id,
+        reason: this.reason,
+        notes_ar: this.notesAr.trim() || undefined,
+      });
+      // Splice the resulting NFT + new event into the page state.
+      this.nft.set(res.nft);
+      this.history.update(prev => [...prev, res.event]);
+      this.modalOpen.set(false);
+    } catch (e: unknown) {
+      const err = e as { error?: { error?: { message_ar?: string; message_en?: string } } };
+      this.transferError.set(err.error?.error?.message_ar ?? 'تعذّر تنفيذ النقل.');
+    } finally {
+      this.transferring.set(false);
+    }
+  }
+
+  fullName(c: Citizen): string {
+    return [c.first_name_ar, c.father_name_ar, c.grandfather_name_ar, c.family_name_ar]
+      .filter(Boolean).join(' ');
   }
 
   status(s: string) { return NFT_STATUS[s] ?? { ar: s, color: '#94a3b8' }; }

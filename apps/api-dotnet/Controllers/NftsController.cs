@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Sarh.Api.Audit;
 using Sarh.Api.Auth;
 using Sarh.Api.Common;
 using Sarh.Api.Workflow;
@@ -9,7 +10,7 @@ namespace Sarh.Api.Controllers;
 [ApiController]
 [Route("api/v1/property-nfts")]
 [Authorize]
-public class NftsController(NftsService svc) : ControllerBase
+public class NftsController(NftsService svc, TransferService transferSvc) : ControllerBase
 {
     [HttpGet]
     [OfficerOnly("super_admin", "auditor", "registry_officer", "reviewer", "department_manager")]
@@ -25,4 +26,13 @@ public class NftsController(NftsService svc) : ControllerBase
     [OfficerOnly("super_admin", "auditor", "registry_officer", "reviewer", "department_manager")]
     public Task<List<OwnershipEventView>> History(Guid id, CancellationToken ct)
         => svc.ListHistoryAsync(id, User.RequireUser(), ct);
+
+    // Re-assigns the NFT to a different citizen. Updates ownership_history,
+    // property_nfts, and properties.owner_citizen_id atomically (DB side);
+    // the chain call is best-effort against the registry's records.
+    [HttpPost("{id:guid}/transfer")]
+    [OfficerOnly("super_admin", "department_manager", "registry_officer")]
+    [Audit(Action = AuditActions.Update, Entity = "property_nfts", EntityIdFrom = "nft.id")]
+    public Task<TransferResult> Transfer(Guid id, [FromBody] TransferNftDto dto, CancellationToken ct)
+        => transferSvc.TransferAsync(id, dto, User.RequireUser(), ct);
 }

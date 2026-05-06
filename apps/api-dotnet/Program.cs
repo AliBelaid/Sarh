@@ -49,6 +49,7 @@ builder.Services.AddSingleton<Sarh.Api.Workflow.DeedPdfBuilder>();
 builder.Services.AddScoped<Sarh.Api.Workflow.ReviewService>();
 builder.Services.AddScoped<Sarh.Api.Workflow.LicenseService>();
 builder.Services.AddScoped<Sarh.Api.Workflow.NftsService>();
+builder.Services.AddScoped<Sarh.Api.Workflow.TransferService>();
 builder.Services.AddScoped<Sarh.Api.DigitalIdCards.DigitalIdNumberService>();
 builder.Services.AddScoped<Sarh.Api.DigitalIdCards.DigitalIdCardsService>();
 builder.Services.AddScoped<Sarh.Api.Nfc.NfcKeyStoreService>();

@@ -15,6 +15,11 @@ public interface IBlockchainService
 
     Task<MintReceipt> MintAsync(MintRequest request, CancellationToken ct);
 
+    // Transfers an existing token to a new owner DID. Stub mode produces
+    // deterministic tx hashes; real impl would call the contract's
+    // safeTransferFrom(from, to, tokenId).
+    Task<TransferReceipt> TransferAsync(TransferRequest request, CancellationToken ct);
+
     // Reads current owner from the contract's ownerOf(tokenId). The verify
     // endpoint uses this to surface the live on-chain holder, which may
     // differ from properties.owner_citizen_id after a transfer.
@@ -48,6 +53,27 @@ public sealed class MintReceipt
     public required string TxHash { get; init; }
     public long? BlockNumber { get; init; }
     public required DateTimeOffset MintedAt { get; init; }
+}
+
+public sealed class TransferRequest
+{
+    public required string TokenId { get; init; }
+    public required string FromDid { get; init; }
+    public required string ToDid { get; init; }
+    public string? FromAddress { get; init; }
+    public string? ToAddress { get; init; }
+}
+
+public sealed class TransferReceipt
+{
+    public required string TokenId { get; init; }
+    public required string FromDid { get; init; }
+    public required string ToDid { get; init; }
+    public required string FromAddress { get; init; }
+    public required string ToAddress { get; init; }
+    public required string TxHash { get; init; }
+    public long? BlockNumber { get; init; }
+    public required DateTimeOffset TransferredAt { get; init; }
 }
 
 public interface IIpfsService

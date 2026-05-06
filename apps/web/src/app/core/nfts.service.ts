@@ -47,6 +47,12 @@ export class NftsService {
   history(id: string): Promise<OwnershipEvent[]> {
     return firstValueFrom(this.http.get<OwnershipEvent[]>(`${API_BASE}/property-nfts/${id}/history`));
   }
+
+  transfer(id: string, body: TransferNftRequest): Promise<TransferResult> {
+    return firstValueFrom(
+      this.http.post<TransferResult>(`${API_BASE}/property-nfts/${id}/transfer`, body),
+    );
+  }
 }
 
 export type TransferReason =
@@ -63,4 +69,19 @@ export interface OwnershipEvent {
   transfer_tx_hash: string | null;
   transfer_block_number: number | null;
   transferred_at: string;
+}
+
+export type TransferableReason = Exclude<TransferReason, 'initial_mint'>;
+
+export interface TransferNftRequest {
+  to_citizen_id: string;
+  reason: TransferableReason;
+  notes_ar?: string;
+}
+
+export interface TransferResult {
+  nft: NftLicenseView;
+  property: { id: string; status: string; owner_citizen_id: string };
+  event: OwnershipEvent;
+  explorer_tx_url: string;
 }

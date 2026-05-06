@@ -47,6 +47,30 @@ public sealed class StubBlockchainService(IOptions<BlockchainOptions> opts) : IB
         });
     }
 
+    public Task<TransferReceipt> TransferAsync(TransferRequest req, CancellationToken ct)
+    {
+        // Tx-hash seed includes "now" so retransferring the same pair
+        // produces a fresh hash each time, matching real-chain behaviour.
+        var nonce = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var seed = $"{req.TokenId}|{req.FromDid}->{req.ToDid}|{nonce}";
+        var txHash = "0x" + HashHex($"transfer-tx:{seed}", 64);
+
+        var fromAddr = req.FromAddress ?? ("0x" + HashHex($"addr:{req.FromDid}", 40));
+        var toAddr   = req.ToAddress   ?? ("0x" + HashHex($"addr:{req.ToDid}",   40));
+
+        return Task.FromResult(new TransferReceipt
+        {
+            TokenId = req.TokenId,
+            FromDid = req.FromDid,
+            ToDid = req.ToDid,
+            FromAddress = fromAddr,
+            ToAddress = toAddr,
+            TxHash = txHash,
+            BlockNumber = (long)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 12),
+            TransferredAt = DateTimeOffset.UtcNow,
+        });
+    }
+
     // The stub keeps no chain state — we just echo the deterministic owner
     // address back. Good enough for verify endpoint smoke tests.
     public Task<string?> OwnerOfAsync(string tokenId, CancellationToken ct)
