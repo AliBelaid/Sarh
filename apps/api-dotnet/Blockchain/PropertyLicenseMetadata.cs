@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Sarh.Api.Blockchain;
@@ -58,8 +59,13 @@ public sealed class SarhExtension
     [JsonPropertyName("deed_sha256")]
     public required string DeedSha256 { get; init; }
 
+    // Embedded GeoJSON Polygon (RFC 7946). Real JSON object, not a string —
+    // metadata.json on IPFS is then directly consumable by any GIS / NFT
+    // viewer that understands GeoJSON. Null when the property has no
+    // boundary on file (shouldn't happen for a minted licence, but the
+    // schema allows boundary_polygon NULL).
     [JsonPropertyName("polygon_geojson")]
-    public required string PolygonGeoJson { get; init; }
+    public JsonElement? PolygonGeoJson { get; init; }
 
     [JsonPropertyName("verify_url")]
     public required string VerifyUrl { get; init; }

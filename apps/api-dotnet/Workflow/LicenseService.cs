@@ -1,4 +1,6 @@
+using System.Data;
 using System.Text.Json;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Sarh.Api.Auth;
 using Sarh.Api.Blockchain;
@@ -85,8 +87,13 @@ public sealed class LicenseService(
         var verifyUrl = BuildVerifyUrl(property.PropertyCode ?? property.Id.ToString());
         var finalApprovedAt = DateTimeOffset.UtcNow;
 
+        // Boundary polygon (GeoJSON) — pulled via the same SP the verify
+        // endpoint uses. Best-effort: a missing polygon doesn't block the
+        // mint, just produces metadata with polygon_geojson=null.
+        var polygon = await LoadPolygonGeoJsonAsync(property.Id, ct);
+
         // 1) Build + pin metadata.
-        var metadata = BuildMetadata(property, owner, ownerDid, decree, verifyUrl, finalApprovedAt);
+        var metadata = BuildMetadata(property, owner, ownerDid, decree, verifyUrl, finalApprovedAt, polygon);
         var metaJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = false });
         var pin = await ipfs.PinJsonAsync(metaJson, ct);
 
@@ -197,8 +204,33 @@ public sealed class LicenseService(
         return $"{baseUrl}/{propertyCode}";
     }
 
+    private async Task<JsonElement?> LoadPolygonGeoJsonAsync(Guid propertyId, CancellationToken ct)
+    {
+        try
+        {
+            var conn = (SqlConnection)db.Database.GetDbConnection();
+            if (conn.State != ConnectionState.Open) await conn.OpenAsync(ct);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "EXEC dbo.property_polygon_geojson @p_property_id;";
+            cmd.Parameters.Add(new SqlParameter("@p_property_id", SqlDbType.UniqueIdentifier) { Value = propertyId });
+
+            var raw = await cmd.ExecuteScalarAsync(ct);
+            if (raw is null or DBNull) return null;
+            var s = raw.ToString();
+            if (string.IsNullOrEmpty(s)) return null;
+            using var doc = JsonDocument.Parse(s);
+            return doc.RootElement.Clone();
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "Polygon GeoJSON load failed for property {PropertyId}; metadata will omit polygon.", propertyId);
+            return null;
+        }
+    }
+
     private static PropertyLicenseMetadata BuildMetadata(
-        Property p, Citizen owner, string ownerDid, string decree, string verifyUrl, DateTimeOffset approvedAt)
+        Property p, Citizen owner, string ownerDid, string decree, string verifyUrl,
+        DateTimeOffset approvedAt, JsonElement? polygon)
     {
         var ownerName = string.Join(' ', new[] {
             owner.FirstNameAr, owner.FatherNameAr, owner.GrandfatherNameAr, owner.FamilyNameAr,
@@ -229,10 +261,7 @@ public sealed class LicenseService(
                 DecreeNo = decree,
                 ApprovedAt = approvedAt,
                 DeedSha256 = p.DeedSignedHash ?? "",
-                // Polygon serialisation is deferred — we'd need to reproject
-                // the geography column to GeoJSON. Empty string is a known
-                // placeholder until the GeoJsonPolygon helper is reused here.
-                PolygonGeoJson = "",
+                PolygonGeoJson = polygon,
                 VerifyUrl = verifyUrl,
             },
         };
