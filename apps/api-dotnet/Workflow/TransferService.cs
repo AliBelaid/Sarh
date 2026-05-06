@@ -196,8 +196,10 @@ public sealed class TransferService(
 
     private static string OwnerDidFor(Citizen c)
     {
-        var shortId = c.Id.ToString("N")[..16];
-        return $"did:sov:LY:{shortId}";
+        // Suffix-based DID derivation — see LicenseService.OwnerDidFor for
+        // why we use the tail rather than the head.
+        var hex = c.Id.ToString("N");
+        return $"did:sov:LY:{hex[^16..]}";
     }
 
     private static string ReasonAr(string r) => r switch

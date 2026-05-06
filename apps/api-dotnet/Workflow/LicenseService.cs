@@ -48,17 +48,9 @@ public sealed class LicenseService(
             throw SarhException.Forbidden("العقار خارج منطقتك.");
         }
 
-        // Officer must have already approved (PDF + VC produced). Department
-        // manager only adds the licence (mint) on top.
-        if (property.Status != "approved")
-        {
-            throw SarhException.Conflict(
-                $"لا يمكن سكّ الرخصة قبل اعتماد موظف السجل (الحالة الحالية: \"{property.Status}\").",
-                $"Property must be in 'approved' state before final approval (current: \"{property.Status}\").");
-        }
-
-        // Idempotency: if we already minted (or are partway through), return
-        // what's there instead of re-minting and re-charging gas.
+        // Idempotency check runs FIRST: if a non-failed NFT already exists,
+        // return it (handles re-calls on already-minted/transferred
+        // properties without tripping the status check below).
         var existing = await db.PropertyNfts
             .FirstOrDefaultAsync(n => n.PropertyId == property.Id && n.Status != "failed", ct);
         if (existing is not null)
@@ -66,6 +58,15 @@ public sealed class LicenseService(
             log.LogInformation("Property {PropertyId} already has NFT {NftId} ({Status}); returning existing.",
                 property.Id, existing.Id, existing.Status);
             return await BuildResultAsync(property, existing, ct);
+        }
+
+        // Officer must have already approved (PDF + VC produced). Department
+        // manager only adds the licence (mint) on top.
+        if (property.Status != "approved")
+        {
+            throw SarhException.Conflict(
+                $"لا يمكن سكّ الرخصة قبل اعتماد موظف السجل (الحالة الحالية: \"{property.Status}\").",
+                $"Property must be in 'approved' state before final approval (current: \"{property.Status}\").");
         }
 
         var owner = await db.Citizens.AsNoTracking().FirstOrDefaultAsync(c => c.Id == property.OwnerCitizenId, ct)
@@ -191,9 +192,11 @@ public sealed class LicenseService(
     {
         // Real DID lives on ssi_wallets; until that table is wired we derive
         // a stable placeholder from the citizen id so the same citizen always
-        // gets the same DID across re-mints.
-        var shortId = c.Id.ToString("N")[..16];
-        return $"did:sov:LY:{shortId}";
+        // gets the same DID across re-mints. Use the SUFFIX of the hex id so
+        // demo seed UUIDs (which all start with 00000000-…) don't collapse
+        // to the same DID — the discriminating bytes are at the tail.
+        var hex = c.Id.ToString("N");
+        return $"did:sov:LY:{hex[^16..]}";
     }
 
     private string BuildVerifyUrl(string propertyCode)

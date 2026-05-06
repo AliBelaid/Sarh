@@ -43,6 +43,15 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
         b.Entity<PropertyNft>().ToTable("property_nfts", t => t.HasTrigger("tr_property_nfts_updated_at"));
         b.Entity<OwnershipHistory>().HasKey(x => x.Id);
         b.Entity<OwnershipHistory>().HasIndex(x => x.PropertyId);
+        // FK relationship to property_nfts is essential — without it EF Core's
+        // batch reorderer can issue INSERT INTO ownership_history BEFORE
+        // INSERT INTO property_nfts within the same SaveChanges call, which
+        // trips fk_oh_nft. Smoke test caught this on first mint attempt.
+        b.Entity<OwnershipHistory>()
+            .HasOne<PropertyNft>()
+            .WithMany()
+            .HasForeignKey(x => x.NftId)
+            .OnDelete(DeleteBehavior.NoAction);
         // ownership_history blocks UPDATE / DELETE via INSTEAD OF triggers in
         // migration 028 — flag the table so EF doesn't generate OUTPUT clauses
         // that would conflict.
