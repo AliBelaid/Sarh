@@ -1,5 +1,8 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Sarh.Api.Auth;
+using Sarh.Api.Common;
+using Sarh.Api.Common.Errors;
 using Sarh.Api.Data;
 using Sarh.Api.Data.Entities;
 
@@ -64,6 +67,78 @@ public sealed class NotificationsService(SarhDbContext db, ILogger<Notifications
         {
             log.LogError(ex, "NotifyReviewersInRegionAsync failed for region {Region}", regionId);
         }
+    }
+
+    // ── Read side (the inbox API consumed by /api/v1/me/notifications) ──
+
+    public async Task<CursorPage<NotificationView>> ListMineAsync(
+        CurrentUser actor, ListNotificationsQuery q, CancellationToken ct)
+    {
+        var query = MyQueryFor(actor);
+        if (q.UnreadOnly == true) query = query.Where(n => n.ReadAt == null);
+
+        if (!string.IsNullOrWhiteSpace(q.Cursor)
+            && DateTimeOffset.TryParse(q.Cursor, out var cursorTs))
+        {
+            query = query.Where(n => n.SentAt < cursorTs);
+        }
+
+        var rows = await query
+            .OrderByDescending(n => n.SentAt)
+            .ThenByDescending(n => n.Id)
+            .Take(q.Limit + 1)
+            .ToListAsync(ct);
+
+        string? nextCursor = null;
+        if (rows.Count > q.Limit)
+        {
+            nextCursor = rows[q.Limit].SentAt.ToString("o");
+            rows = rows.Take(q.Limit).ToList();
+        }
+        return new CursorPage<NotificationView>
+        {
+            Items = rows.Select(NotificationView.From).ToList(),
+            NextCursor = nextCursor,
+        };
+    }
+
+    public async Task<int> UnreadCountAsync(CurrentUser actor, CancellationToken ct)
+        => await MyQueryFor(actor).Where(n => n.ReadAt == null).CountAsync(ct);
+
+    public async Task<NotificationView> MarkReadAsync(
+        Guid notificationId, CurrentUser actor, CancellationToken ct)
+    {
+        var n = await MyQueryFor(actor)
+            .FirstOrDefaultAsync(x => x.Id == notificationId, ct)
+            ?? throw SarhException.NotFound("الإشعار", "Notification");
+
+        if (n.ReadAt is null)
+        {
+            n.ReadAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
+        return NotificationView.From(n);
+    }
+
+    public async Task<int> MarkAllReadAsync(CurrentUser actor, CancellationToken ct)
+    {
+        var nowUtc = DateTimeOffset.UtcNow;
+        return await MyQueryFor(actor)
+            .Where(n => n.ReadAt == null)
+            .ExecuteUpdateAsync(u => u.SetProperty(n => n.ReadAt, _ => nowUtc), ct);
+    }
+
+    // The "is this notification mine?" predicate, applied as a query filter so
+    // the action methods all share the same scope rule. Citizens read by
+    // citizen_id; officers (any officer role) read by officer_id. Refusing
+    // here when neither claim is set keeps the surface tight.
+    private IQueryable<Notification> MyQueryFor(CurrentUser actor)
+    {
+        if (actor.CitizenId is Guid cid)
+            return db.Notifications.Where(n => n.RecipientCitizenId == cid);
+        if (actor.OfficerId is Guid oid)
+            return db.Notifications.Where(n => n.RecipientOfficerId == oid);
+        throw SarhException.Forbidden("لا يوجد مستلِم مرتبط بحسابك.");
     }
 
     private async Task TryInsertAsync(Notification n, CancellationToken ct)

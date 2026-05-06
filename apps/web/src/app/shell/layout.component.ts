@@ -15,14 +15,15 @@ interface NavItem {
 
 type NavIcon =
   | 'dashboard' | 'citizens' | 'properties' | 'digital-id' | 'queue'
-  | 'approvals' | 'issue' | 'audit' | 'reports' | 'users' | 'profile' | 'verify' | 'nft';
+  | 'approvals' | 'issue' | 'audit' | 'reports' | 'users' | 'profile' | 'verify' | 'nft' | 'bell';
 
 const ALL_ROLES: readonly SarhRole[] = [
   'super_admin', 'auditor', 'registry_officer', 'reviewer', 'id_issuer', 'department_manager', 'citizen',
 ];
 
 const NAV: NavItem[] = [
-  { ar: 'الرئيسية',     en: 'Dashboard',  path: '/app/dashboard',   icon: 'dashboard',  roles: ALL_ROLES, group: 'main' },
+  { ar: 'الرئيسية',     en: 'Dashboard',  path: '/app/dashboard',     icon: 'dashboard', roles: ALL_ROLES, group: 'main' },
+  { ar: 'الإشعارات',    en: 'Inbox',      path: '/app/notifications', icon: 'bell',      roles: ALL_ROLES, group: 'main' },
 
   // Citizen-focused
   { ar: 'عقاراتي',      en: 'My properties', path: '/app/my/properties', icon: 'properties', roles: ['citizen'], group: 'main' },
@@ -498,6 +499,7 @@ export class LayoutComponent {
       'profile':    '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
       'verify':     '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>',
       'nft':        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+      'bell':       '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
     };
     return ico[name];
   }

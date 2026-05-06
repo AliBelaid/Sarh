@@ -46,6 +46,13 @@ export const APP_ROUTES: Routes = [
         loadComponent: () =>
           import('./features/profile/profile.page').then((m) => m.ProfilePage),
       },
+      {
+        // All authenticated users have an inbox (citizens + every officer
+        // role). Backend scopes by JWT — no role gate needed here.
+        path: 'notifications',
+        loadComponent: () =>
+          import('./features/notifications/notifications.page').then((m) => m.NotificationsPage),
+      },
 
       // ---- Citizen ---------------------------------------------------
       {
