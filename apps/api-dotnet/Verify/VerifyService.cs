@@ -2,6 +2,7 @@ using System.Data;
 using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Sarh.Api.Blockchain;
 using Sarh.Api.Common.Errors;
 using Sarh.Api.Data;
 
@@ -11,8 +12,16 @@ namespace Sarh.Api.Verify;
 // SANITIZED view: only the citizen's first and family names are returned
 // in full; middle names are masked. PII (phone, dob, etc.) never leaves
 // the API. Endpoint is unauthenticated by design — verify QRs are public.
-public sealed class VerifyService(SarhDbContext db)
+public sealed class VerifyService(
+    SarhDbContext db,
+    IBlockchainService chain,
+    IIpfsService ipfs)
 {
+    // Statuses that count as "publicly verifiable". Adds 'minted' +
+    // 'transferred' on top of the legacy 'approved' since both imply
+    // the deed has been signed and (additionally) anchored on-chain.
+    private static readonly string[] PublicStatuses = ["approved", "minted", "transferred"];
+
     public async Task<PublicDeedView> ByPropertyCodeAsync(string code, CancellationToken ct)
     {
         var propertyCode = code.Trim();
@@ -20,7 +29,7 @@ public sealed class VerifyService(SarhDbContext db)
             throw SarhException.NotFound("السند العقاري", "Deed");
 
         var p = await db.Properties.AsNoTracking()
-            .Where(x => x.PropertyCode == propertyCode && x.Status == "approved")
+            .Where(x => x.PropertyCode == propertyCode && PublicStatuses.Contains(x.Status))
             .Select(x => new
             {
                 x.Id,
@@ -28,6 +37,7 @@ public sealed class VerifyService(SarhDbContext db)
                 x.ParcelNumber,
                 x.PropertyType,
                 x.AreaSqm,
+                x.Status,
                 x.ApprovalDecreeNo,
                 x.ReviewedAt,
                 x.VcCredentialId,
@@ -57,13 +67,53 @@ public sealed class VerifyService(SarhDbContext db)
             ? $"/api/v1/verify/{p.PropertyCode}/deed.pdf"
             : null;
 
+        // On-chain NFT (if any). Look up the active row only — a 'failed' or
+        // 'burned' NFT must not appear on the public deed view.
+        var nft = await db.PropertyNfts.AsNoTracking()
+            .Where(n => n.PropertyId == p.Id && (n.Status == "minted" || n.Status == "transferred" || n.Status == "pending"))
+            .OrderByDescending(n => n.MintedAt)
+            .FirstOrDefaultAsync(ct);
+
+        PublicNftView? nftView = null;
+        if (nft is not null)
+        {
+            // Read live owner from chain (stub returns null — treated as
+            // "not reconciled" downstream, NOT as a mismatch).
+            string? onChainOwner = null;
+            try { onChainOwner = await chain.OwnerOfAsync(nft.TokenId, ct); }
+            catch { /* explorer/RPC outage shouldn't break verify */ }
+
+            bool? matches = onChainOwner is null
+                ? null
+                : string.Equals(onChainOwner, nft.OwnerAddress, StringComparison.OrdinalIgnoreCase);
+
+            nftView = new PublicNftView
+            {
+                TokenId = nft.TokenId,
+                ContractAddress = nft.ContractAddress,
+                Network = nft.Network,
+                Standard = nft.Standard,
+                OwnerDid = nft.OwnerDid,
+                OwnerAddress = nft.OwnerAddress,
+                MetadataUri = nft.MetadataUri,
+                MetadataGatewayUrl = ipfs.GatewayUrlFor(nft.MetadataUri),
+                MintTxHash = nft.MintTxHash,
+                ExplorerTxUrl = chain.ExplorerTxUrl(nft.MintTxHash),
+                ExplorerTokenUrl = chain.ExplorerTokenUrl(nft.TokenId),
+                MintedAt = nft.MintedAt,
+                Status = nft.Status,
+                OnChainOwnerMatches = matches,
+                OnChainOwnerAddress = onChainOwner,
+            };
+        }
+
         return new PublicDeedView
         {
             PropertyCode = p.PropertyCode!,
             ParcelNumber = p.ParcelNumber,
             PropertyType = p.PropertyType,
             AreaSqm = p.AreaSqm,
-            Status = "active",
+            Status = p.Status,
             ApprovalDecreeNo = p.ApprovalDecreeNo,
             ReviewedAt = p.ReviewedAt,
             VcCredentialId = p.VcCredentialId,
@@ -71,6 +121,7 @@ public sealed class VerifyService(SarhDbContext db)
             BoundaryPolygonGeojson = polygon,
             DeedPdfSignedUrl = deedSignedUrl,
             DeedSignedHash = p.DeedSignedHash,
+            Nft = nftView,
         };
     }
 
@@ -78,7 +129,7 @@ public sealed class VerifyService(SarhDbContext db)
     {
         var propertyCode = code.Trim();
         var row = await db.Properties.AsNoTracking()
-            .Where(p => p.PropertyCode == propertyCode && p.Status == "approved")
+            .Where(p => p.PropertyCode == propertyCode && PublicStatuses.Contains(p.Status))
             .Select(p => new { p.PropertyCode, p.DeedPdfPath, p.DeedSignedHash })
             .FirstOrDefaultAsync(ct);
         if (row is null || string.IsNullOrEmpty(row.DeedPdfPath))

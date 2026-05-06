@@ -5,12 +5,30 @@ import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '@core/api-config';
 import { PROPERTY_TYPE } from '../../../shared/status-pills';
 
+interface NftView {
+  token_id: string;
+  contract_address: string;
+  network: string;
+  standard: string;
+  owner_did: string;
+  owner_address: string | null;
+  metadata_uri: string;
+  metadata_gateway_url: string;
+  mint_tx_hash: string;
+  explorer_tx_url: string;
+  explorer_token_url: string;
+  minted_at: string;
+  status: string;
+  on_chain_owner_matches: boolean | null;
+  on_chain_owner_address: string | null;
+}
+
 interface DeedView {
   property_code: string;
   parcel_number: string | null;
   property_type: string;
   area_sqm: number | null;
-  status: 'active' | 'revoked';
+  status: 'approved' | 'minted' | 'transferred';
   approval_decree_no: string | null;
   reviewed_at: string | null;
   vc_credential_id: string | null;
@@ -18,6 +36,7 @@ interface DeedView {
   boundary_polygon_geojson: Record<string, unknown> | null;
   deed_pdf_signed_url: string | null;
   deed_signed_hash: string | null;
+  nft: NftView | null;
 }
 
 @Component({
@@ -96,8 +115,8 @@ interface DeedView {
 
                 <dt>الحالة</dt>
                 <dd>
-                  <span class="pill" [class.bad]="d.status === 'revoked'">
-                    {{ d.status === 'active' ? 'سارٍ' : 'ملغى' }}
+                  <span class="pill" [style.background]="statusColor(d.status)">
+                    {{ statusLabel(d.status) }}
                   </span>
                 </dd>
               </dl>
@@ -108,6 +127,66 @@ interface DeedView {
                 </a>
               }
             </section>
+
+            @if (d.nft; as nft) {
+              <section class="card nft-card-wrap full">
+                <div class="nft-art">
+                  <div class="nft-bg"></div>
+                  <div class="nft-content">
+                    <div class="nft-top">
+                      <div>
+                        <div class="nft-band">PROPERTY LICENCE · NFT</div>
+                        <div class="nft-title">رخصة عقارية رقمية موثَّقة على البلوكتشين</div>
+                      </div>
+                      <div class="seal">ص</div>
+                    </div>
+                    <div class="nft-bottom">
+                      <div>
+                        <div class="lbl">TOKEN ID</div>
+                        <div class="val mono">{{ shortenToken(nft.token_id) }}</div>
+                      </div>
+                      <div>
+                        <div class="lbl">NETWORK</div>
+                        <div class="val">{{ networkLabel(nft.network) }}</div>
+                      </div>
+                      <div>
+                        <div class="lbl">CONTRACT</div>
+                        <div class="val mono small" dir="ltr">{{ shortHex(nft.contract_address) }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <h2 class="nft-h">التحقّق من السلسلة</h2>
+                <dl class="nft-dl">
+                  <dt>المعاملة (tx hash)</dt>
+                  <dd class="mono small" dir="ltr">{{ shortHex(nft.mint_tx_hash) }}</dd>
+                  <dt>تاريخ السكّ</dt>
+                  <dd class="mono small" dir="ltr">{{ formatDate(nft.minted_at) }}</dd>
+                  <dt>صاحب الحق (DID)</dt>
+                  <dd class="mono small" dir="ltr">{{ shortHex(nft.owner_did) }}</dd>
+                  <dt>المالك على السلسلة</dt>
+                  <dd>
+                    @if (nft.on_chain_owner_matches === true) {
+                      <span class="ok-pill">✓ مطابق للسجلّ المركزي</span>
+                    } @else if (nft.on_chain_owner_matches === false) {
+                      <span class="warn-pill">⚠ تباين — تحويل خارج النظام</span>
+                    } @else {
+                      <span class="muted-pill">— لم تتم المطابقة الفورية</span>
+                    }
+                  </dd>
+                </dl>
+
+                <div class="nft-links">
+                  <a [href]="nft.explorer_tx_url" target="_blank" rel="noopener" class="link-btn">
+                    عرض المعاملة على المستكشف ↗
+                  </a>
+                  <a [href]="nft.metadata_gateway_url" target="_blank" rel="noopener" class="link-btn ghost">
+                    metadata.json (IPFS) ↗
+                  </a>
+                </div>
+              </section>
+            }
 
             <aside class="side">
               <div class="card qr">
@@ -123,7 +202,7 @@ interface DeedView {
                 <h2>ما الذي تم التحقّق منه؟</h2>
                 <ul>
                   <li><span class="ok-tick">✓</span> توقيع المستند يطابق السجلّ المركزي.</li>
-                  <li><span class="ok-tick">✓</span> الحالة: <strong>{{ d.status === 'active' ? 'سارٍ' : 'ملغى' }}</strong>.</li>
+                  <li><span class="ok-tick">✓</span> الحالة: <strong>{{ statusLabel(d.status) }}</strong>.</li>
                   <li><span class="ok-tick">✓</span> الرمز فريد ومعتمد رسمياً.</li>
                 </ul>
               </div>
@@ -198,8 +277,49 @@ interface DeedView {
     dd { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0; align-self: center; }
     dd.code { font-size: 14px; font-weight: 700; color: var(--primary); }
 
-    .pill { display: inline-block; padding: 3px 12px; border-radius: 99px; background: var(--good); color: #fff; font-size: 11px; font-weight: 600; }
-    .pill.bad { background: var(--warn); }
+    .pill { display: inline-block; padding: 3px 12px; border-radius: 99px; color: #fff; font-size: 11px; font-weight: 600; }
+
+    /* NFT licence section ─────────────────────────────────── */
+    .nft-card-wrap { padding: 0; overflow: hidden; }
+    .nft-card-wrap.full { grid-column: 1 / -1; }
+    .nft-art { position: relative; aspect-ratio: 3.2; min-height: 160px; color: #fff; }
+    .nft-bg { position: absolute; inset: 0;
+      background:
+        radial-gradient(800px 400px at 110% -10%, rgba(249, 115, 22, 0.4), transparent 60%),
+        radial-gradient(500px 300px at -10% 110%, rgba(8, 145, 178, 0.2), transparent 60%),
+        linear-gradient(135deg, #0F172A 0%, #1e293b 50%, #243a31 100%);
+    }
+    .nft-content { position: relative; z-index: 1; padding: 22px 26px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+    .nft-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .nft-band { font-size: 10px; letter-spacing: 0.22em; color: var(--accent); }
+    .nft-title { font-size: 18px; font-weight: 700; margin-top: 4px; }
+    .seal { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #C2410C); color: var(--primary); display: grid; place-items: center; font-weight: 800; font-size: 22px; flex-shrink: 0; }
+    .nft-bottom { display: flex; gap: 28px; flex-wrap: wrap; }
+    .nft-bottom .lbl { font-size: 8.5px; letter-spacing: 0.16em; color: var(--accent); text-transform: uppercase; }
+    .nft-bottom .val { font-size: 12px; font-weight: 600; margin-top: 3px; }
+    .nft-bottom .val.small { font-size: 10.5px; }
+
+    .nft-h { padding: 20px 26px 10px; margin: 0 !important; border-bottom: 1px solid var(--rule); font-size: 13px !important; color: var(--ink); }
+    .nft-dl { display: grid; grid-template-columns: 200px 1fr; gap: 10px 16px; padding: 16px 26px; margin: 0; }
+    .nft-dl dt { font-size: 11.5px; color: var(--muted); align-self: center; }
+    .nft-dl dd { font-size: 12.5px; font-weight: 600; color: var(--ink); margin: 0; align-self: center; word-break: break-all; }
+    @media (max-width: 600px) { .nft-dl { grid-template-columns: 1fr; gap: 4px 0; } }
+
+    .ok-pill   { display: inline-block; padding: 3px 10px; border-radius: 99px; background: rgba(8,145,178,0.12); color: var(--good); font-size: 11px; font-weight: 700; }
+    .warn-pill { display: inline-block; padding: 3px 10px; border-radius: 99px; background: rgba(220,38,38,0.10); color: var(--warn); font-size: 11px; font-weight: 700; }
+    .muted-pill { display: inline-block; padding: 3px 10px; border-radius: 99px; background: rgba(15,23,42,0.06); color: var(--muted); font-size: 11px; font-weight: 600; }
+
+    .nft-links { display: flex; gap: 10px; padding: 8px 26px 22px; flex-wrap: wrap; }
+    .link-btn {
+      padding: 8px 14px; border-radius: 8px;
+      background: var(--primary); color: var(--accent);
+      font-size: 12px; font-weight: 700;
+      text-decoration: none;
+      transition: all .12s;
+    }
+    .link-btn:hover { transform: translateY(-1px); }
+    .link-btn.ghost { background: transparent; border: 1px solid var(--rule); color: var(--ink); }
+    .link-btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
 
     .btn-primary {
       display: inline-block;
@@ -283,4 +403,35 @@ export class VerifyDeedPage implements OnInit {
   }
 
   isPlaceholderVc(id: string): boolean { return id.startsWith('urn:placeholder:'); }
+
+  statusLabel(s: string): string {
+    return ({
+      approved:    'سارٍ',
+      minted:      'سارٍ + رخصة NFT',
+      transferred: 'منقول (NFT)',
+    } as Record<string, string>)[s] ?? s;
+  }
+  statusColor(s: string): string {
+    return ({
+      approved:    '#0891B2',
+      minted:      '#F97316',
+      transferred: '#7c3aed',
+    } as Record<string, string>)[s] ?? '#94a3b8';
+  }
+  networkLabel(n: string): string {
+    return ({
+      'ethereum-mainnet':   'Ethereum',
+      'ethereum-sepolia':   'Sepolia (testnet)',
+      'polygon-mainnet':    'Polygon',
+      'polygon-amoy':       'Amoy (testnet)',
+      'hyperledger-fabric': 'Hyperledger Fabric',
+    } as Record<string, string>)[n] ?? n;
+  }
+  shortenToken(t: string): string {
+    return t.length > 18 ? `${t.slice(0, 10)}…${t.slice(-6)}` : t;
+  }
+  shortHex(s: string | null): string {
+    if (!s) return '—';
+    return s.length > 18 ? `${s.slice(0, 10)}…${s.slice(-6)}` : s;
+  }
 }
