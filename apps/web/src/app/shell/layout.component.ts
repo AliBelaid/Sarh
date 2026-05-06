@@ -26,6 +26,7 @@ const NAV: NavItem[] = [
 
   // Citizen-focused
   { ar: 'عقاراتي',      en: 'My properties', path: '/app/my/properties', icon: 'properties', roles: ['citizen'], group: 'main' },
+  { ar: 'محفظتي الرقمية', en: 'My wallet',   path: '/app/my/wallet',     icon: 'nft',        roles: ['citizen'], group: 'main' },
   { ar: 'هويتي الرقمية', en: 'My digital ID', path: '/app/my/digital-id', icon: 'digital-id', roles: ['citizen'], group: 'main' },
 
   // Officer / reviewer

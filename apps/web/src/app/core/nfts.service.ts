@@ -48,6 +48,12 @@ export class NftsService {
     return firstValueFrom(this.http.get<OwnershipEvent[]>(`${API_BASE}/property-nfts/${id}/history`));
   }
 
+  // Citizen-scoped: returns licences owned by the authenticated citizen.
+  // Backend: GET /api/v1/me/nft-licences (Controllers/MeController.cs).
+  mine(): Promise<NftLicenseView[]> {
+    return firstValueFrom(this.http.get<NftLicenseView[]>(`${API_BASE}/me/nft-licences`));
+  }
+
   transfer(id: string, body: TransferNftRequest): Promise<TransferResult> {
     return firstValueFrom(
       this.http.post<TransferResult>(`${API_BASE}/property-nfts/${id}/transfer`, body),

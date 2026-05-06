@@ -119,6 +119,25 @@ public sealed class NftsService(SarhDbContext db)
         };
     }
 
+    // Citizen-scoped listing — returns licences owned by the authenticated
+    // citizen. No officer claim required. Filters on the registry's recorded
+    // owner (properties.owner_citizen_id), not the on-chain owner — those
+    // can drift out of sync after an off-registry transfer.
+    public async Task<List<NftLicenseView>> ListMyAsync(CurrentUser actor, CancellationToken ct)
+    {
+        if (actor.CitizenId is not Guid cid)
+            throw SarhException.Forbidden("هذا المسار مخصّص للمواطنين فقط.");
+
+        var rows = await (from n in db.PropertyNfts.AsNoTracking()
+                          join p in db.Properties.AsNoTracking() on n.PropertyId equals p.Id
+                          where p.OwnerCitizenId == cid
+                             && (n.Status == "minted" || n.Status == "transferred" || n.Status == "pending")
+                          orderby n.MintedAt descending
+                          select new { n, p }).ToListAsync(ct);
+
+        return rows.Select(x => NftLicenseView.From(x.n, x.p.PropertyCode, x.p.OwnerCitizenId)).ToList();
+    }
+
     public async Task<NftLicenseView> GetByIdAsync(Guid id, CurrentUser actor, CancellationToken ct)
     {
         if (actor.OfficerId is null) throw SarhException.Forbidden();

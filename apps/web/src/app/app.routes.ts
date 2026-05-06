@@ -66,6 +66,12 @@ export const APP_ROUTES: Routes = [
         loadComponent: () =>
           import('./features/citizen/pages/digital-id.page').then((m) => m.DigitalIdPage),
       },
+      {
+        path: 'my/wallet',
+        canActivate: [roleGuard(['citizen'])],
+        loadComponent: () =>
+          import('./features/citizen/pages/wallet.page').then((m) => m.CitizenWalletPage),
+      },
 
       // ---- Officer / reviewer ----------------------------------------
       {
