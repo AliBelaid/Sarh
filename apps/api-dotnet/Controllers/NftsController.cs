@@ -20,4 +20,9 @@ public class NftsController(NftsService svc) : ControllerBase
     [OfficerOnly("super_admin", "auditor", "registry_officer", "reviewer", "department_manager")]
     public Task<NftLicenseView> Get(Guid id, CancellationToken ct)
         => svc.GetByIdAsync(id, User.RequireUser(), ct);
+
+    [HttpGet("{id:guid}/history")]
+    [OfficerOnly("super_admin", "auditor", "registry_officer", "reviewer", "department_manager")]
+    public Task<List<OwnershipEventView>> History(Guid id, CancellationToken ct)
+        => svc.ListHistoryAsync(id, User.RequireUser(), ct);
 }

@@ -196,6 +196,12 @@ export const APP_ROUTES: Routes = [
           import('./features/admin/pages/nft-licences.page').then((m) => m.AdminNftLicencesPage),
       },
       {
+        path: 'nft-licences/:id',
+        canActivate: [roleGuard([...ADMIN_ROLES, 'department_manager'])],
+        loadComponent: () =>
+          import('./features/admin/pages/nft-licence-detail.page').then((m) => m.AdminNftLicenceDetailPage),
+      },
+      {
         path: 'audit',
         canActivate: [roleGuard([...ADMIN_ROLES])],
         loadComponent: () =>

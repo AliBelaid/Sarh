@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { NftsService, type NftLicenseView } from '@core/nfts.service';
 import type { NftStatus } from '@sarh/shared-types';
 import { NFT_STATUS } from '../../../shared/status-pills';
@@ -23,7 +24,7 @@ const TABS: Array<{ key: Tab; ar: string }> = [
   selector: 'app-nft-licences',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="page">
       <header class="head">
@@ -80,10 +81,9 @@ const TABS: Array<{ key: Tab; ar: string }> = [
                   <td><span class="mono small" dir="ltr">{{ shorten(n.owner_did, 26) }}</span></td>
                   <td dir="ltr" class="mono small">{{ dateLabel(n.minted_at) }}</td>
                   <td><span class="badge" [style.background]="status(n.status).color">{{ status(n.status).ar }}</span></td>
-                  <td>
-                    <a [href]="explorerTxUrl(n)" target="_blank" rel="noopener" class="link">
-                      المعاملة ↗
-                    </a>
+                  <td class="actions-cell">
+                    <a [routerLink]="['/app/nft-licences', n.id]" class="link">تفاصيل ←</a>
+                    <a [href]="explorerTxUrl(n)" target="_blank" rel="noopener" class="link muted-link">المعاملة ↗</a>
                   </td>
                 </tr>
               }
@@ -142,6 +142,8 @@ const TABS: Array<{ key: Tab; ar: string }> = [
     .net { font-size: 11.5px; color: var(--muted); padding: 3px 8px; background: rgba(15,23,42,0.04); border-radius: 6px; }
     .link { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 12px; }
     .link:hover { color: var(--accent); }
+    .link.muted-link { color: var(--muted); margin-inline-start: 12px; }
+    .actions-cell { white-space: nowrap; }
 
     .more { display: flex; justify-content: center; margin-top: 14px; }
     .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 10px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; border: 1.5px solid transparent; transition: all .15s; }

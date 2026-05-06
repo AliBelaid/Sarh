@@ -138,4 +138,63 @@ public sealed class NftsService(SarhDbContext db)
 
         return NftLicenseView.From(row.n, row.p.PropertyCode, row.p.OwnerCitizenId);
     }
+
+    // Ownership timeline for a single NFT — append-only chain from the
+    // initial_mint row through every transfer. Rows come back oldest-first
+    // (chain ordering); the UI renders them as a vertical timeline.
+    public async Task<List<OwnershipEventView>> ListHistoryAsync(Guid nftId, CurrentUser actor, CancellationToken ct)
+    {
+        if (actor.OfficerId is null) throw SarhException.Forbidden();
+
+        // Region scope check: load nft + property once, reject early.
+        var nft = await (from n in db.PropertyNfts.AsNoTracking()
+                         join p in db.Properties.AsNoTracking() on n.PropertyId equals p.Id
+                         where n.Id == nftId
+                         select new { n, p.RegionId }).FirstOrDefaultAsync(ct)
+            ?? throw SarhException.NotFound("الرخصة", "NFT licence");
+
+        if (actor.Role is not ("super_admin" or "auditor")
+            && actor.RegionId is int aRegion
+            && nft.RegionId != aRegion)
+        {
+            throw SarhException.Forbidden("الرخصة خارج منطقتك.");
+        }
+
+        var rows = await (from h in db.OwnershipHistory.AsNoTracking()
+                          where h.NftId == nftId
+                          // Outer-join citizens to keep history rows whose
+                          // referenced citizen has been soft-deleted.
+                          from fc in db.Citizens.AsNoTracking().Where(c => c.Id == h.FromCitizenId).DefaultIfEmpty()
+                          from tc in db.Citizens.AsNoTracking().Where(c => c.Id == h.ToCitizenId).DefaultIfEmpty()
+                          orderby h.TransferredAt
+                          select new OwnershipEventView
+                          {
+                              Id = h.Id,
+                              FromDid = h.FromDid,
+                              ToDid = h.ToDid,
+                              FromCitizenName = fc != null ? (fc.FirstNameAr + " " + fc.FamilyNameAr) : null,
+                              ToCitizenName   = tc != null ? (tc.FirstNameAr + " " + tc.FamilyNameAr) : null,
+                              Reason = h.Reason,
+                              NotesAr = h.NotesAr,
+                              TransferTxHash = h.TransferTxHash,
+                              TransferBlockNumber = h.TransferBlockNumber,
+                              TransferredAt = h.TransferredAt,
+                          }).ToListAsync(ct);
+
+        return rows;
+    }
+}
+
+public sealed class OwnershipEventView
+{
+    public required Guid Id { get; init; }
+    public string? FromDid { get; init; }
+    public required string ToDid { get; init; }
+    public string? FromCitizenName { get; init; }
+    public string? ToCitizenName { get; init; }
+    public required string Reason { get; init; }
+    public string? NotesAr { get; init; }
+    public string? TransferTxHash { get; init; }
+    public long? TransferBlockNumber { get; init; }
+    public required DateTimeOffset TransferredAt { get; init; }
 }
