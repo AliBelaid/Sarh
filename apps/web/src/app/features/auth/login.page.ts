@@ -18,7 +18,7 @@ function canRoleAccess(role: string, path: string): boolean {
 }
 
 interface QuickRole {
-  key: 'citizen' | 'admin' | 'officer' | 'issuer';
+  key: 'citizen' | 'officer' | 'manager' | 'issuer';
   ar: string;
   email: string;
   password: string;
@@ -357,10 +357,10 @@ export class LoginPage {
   );
 
   readonly quickRoles: QuickRole[] = [
-    { key: 'citizen', ar: 'مواطن (تجريبي)', email: 'demo@sarh.ly',  password: 'Demo!12345',  accent: '#3b82f6' },
-    { key: 'admin',   ar: 'مسؤول عام',     email: 'admin@sarh.ly', password: 'Admin!12345', accent: '#F97316' },
-    { key: 'officer', ar: 'موظف تسجيل',    email: 'officer@sarh.ly', password: 'Officer!12345', accent: '#0891B2' },
-    { key: 'issuer',  ar: 'مصدر هويات',    email: 'issuer@sarh.ly', password: 'Issuer!12345', accent: '#DC2626' },
+    { key: 'citizen',  ar: 'مواطن (تجريبي)',  email: 'demo@sarh.ly',     password: 'Demo!12345', accent: '#3b82f6' },
+    { key: 'officer',  ar: 'موظف تسجيل',     email: 'officer@sarh.ly',  password: 'Demo!12345', accent: '#0891B2' },
+    { key: 'manager',  ar: 'مدير القسم',     email: 'manager@sarh.ly',  password: 'Demo!12345', accent: '#5b21b6' },
+    { key: 'issuer',   ar: 'مصدر هويات',     email: 'idissuer@sarh.ly', password: 'Demo!12345', accent: '#DC2626' },
   ];
 
   toggleLang(): void {
