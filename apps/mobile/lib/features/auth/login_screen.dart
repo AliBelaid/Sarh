@@ -181,14 +181,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 icon: const Icon(Icons.bolt_outlined),
-                label: const Text('دخول تجريبي كمستخدم حقيقي'),
+                label: const Text('دخول تجريبي ببطاقة موجودة'),
                 onPressed: _busy ? null : _demoLogin,
               ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                icon: const Icon(Icons.shield_outlined),
-                label: const Text('تسجيل دخول كمسؤول (بريد + كلمة مرور)'),
-                onPressed: _busy ? null : _openAdminLogin,
+              const SizedBox(height: 6),
+              Center(
+                child: Text(
+                  'بطاقة أحمد التجريبية: LY-11-2026-000101-0  ·  PIN: 123456',
+                  textDirection: TextDirection.ltr,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontFamily: 'monospace',
+                      ),
+                ),
               ),
               const SizedBox(height: 12),
               Center(
@@ -220,109 +225,5 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-
-  Future<void> _openAdminLogin() async {
-    final result = await showModalBottomSheet<({String email, String password})?>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => const _AdminLoginSheet(),
-    );
-    if (result == null) return;
-    setState(() {
-      _busy = true;
-      _statusAr = 'جاري الدخول…';
-    });
-    try {
-      await ref.read(authControllerProvider.notifier).loginWithEmail(
-            email: result.email,
-            password: result.password,
-          );
-      if (mounted) context.go(AppRoutes.home);
-    } on SarhApiError catch (e) {
-      setState(() => _statusAr = e.messageAr);
-    } catch (e) {
-      setState(() => _statusAr = 'تعذّر تسجيل الدخول.');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-}
-
-class _AdminLoginSheet extends StatefulWidget {
-  const _AdminLoginSheet();
-  @override
-  State<_AdminLoginSheet> createState() => _AdminLoginSheetState();
-}
-
-class _AdminLoginSheetState extends State<_AdminLoginSheet> {
-  final _email = TextEditingController(text: 'demo@sarh.ly');
-  final _password = TextEditingController();
-
-  @override
-  void dispose() {
-    _email.dispose();
-    _password.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final viewInsets = MediaQuery.of(context).viewInsets;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + viewInsets.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'دخول الموظفين / المسؤولين',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'استخدم نفس بيانات الدخول التي تستخدمها على لوحة الإدارة.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _email,
-            textDirection: TextDirection.ltr,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _password,
-            textDirection: TextDirection.ltr,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'كلمة المرور'),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(null),
-                  child: const Text('إلغاء'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    final email = _email.text.trim();
-                    final pwd = _password.text;
-                    if (email.isEmpty || pwd.isEmpty) return;
-                    Navigator.of(context).pop((email: email, password: pwd));
-                  },
-                  child: const Text('دخول'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }

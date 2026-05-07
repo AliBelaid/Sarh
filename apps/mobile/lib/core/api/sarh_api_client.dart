@@ -160,8 +160,10 @@ class _ErrorInterceptor extends Interceptor {
 // depend on `apiClientProvider` without each one constructing a dio.
 final apiClientProvider = Provider<SarhApiClient>((ref) {
   // The actual baseUrl comes from --dart-define=SARH_API_URL=...
-  // Fallback is the local dev API.
-  const fallback = 'http://10.0.2.2:3000/api/v1';
+  // Fallback is the .NET API on Android-emulator loopback (10.0.2.2:3001 →
+  // host's localhost:3001). For iOS sim / desktop / a real device, override
+  // with --dart-define=SARH_API_URL=http://<host>:3001/api/v1.
+  const fallback = 'http://10.0.2.2:3001/api/v1';
   const baseUrl = String.fromEnvironment('SARH_API_URL', defaultValue: fallback);
   return SarhApiClient.build(baseUrl: baseUrl);
 });
