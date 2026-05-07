@@ -1,29 +1,29 @@
+using System.Diagnostics;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Sarh.Api.Data;
 
 // Hosted service that runs once on app boot:
-//   1. Probes the database. If unreachable, exits gracefully (lets the API
-//      start and surface a clearer error on the first request).
+//   1. Probes the database with a short retry loop. If still unreachable,
+//      logs a clear "run pnpm db:reset" instruction and exits.
 //   2. Re-stamps bcrypt hashes for every demo auth user so `Demo!12345`
 //      always works regardless of which bcrypt library wrote the hash.
-//      The SQL seed (029_seed_mock_data.sql) ships a bcryptjs-generated
-//      hash; BCrypt.Net-Next can read it but we re-stamp anyway with
-//      cost-12 to align with production.
-//   3. If the demo dataset is missing (e.g. the operator dropped the DB
-//      and only ran 000–028), it inserts a minimal floor of mock data so
-//      the digital-ID + property demos still work. Idempotent — safe to
-//      run on every boot.
+//   3. If the demo dataset is missing (e.g. fresh DB without 029 applied),
+//      shells out to sqlcmd to apply 029_seed_mock_data.sql, then re-checks.
+//      Falls back to a clear warning if sqlcmd is unavailable.
 //
-// Running migrations from the API is intentionally NOT done here. We rely
-// on `pnpm db:reset` / `scripts/db/run-migrations.ps1` for schema, because
-// some migrations use sqlcmd-only features (full-text catalogs, GO batches).
+// Running the full schema migrations from the API is intentionally NOT done
+// here — they use sqlcmd-only features (GO batches, :r includes). The runner
+// `scripts/db/run-migrations.ps1` is the source of truth for the schema.
 public sealed class DbSeeder(
     IServiceProvider services,
+    IHostEnvironment env,
     ILogger<DbSeeder> logger) : IHostedService
 {
     private const string DemoPassword = "Demo!12345";
+    private const int ConnectRetries = 5;
+    private static readonly TimeSpan ConnectRetryDelay = TimeSpan.FromSeconds(2);
 
     private static readonly (Guid Id, string Email)[] DemoAccounts =
     [
@@ -59,9 +59,13 @@ public sealed class DbSeeder(
             await using var scope = services.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<SarhDbContext>();
 
-            if (!await db.Database.CanConnectAsync(ct))
+            if (!await WaitForDatabaseAsync(db, ct))
             {
-                logger.LogWarning("DbSeeder: database unreachable, skipping seed.");
+                logger.LogWarning(
+                    "DbSeeder: database unreachable after {N} attempts. " +
+                    "If this is a fresh checkout, run `pnpm db:reset` to apply " +
+                    "infra/mssql/migrations/000-030 and create the sarh DB.",
+                    ConnectRetries);
                 return;
             }
 
@@ -76,6 +80,20 @@ public sealed class DbSeeder(
         {
             logger.LogError(ex, "DbSeeder: unexpected error.");
         }
+    }
+
+    private async Task<bool> WaitForDatabaseAsync(SarhDbContext db, CancellationToken ct)
+    {
+        for (var attempt = 1; attempt <= ConnectRetries; attempt++)
+        {
+            if (await db.Database.CanConnectAsync(ct)) return true;
+            if (attempt == ConnectRetries) break;
+            logger.LogInformation(
+                "DbSeeder: database not ready (attempt {Attempt}/{Total}), retrying in {Delay}s …",
+                attempt, ConnectRetries, ConnectRetryDelay.TotalSeconds);
+            await Task.Delay(ConnectRetryDelay, ct);
+        }
+        return false;
     }
 
     private async Task EnsureDemoBcryptHashesAsync(SarhDbContext db, CancellationToken ct)
@@ -115,17 +133,26 @@ public sealed class DbSeeder(
 
     private async Task EnsureMockDataFloorAsync(SarhDbContext db, CancellationToken ct)
     {
-        // If the 029 seed wasn't applied (or someone wiped the demo data),
-        // we don't try to recreate it from C#. Just log loudly. The SQL is
-        // the source of truth for spatial polygons, NFT metadata, etc.
         var citizenCount = await db.Citizens.CountAsync(ct);
         var propertyCount = await db.Properties.CountAsync(ct);
+
+        if ((citizenCount == 0 || propertyCount == 0) && env.IsDevelopment())
+        {
+            // Dev convenience: if the schema is in place but the 029 seed
+            // was never run (or was wiped), shell to sqlcmd and apply it.
+            // 029 is fully idempotent (MERGE on fixed UUIDs).
+            if (TryApplyMockDataSeed())
+            {
+                citizenCount = await db.Citizens.CountAsync(ct);
+                propertyCount = await db.Properties.CountAsync(ct);
+            }
+        }
 
         if (citizenCount == 0 || propertyCount == 0)
         {
             logger.LogWarning(
                 "DbSeeder: demo dataset is empty (citizens={C}, properties={P}). " +
-                "Run `pnpm db:reset` to apply migrations 000-029.",
+                "Run `pnpm db:reset` to apply migrations 000-030.",
                 citizenCount, propertyCount);
             return;
         }
@@ -133,5 +160,54 @@ public sealed class DbSeeder(
         logger.LogInformation(
             "DbSeeder: ready. citizens={C}, properties={P}, auth_users={A}.",
             citizenCount, propertyCount, await db.AuthUsers.CountAsync(ct));
+    }
+
+    private bool TryApplyMockDataSeed()
+    {
+        // ContentRoot is apps/api-dotnet/. Walk up to repo root and find
+        // infra/mssql/migrations/029_seed_mock_data.sql.
+        var seedPath = Path.GetFullPath(
+            Path.Combine(env.ContentRootPath, "..", "..", "infra", "mssql", "migrations", "029_seed_mock_data.sql"));
+
+        if (!File.Exists(seedPath))
+        {
+            logger.LogWarning("DbSeeder: cannot auto-seed — 029_seed_mock_data.sql not found at {Path}.", seedPath);
+            return false;
+        }
+
+        logger.LogInformation("DbSeeder: empty DB detected, applying 029_seed_mock_data.sql via sqlcmd …");
+
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "sqlcmd",
+                ArgumentList = { "-S", "localhost", "-d", "sarh", "-E", "-b", "-I", "-i", seedPath },
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var proc = Process.Start(psi);
+            if (proc is null)
+            {
+                logger.LogWarning("DbSeeder: sqlcmd could not be launched (PATH issue?). Run `pnpm db:reset` manually.");
+                return false;
+            }
+            proc.WaitForExit(60_000);
+            if (proc.ExitCode != 0)
+            {
+                logger.LogWarning(
+                    "DbSeeder: sqlcmd exited {Code}. stderr: {Err}",
+                    proc.ExitCode, proc.StandardError.ReadToEnd());
+                return false;
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "DbSeeder: sqlcmd invocation failed (likely not on PATH).");
+            return false;
+        }
     }
 }

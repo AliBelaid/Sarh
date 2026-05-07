@@ -63,14 +63,14 @@ DECLARE @c_fatima  UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000102';
 DECLARE @c_khaled  UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000103';
 DECLARE @c_layla   UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000104';
 
--- Region IDs reference regions.id (auto-IDENTITY): 1=Tripoli, 5=Misrata,
--- 7=Benghazi. (Code column 'code' carries the Shabiyah string '11', '15', …)
+-- regions.id is bound to the Shabiyah code (016_seed_regions.sql uses
+-- IDENTITY_INSERT). 11=Tripoli, 15=Misrata, 21=Benghazi.
 ;WITH src(id, first_ar, father_ar, grand_ar, family_ar, gender, dob, region, phone, email, legacy_no) AS (
     SELECT * FROM (VALUES
-        (@c_ahmed,  N'أحمد',   N'محمد',  N'علي',     N'البارودي',  N'male',   '1985-03-15', 1, N'+218910000101', N'ahmed.albaroudi@example.ly',  N'118503150001'),
-        (@c_fatima, N'فاطمة',  N'يوسف',  N'عبدالله', N'الزروق',    N'female', '1990-07-22', 1, N'+218910000102', N'fatima.alzarrouq@example.ly', N'119007220002'),
-        (@c_khaled, N'خالد',   N'عمر',   N'سالم',    N'العبيدي',   N'male',   '1978-11-04', 7, N'+218910000103', N'khaled.alobeidi@example.ly',  N'217811040003'),
-        (@c_layla,  N'ليلى',   N'صالح',  N'أحمد',    N'الترهوني',  N'female', '1995-01-30', 5, N'+218910000104', N'layla.altarhouni@example.ly', N'159501300004')
+        (@c_ahmed,  N'أحمد',   N'محمد',  N'علي',     N'البارودي',  N'male',   '1985-03-15', 11, N'+218910000101', N'ahmed.albaroudi@example.ly',  N'118503150001'),
+        (@c_fatima, N'فاطمة',  N'يوسف',  N'عبدالله', N'الزروق',    N'female', '1990-07-22', 11, N'+218910000102', N'fatima.alzarrouq@example.ly', N'119007220002'),
+        (@c_khaled, N'خالد',   N'عمر',   N'سالم',    N'العبيدي',   N'male',   '1978-11-04', 21, N'+218910000103', N'khaled.alobeidi@example.ly',  N'217811040003'),
+        (@c_layla,  N'ليلى',   N'صالح',  N'أحمد',    N'الترهوني',  N'female', '1995-01-30', 15, N'+218910000104', N'layla.altarhouni@example.ly', N'159501300004')
     ) AS v(id, first_ar, father_ar, grand_ar, family_ar, gender, dob, region, phone, email, legacy_no)
 )
 MERGE citizens AS tgt
@@ -99,9 +99,9 @@ DECLARE @au_rev    UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000213';
 
 ;WITH src(id, auth_id, employee_no, name_ar, name_en, role, region, email, perms) AS (
     SELECT * FROM (VALUES
-        (@off_mgr, @au_mgr, N'EMP-MGR-1', N'مدير القسم',     N'Department Manager', N'department_manager', 1, N'manager@sarh.ly',  N'{"can_final_approve":true,"can_mint_nft":true}'),
-        (@off_idi, @au_idi, N'EMP-IDI-1', N'مُصدِر الهوية',  N'ID Issuer',          N'id_issuer',          1, N'idissuer@sarh.ly', N'{"can_issue_card":true,"can_revoke_card":true}'),
-        (@off_rev, @au_rev, N'EMP-REV-1', N'مراجع تقني',     N'Technical Reviewer', N'reviewer',           1, N'reviewer@sarh.ly', N'{"can_review":true}')
+        (@off_mgr, @au_mgr, N'EMP-MGR-1', N'مدير القسم',     N'Department Manager', N'department_manager', 11, N'manager@sarh.ly',  N'{"can_final_approve":true,"can_mint_nft":true}'),
+        (@off_idi, @au_idi, N'EMP-IDI-1', N'مُصدِر الهوية',  N'ID Issuer',          N'id_issuer',          11, N'idissuer@sarh.ly', N'{"can_issue_card":true,"can_revoke_card":true}'),
+        (@off_rev, @au_rev, N'EMP-REV-1', N'مراجع تقني',     N'Technical Reviewer', N'reviewer',           11, N'reviewer@sarh.ly', N'{"can_review":true}')
     ) AS v(id, auth_id, employee_no, name_ar, name_en, role, region, email, perms)
 )
 MERGE officers AS tgt
@@ -186,7 +186,7 @@ WHEN NOT MATCHED THEN INSERT
      approval_decree_no)
 VALUES
     (@prop_minted, N'PRP-2026-0101', N'P-101', N'PLAN-A', N'B-1',
-     @c_ahmed, N'residential', 1, N'طرابلس - شارع الجمهورية، حي الأندلس',
+     @c_ahmed, N'residential', 11, N'طرابلس - شارع الجمهورية، حي الأندلس',
      geography::STGeomFromText(N'POLYGON((13.1800 32.8800, 13.1810 32.8800, 13.1810 32.8810, 13.1800 32.8810, 13.1800 32.8800))', 4326),
      12345.67, N'minted',
      DATEADD(DAY, -30, SYSDATETIMEOFFSET()),
@@ -217,7 +217,7 @@ WHEN NOT MATCHED THEN INSERT
      approval_decree_no)
 VALUES
     (@prop_approved, N'PRP-2026-0102', N'P-102', N'PLAN-A', N'B-2',
-     @c_fatima, N'residential', 1, N'طرابلس - شارع الفتح، حي حي الفلاح',
+     @c_fatima, N'residential', 11, N'طرابلس - شارع الفتح، حي حي الفلاح',
      geography::STGeomFromText(N'POLYGON((13.1700 32.8800, 13.1710 32.8800, 13.1710 32.8810, 13.1700 32.8810, 13.1700 32.8800))', 4326),
      8910.50, N'approved',
      DATEADD(DAY, -25, SYSDATETIMEOFFSET()),
@@ -242,7 +242,7 @@ WHEN NOT MATCHED THEN INSERT
      region_id, address_ar, boundary_polygon, area_sqm, status,
      submitted_at, reviewed_at, reviewed_by_officer_id)
 VALUES
-    (@prop_review, N'PRP-2026-0103', N'P-103', @c_khaled, N'commercial', 7,
+    (@prop_review, N'PRP-2026-0103', N'P-103', @c_khaled, N'commercial', 21,
      N'بنغازي - شارع جمال عبدالناصر، حي الكيش',
      geography::STGeomFromText(N'POLYGON((20.0670 32.1190, 20.0680 32.1190, 20.0680 32.1200, 20.0670 32.1200, 20.0670 32.1190))', 4326),
      5500.00, N'under_review',
@@ -265,7 +265,7 @@ WHEN NOT MATCHED THEN INSERT
      region_id, address_ar, boundary_polygon, area_sqm, status,
      submitted_at)
 VALUES
-    (@prop_pending, N'PRP-2026-0104', N'P-104', @c_layla, N'agricultural', 5,
+    (@prop_pending, N'PRP-2026-0104', N'P-104', @c_layla, N'agricultural', 15,
      N'مصراتة - منطقة الغيران',
      geography::STGeomFromText(N'POLYGON((15.0900 32.3700, 15.0925 32.3700, 15.0925 32.3725, 15.0900 32.3725, 15.0900 32.3700))', 4326),
      50000.00, N'pending',
