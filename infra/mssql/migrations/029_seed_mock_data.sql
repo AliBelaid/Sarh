@@ -123,15 +123,21 @@ GO
 -- The existing demo citizen card lives in 024_seed_demo.sql.
 DECLARE @c_ahmed   UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000101';
 DECLARE @c_fatima  UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000102';
+DECLARE @c_khaled  UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000103';
+DECLARE @c_layla   UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000104';
 DECLARE @off_idi   UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000202';
 
 DECLARE @card_ahmed  UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000301';
 DECLARE @card_fatima UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000302';
+DECLARE @card_khaled UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000303';
+DECLARE @card_layla  UNIQUEIDENTIFIER = N'00000000-0000-0000-0000-000000000304';
 
 ;WITH src(id, citizen_id, did_no, serial, nfc_uid, sov_did, status) AS (
     SELECT * FROM (VALUES
         (@card_ahmed,  @c_ahmed,  N'LY-11-2026-000101-0', N'CARD-DEMO-0101', N'04A1B2C3D4E5F601', N'did:sov:LY:demo:ahmed',  N'active'),
-        (@card_fatima, @c_fatima, N'LY-11-2026-000102-0', N'CARD-DEMO-0102', N'04A1B2C3D4E5F602', N'did:sov:LY:demo:fatima', N'active')
+        (@card_fatima, @c_fatima, N'LY-11-2026-000102-0', N'CARD-DEMO-0102', N'04A1B2C3D4E5F602', N'did:sov:LY:demo:fatima', N'active'),
+        (@card_khaled, @c_khaled, N'LY-21-2026-000103-0', N'CARD-DEMO-0103', N'04A1B2C3D4E5F603', N'did:sov:LY:demo:khaled', N'active'),
+        (@card_layla,  @c_layla,  N'LY-15-2026-000104-0', N'CARD-DEMO-0104', N'04A1B2C3D4E5F604', N'did:sov:LY:demo:layla',  N'frozen')
     ) AS v(id, citizen_id, did_no, serial, nfc_uid, sov_did, status)
 )
 MERGE digital_id_cards AS tgt
