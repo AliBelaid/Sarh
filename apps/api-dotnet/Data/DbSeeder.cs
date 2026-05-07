@@ -70,6 +70,7 @@ public sealed class DbSeeder(
             }
 
             await EnsureDemoBcryptHashesAsync(db, ct);
+            await EnsureDemoCardsAsync(db, ct);
             await EnsureDemoPinHashesAsync(db, ct);
             await EnsureMockDataFloorAsync(db, ct);
         }
@@ -132,15 +133,72 @@ public sealed class DbSeeder(
         catch { return false; }
     }
 
-    // Mobile login uses digital_id_number + 6-digit PIN. Stamp `123456`
-    // (bcrypt-hashed) onto the demo cards so the Flutter app's "demo" path
-    // works out of the box. Idempotent — only writes if pin_hash is NULL.
-    private static readonly Guid[] DemoCardIds =
+    // Demo digital ID cards. We re-create these at boot from C# so the
+    // staff /app/digital-ids page always has data even if the operator
+    // never ran 029_seed_mock_data.sql (or a manual DELETE wiped the table).
+    // Tuple shape: card_id, citizen_id, digital_id_number, card_serial,
+    // nfc_uid, did, status. PIN hashes get stamped separately by
+    // EnsureDemoPinHashesAsync.
+    private static readonly (Guid CardId, Guid CitizenId, string Did, string Serial, string NfcUid, string SovDid, string Status)[] DemoCards =
     [
-        Guid.Parse("00000000-0000-0000-0000-000000000301"), // ahmed
-        Guid.Parse("00000000-0000-0000-0000-000000000302"), // fatima
+        (Guid.Parse("00000000-0000-0000-0000-000000000301"),
+         Guid.Parse("00000000-0000-0000-0000-000000000101"),
+         "LY-11-2026-000101-0", "CARD-DEMO-0101", "04A1B2C3D4E5F601", "did:sov:LY:demo:ahmed",  "active"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000302"),
+         Guid.Parse("00000000-0000-0000-0000-000000000102"),
+         "LY-11-2026-000102-0", "CARD-DEMO-0102", "04A1B2C3D4E5F602", "did:sov:LY:demo:fatima", "active"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000303"),
+         Guid.Parse("00000000-0000-0000-0000-000000000103"),
+         "LY-21-2026-000103-0", "CARD-DEMO-0103", "04A1B2C3D4E5F603", "did:sov:LY:demo:khaled", "active"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000304"),
+         Guid.Parse("00000000-0000-0000-0000-000000000104"),
+         "LY-15-2026-000104-0", "CARD-DEMO-0104", "04A1B2C3D4E5F604", "did:sov:LY:demo:layla",  "frozen"),
     ];
+    private static readonly Guid[] DemoCardIds = DemoCards.Select(c => c.CardId).ToArray();
     private const string DemoCardPin = "123456";
+
+    private async Task EnsureDemoCardsAsync(SarhDbContext db, CancellationToken ct)
+    {
+        // Skip silently if the parent citizens haven't been seeded yet — the
+        // FK would fail. EnsureMockDataFloorAsync handles that branch.
+        var existingCitizens = await db.Citizens
+            .Where(c => DemoCards.Select(d => d.CitizenId).Contains(c.Id))
+            .Select(c => c.Id)
+            .ToListAsync(ct);
+        if (existingCitizens.Count == 0) return;
+
+        var existingCards = await db.DigitalIdCards
+            .Where(c => DemoCardIds.Contains(c.Id))
+            .Select(c => c.Id)
+            .ToListAsync(ct);
+
+        var inserted = 0;
+        foreach (var card in DemoCards)
+        {
+            if (existingCards.Contains(card.CardId)) continue;
+            if (!existingCitizens.Contains(card.CitizenId)) continue;
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                INSERT INTO digital_id_cards
+                    (id, citizen_id, digital_id_number, card_serial, nfc_uid, did,
+                     issued_at, expires_at, status)
+                VALUES
+                    ({0}, {1}, {2}, {3}, {4}, {5},
+                     SYSDATETIMEOFFSET(), DATEADD(YEAR, 10, SYSDATETIMEOFFSET()), {6})
+                """,
+                new object[]
+                {
+                    card.CardId, card.CitizenId, card.Did, card.Serial,
+                    card.NfcUid, card.SovDid, card.Status,
+                },
+                ct);
+            inserted++;
+        }
+        if (inserted > 0)
+        {
+            logger.LogInformation("DbSeeder: created {N} demo digital ID card(s).", inserted);
+        }
+    }
 
     private async Task EnsureDemoPinHashesAsync(SarhDbContext db, CancellationToken ct)
     {
