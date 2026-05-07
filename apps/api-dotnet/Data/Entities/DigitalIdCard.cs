@@ -24,6 +24,8 @@ public class DigitalIdCard
     [Column("revoked_reason")] public string? RevokedReason { get; set; }
     [Column("photo_hash")] public string? PhotoHash { get; set; }
     [Column("data_hash")] public string? DataHash { get; set; }
+    [Column("pin_hash")] public string? PinHash { get; set; }
+    [Column("pin_set_at")] public DateTimeOffset? PinSetAt { get; set; }
     [Column("created_at")] public DateTimeOffset CreatedAt { get; set; }
     [Column("updated_at")] public DateTimeOffset UpdatedAt { get; set; }
 }

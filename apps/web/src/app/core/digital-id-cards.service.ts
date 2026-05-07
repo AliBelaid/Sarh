@@ -113,4 +113,16 @@ export class DigitalIdCardsService {
       }),
     );
   }
+
+  resetPin(id: string): Promise<ResetPinResult> {
+    return firstValueFrom(
+      this.http.post<ResetPinResult>(`${API_BASE}/digital-id-cards/${id}/reset-pin`, {}),
+    );
+  }
+}
+
+export interface ResetPinResult {
+  card_id: string;
+  pin: string;
+  set_at: string;
 }

@@ -13,6 +13,12 @@ public sealed class SignInRequest
     public string Password { get; set; } = "";
 }
 
+public sealed class SignInWithPinRequest
+{
+    public string DigitalIdNumber { get; set; } = "";
+    public string Pin { get; set; } = "";
+}
+
 public sealed class SignInUser
 {
     public required string Id { get; init; }
@@ -33,6 +39,66 @@ public sealed class SignInResponse
 
 public sealed class AuthService(SarhDbContext db, JwtTokenService jwt)
 {
+    public async Task<SignInResponse> SignInWithPinAsync(SignInWithPinRequest dto, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(dto.DigitalIdNumber) || string.IsNullOrWhiteSpace(dto.Pin))
+        {
+            throw SarhException.Validation(
+                "رقم الهوية الرقمية ورمز PIN مطلوبان.",
+                "Digital ID number and PIN are required.");
+        }
+
+        var did = dto.DigitalIdNumber.Trim();
+        var card = await db.DigitalIdCards.AsNoTracking()
+            .Where(c => c.DigitalIdNumber == did)
+            .FirstOrDefaultAsync(ct)
+            ?? throw SarhException.Unauthorized();
+
+        if (card.Status is "revoked" or "expired" or "lost")
+            throw SarhException.Unauthorized();
+        if (string.IsNullOrEmpty(card.PinHash))
+            throw SarhException.Unauthorized();
+        if (!BCrypt.Net.BCrypt.Verify(dto.Pin, card.PinHash))
+            throw SarhException.Unauthorized();
+
+        var citizen = await db.Citizens.AsNoTracking()
+            .Where(c => c.Id == card.CitizenId)
+            .FirstOrDefaultAsync(ct)
+            ?? throw SarhException.Unauthorized();
+
+        var authUser = citizen.AuthUserId is Guid auid
+            ? await db.AuthUsers.AsNoTracking().Where(u => u.Id == auid).FirstOrDefaultAsync(ct)
+            : null;
+
+        var payload = new SarhJwtPayload
+        {
+            Sub = (authUser?.Id ?? citizen.Id).ToString(),
+            Email = authUser?.Email ?? $"{did}@digital-id.sarh.ly",
+            SarhRole = "citizen",
+            CitizenId = citizen.Id.ToString(),
+            OfficerId = null,
+        };
+        var (token, expiresIn) = jwt.SignAccessToken(payload);
+
+        var refresh = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48))
+            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
+
+        return new SignInResponse
+        {
+            AccessToken = token,
+            RefreshToken = refresh,
+            ExpiresIn = expiresIn,
+            User = new SignInUser
+            {
+                Id = (authUser?.Id ?? citizen.Id).ToString(),
+                Email = authUser?.Email ?? $"{did}@digital-id.sarh.ly",
+                Role = "citizen",
+                OfficerId = null,
+                CitizenId = citizen.Id.ToString(),
+            },
+        };
+    }
+
     public async Task<SignInResponse> SignInAsync(SignInRequest dto, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))

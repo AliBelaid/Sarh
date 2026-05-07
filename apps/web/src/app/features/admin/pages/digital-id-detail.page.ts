@@ -6,10 +6,10 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '@core/api-config';
 import { Citizen, CitizensService } from '@core/citizens.service';
-import { DigitalIdCard, DigitalIdCardsService } from '@core/digital-id-cards.service';
+import { DigitalIdCard, DigitalIdCardsService, ResetPinResult } from '@core/digital-id-cards.service';
 import { CARD_STATUS, REGIONS } from '../../../shared/status-pills';
 
-type Modal = 'freeze' | 'revoke' | 'reissue' | null;
+type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | null;
 
 @Component({
   selector: 'app-digital-id-detail',
@@ -167,6 +167,12 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | null;
                   إعادة إصدار
                 </button>
               }
+              @if (c.status === 'active' || c.status === 'frozen') {
+                <button class="btn ghost" (click)="openModal('pin')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  إعادة تعيين رمز PIN
+                </button>
+              }
             </div>
           </div>
         </div>
@@ -179,6 +185,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | null;
                   @case ('freeze')  { تجميد البطاقة }
                   @case ('revoke')  { إلغاء البطاقة }
                   @case ('reissue') { إعادة إصدار البطاقة }
+                  @case ('pin')     { إعادة تعيين رمز PIN }
                 }
               </h3>
               <p class="modal-sub">
@@ -186,11 +193,21 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | null;
                   @case ('freeze')  { التجميد يوقف عمل البطاقة مؤقتاً. يمكن إعادة تفعيلها لاحقاً. }
                   @case ('revoke')  { الإلغاء نهائي. لا يمكن استخدام البطاقة بعد ذلك أبداً. }
                   @case ('reissue') { سيتم إصدار بطاقة جديدة بمفاتيح NFC جديدة، وإلغاء البطاقة الحالية. }
+                  @case ('pin')     { سيتم توليد رمز PIN جديد من 6 أرقام. لن يكون بالإمكان استرجاعه لاحقاً — اطبعه أو اكتبه فوراً. }
                 }
               </p>
-              <label class="modal-lbl">السبب</label>
-              <textarea class="modal-input" [(ngModel)]="reason" name="reason" rows="3"
-                        placeholder="أدخل سبب الإجراء (سيتم تسجيله في سجل التدقيق)"></textarea>
+
+              @if (modal() === 'pin' && pinResult(); as pin) {
+                <div class="pin-display">
+                  <div class="pin-label">الرمز الجديد</div>
+                  <div class="pin-value mono">{{ pin.pin }}</div>
+                  <div class="pin-hint">صدر في {{ longDate(pin.set_at) }}</div>
+                </div>
+              } @else if (modal() !== 'pin') {
+                <label class="modal-lbl">السبب</label>
+                <textarea class="modal-input" [(ngModel)]="reason" name="reason" rows="3"
+                          placeholder="أدخل سبب الإجراء (سيتم تسجيله في سجل التدقيق)"></textarea>
+              }
 
               @if (modal() === 'reissue') {
                 <label class="check">
@@ -204,12 +221,16 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | null;
               }
 
               <div class="modal-actions">
-                <button class="btn ghost" (click)="closeModal()" [disabled]="acting()">إلغاء</button>
-                <button class="btn primary" (click)="confirmAction()"
-                        [disabled]="!reason.trim() || acting()">
-                  @if (acting()) { <span class="spin"></span> جارٍ التنفيذ… }
-                  @else { تأكيد }
-                </button>
+                @if (modal() === 'pin' && pinResult()) {
+                  <button class="btn primary" (click)="closeModal()">تم</button>
+                } @else {
+                  <button class="btn ghost" (click)="closeModal()" [disabled]="acting()">إلغاء</button>
+                  <button class="btn primary" (click)="confirmAction()"
+                          [disabled]="(modal() !== 'pin' && !reason.trim()) || acting()">
+                    @if (acting()) { <span class="spin"></span> جارٍ التنفيذ… }
+                    @else { تأكيد }
+                  </button>
+                }
               </div>
             </div>
           </div>
@@ -498,6 +519,18 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | null;
     }
 
     .hint { font-size: 12px; color: var(--muted); margin: 0; }
+
+    .pin-display {
+      margin: 12px 0;
+      padding: 18px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0F172A 0%, #1e293b 100%);
+      color: #fff;
+      text-align: center;
+    }
+    .pin-label { font-size: 11px; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
+    .pin-value { font-size: 36px; font-weight: 800; letter-spacing: 0.4em; margin: 8px 0; }
+    .pin-hint { font-size: 11px; color: #cbd5c8; }
   `],
 })
 export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
@@ -514,6 +547,7 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
   readonly modal = signal<Modal>(null);
   readonly acting = signal(false);
   readonly modalError = signal<string | null>(null);
+  readonly pinResult = signal<ResetPinResult | null>(null);
   reason = '';
   keepNumber = false;
 
@@ -596,12 +630,17 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
     this.reason = '';
     this.keepNumber = false;
     this.modalError.set(null);
+    this.pinResult.set(null);
   }
-  closeModal(): void { this.modal.set(null); }
+  closeModal(): void {
+    this.modal.set(null);
+    this.pinResult.set(null);
+  }
 
   async confirmAction(): Promise<void> {
     const c = this.card();
-    if (!c || !this.reason.trim()) return;
+    if (!c) return;
+    if (this.modal() !== 'pin' && !this.reason.trim()) return;
 
     this.acting.set(true);
     this.modalError.set(null);
@@ -621,6 +660,11 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
           const result = await this.api.reissue(c.id, this.reason.trim(), this.keepNumber);
           this.router.navigate(['/app/digital-ids', result.card.id]);
           return;
+        }
+        case 'pin': {
+          const result = await this.api.resetPin(c.id);
+          this.pinResult.set(result);
+          return; // keep modal open so the issuer can copy the PIN
         }
       }
       this.closeModal();

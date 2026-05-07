@@ -38,6 +38,7 @@ public class Citizen
     [Column("signature_path")] public string? SignaturePath { get; set; }
 
     [Column("created_by")] public Guid? CreatedBy { get; set; }
+    [Column("auth_user_id")] public Guid? AuthUserId { get; set; }
     [Column("is_active")] public bool IsActive { get; set; }
 
     [Column("created_at")] public DateTimeOffset CreatedAt { get; set; }

@@ -39,7 +39,8 @@ const NAV: NavItem[] = [
   { ar: 'الاعتمادات النهائية', en: 'Final approvals', path: '/app/manager/queue', icon: 'nft', roles: ['department_manager', 'super_admin'], group: 'main' },
 
   // ID issuer
-  { ar: 'محطة الإصدار',  en: 'Issue station', path: '/app/issue',     icon: 'issue',     roles: ['id_issuer', 'super_admin'], group: 'main' },
+  { ar: 'محطة الإصدار',   en: 'Issue station', path: '/app/issue',       icon: 'issue',      roles: ['id_issuer', 'super_admin'], group: 'main' },
+  { ar: 'الهويات الرقمية', en: 'Digital IDs',   path: '/app/digital-ids', icon: 'digital-id', roles: ['id_issuer'], group: 'main' },
 
   // Admin / auditor
   { ar: 'العقارات',       en: 'Properties', path: '/app/properties',   icon: 'properties', roles: ['super_admin', 'auditor'], group: 'admin' },

@@ -70,6 +70,7 @@ public sealed class DbSeeder(
             }
 
             await EnsureDemoBcryptHashesAsync(db, ct);
+            await EnsureDemoPinHashesAsync(db, ct);
             await EnsureMockDataFloorAsync(db, ct);
         }
         catch (SqlException ex)
@@ -129,6 +130,43 @@ public sealed class DbSeeder(
     {
         try { return BCrypt.Net.BCrypt.Verify(DemoPassword, hash); }
         catch { return false; }
+    }
+
+    // Mobile login uses digital_id_number + 6-digit PIN. Stamp `123456`
+    // (bcrypt-hashed) onto the demo cards so the Flutter app's "demo" path
+    // works out of the box. Idempotent — only writes if pin_hash is NULL.
+    private static readonly Guid[] DemoCardIds =
+    [
+        Guid.Parse("00000000-0000-0000-0000-000000000301"), // ahmed
+        Guid.Parse("00000000-0000-0000-0000-000000000302"), // fatima
+    ];
+    private const string DemoCardPin = "123456";
+
+    private async Task EnsureDemoPinHashesAsync(SarhDbContext db, CancellationToken ct)
+    {
+        var hash = BCrypt.Net.BCrypt.HashPassword(DemoCardPin, 10);
+        var stamped = 0;
+        foreach (var cardId in DemoCardIds)
+        {
+            var current = await db.DigitalIdCards
+                .Where(c => c.Id == cardId)
+                .Select(c => c.PinHash)
+                .FirstOrDefaultAsync(ct);
+            // Skip if a valid bcrypt hash for "123456" already lives there.
+            if (!string.IsNullOrEmpty(current))
+            {
+                try { if (BCrypt.Net.BCrypt.Verify(DemoCardPin, current)) continue; }
+                catch { /* fall through and rewrite */ }
+            }
+            var n = await db.Database.ExecuteSqlRawAsync(
+                "UPDATE digital_id_cards SET pin_hash = {0}, pin_set_at = SYSDATETIMEOFFSET(), updated_at = SYSDATETIMEOFFSET() WHERE id = {1}",
+                new object[] { hash, cardId }, ct);
+            if (n > 0) stamped++;
+        }
+        if (stamped > 0)
+        {
+            logger.LogInformation("DbSeeder: stamped demo PIN ({Pin}) onto {N} card(s).", DemoCardPin, stamped);
+        }
     }
 
     private async Task EnsureMockDataFloorAsync(SarhDbContext db, CancellationToken ct)

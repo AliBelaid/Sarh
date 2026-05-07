@@ -39,4 +39,10 @@ public class DigitalIdCardsController(DigitalIdCardsService cards) : ControllerB
     [Audit(Action = AuditActions.IssueId, Entity = "digital_id_cards", EntityIdFrom = "card.id")]
     public Task<IssueCardResult> Reissue(Guid id, [FromBody] ReissueCardDto dto, CancellationToken ct)
         => cards.ReissueAsync(id, dto, User.RequireUser(), ct);
+
+    [HttpPost("{id:guid}/reset-pin")]
+    [OfficerOnly("id_issuer", "super_admin")]
+    [Audit(Action = AuditActions.Update, Entity = "digital_id_cards")]
+    public Task<ResetPinResult> ResetPin(Guid id, CancellationToken ct)
+        => cards.ResetPinAsync(id, User.RequireUser(), ct);
 }

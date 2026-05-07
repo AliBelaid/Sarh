@@ -52,6 +52,11 @@ const TILES: Tile[] = [
     roles: ['id_issuer', 'super_admin'],
   },
   {
+    ar: 'البطاقات المُصدرة', desc: 'استعراض وإدارة كل بطاقات الهوية الرقمية.',
+    path: '/app/digital-ids', icon: 'id', accent: 'sky',
+    roles: ['id_issuer'],
+  },
+  {
     ar: 'إعادة إصدار', desc: 'استبدال بطاقة هوية مفقودة أو منتهية.',
     path: '/app/issue/reissue', icon: 'refresh', accent: 'warn',
     roles: ['id_issuer', 'super_admin'],
