@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 028_property_nfts_ownership_history.sql
 --
 -- On-chain property licence support. Each approved property may be tokenised

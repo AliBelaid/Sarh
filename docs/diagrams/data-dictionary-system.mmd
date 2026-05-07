@@ -1,0 +1,13 @@
+﻿---
+title: Sarh — Data Dictionary · System
+---
+flowchart TB
+
+    ROOT([System domain])
+
+    NTF["<b>notifications</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id · UNIQUEIDENTIFIER<br/><b>FK</b> recipient_citizen_id · NULL → citizens<br/><b>FK</b> recipient_officer_id · NULL → officers<br/>kind · sms / push / email / in_app<br/>title_ar · body_ar<br/>payload · JSON<br/>sent_at · read_at<br/>delivery_status · queued / sent / failed"]
+
+    AUD["<b>audit_log</b> · append-only<br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id · BIGINT IDENTITY<br/><b>FK</b> actor_user_id → auth_users<br/>action · entity · entity_id<br/>before_state · JSON<br/>after_state · JSON<br/>occurred_at<br/>━━━━━━━━━━━━━━━━━━━<br/>UPDATE / DELETE blocked by INSTEAD-OF triggers"]
+
+    ROOT --> NTF
+    ROOT --> AUD

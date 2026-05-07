@@ -1,6 +1,6 @@
-<#
+﻿<#
 .SYNOPSIS
-  Run Sarh SQL Server migrations in order.
+  Run sarh SQL Server migrations in order.
 
 .DESCRIPTION
   Replaces `supabase db reset`. Iterates files in

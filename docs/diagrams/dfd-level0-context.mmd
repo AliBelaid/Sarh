@@ -1,21 +1,18 @@
----
+﻿---
 title: Sarh — Data-flow Context diagram (DFD Level 0 / Single process)
 ---
 flowchart LR
-    classDef ext   fill:#bae6fd,stroke:#0284c7,color:#0c4a6e
-    classDef sarh  fill:#0F172A,stroke:#000,color:#F97316,rx:80,ry:80
-    classDef svc   fill:#fef3c7,stroke:#f59e0b,color:#78350f
 
-    Citizen[Citizen]:::ext
-    Officer[Registry officer]:::ext
-    Manager[Department manager]:::ext
+    Citizen[Citizen]
+    Officer[Registry officer]
+    Manager[Department manager]
 
-    SARH(((Sarh Platform))):::sarh
+    SARH(((Sarh Platform)))
 
-    SSI[SSI Provider]:::svc
-    MAP[Map Service API]:::svc
-    NOTIF[Notification Service]:::svc
-    NFT[NFT Minting Service<br/>Smart Contract]:::svc
+    SSI[SSI Provider]
+    MAP[Map Service API]
+    NOTIF[Notification Service]
+    NFT[NFT Minting Service<br/>Smart Contract]
 
     Citizen -->|"Land docs + GPS coords"| SARH
     SARH -->|"Profile + identity info"| Citizen

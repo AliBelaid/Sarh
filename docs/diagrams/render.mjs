@@ -15,7 +15,7 @@ const b64url = (s) =>
     .replace(/=+$/, '');
 
 async function tryMermaidInk(body) {
-  const url = `https://mermaid.ink/img/${b64url(body)}?type=png&bgColor=FBFAF6`;
+  const url = `https://mermaid.ink/img/${b64url(body)}?type=png&bgColor=FFFFFF`;
   const res = await fetch(url);
   if (!res.ok) return { ok: false, status: res.status };
   return { ok: true, buf: Buffer.from(await res.arrayBuffer()) };
@@ -49,7 +49,7 @@ for (const name of targets) {
   process.stdout.write(`Rendering ${name} ... `);
   try {
     let r = await tryMermaidInk(body);
-    if (!r.ok && (r.status === 414 || r.status >= 500)) {
+    if (!r.ok) {
       process.stdout.write(`mermaid.ink ${r.status}, retrying via kroki ... `);
       r = await tryKroki(body);
     }

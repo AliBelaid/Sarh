@@ -1,0 +1,31 @@
+﻿---
+title: Sarh — Organisational chart (Head of Digital Land Registry)
+---
+flowchart TB
+
+    HEAD["Head of Digital Land Registry<br/>(General Manager / GEO)"]
+
+    HEAD --> DEPT_LEGAL["Legal &amp; Notary Dept"]
+    HEAD --> DEPT_TECH["Technical &amp; GIS Dept"]
+    HEAD --> DEPT_IT["IT &amp; Blockchain Dept"]
+    HEAD --> DEPT_CIT["Citizen Service Dept"]
+
+    DEPT_LEGAL --> R_LEGAL["Legal &amp; Notary Officer"]
+
+    DEPT_TECH --> R_GIS["GIS Specialist"]
+    DEPT_TECH --> R_SURV["Site Surveyor (Optional)"]
+
+    DEPT_IT --> R_BLOCK["Blockchain &amp; Smart-Contract Developer"]
+    DEPT_IT --> R_SEC["Data &amp; Network Security Officer"]
+    DEPT_IT --> R_UX["UI / UX Developer"]
+
+    DEPT_CIT --> R_SUPPORT["Technical Support Officer"]
+    DEPT_CIT --> R_REV["Registration Reviewer"]
+
+    %% External actors (dashed) wired in where they touch the org.
+    CITIZEN["The Citizen / Landowner"]
+    STAKE["Governmental Entities &amp; Banks · Stakeholders"]
+
+    R_LEGAL -.-> CITIZEN
+    R_REV   -.-> CITIZEN
+    DEPT_CIT -.-> STAKE

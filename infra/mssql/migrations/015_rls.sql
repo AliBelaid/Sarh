@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 015_rls.sql — Row Level Security (lift-and-shift from Postgres)
 --
 -- Authorization design changes for SQL Server:

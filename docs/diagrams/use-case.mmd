@@ -1,41 +1,38 @@
----
+﻿---
 title: Sarh — Use-case diagram (مخطط حالات الاستخدام)
 ---
 flowchart LR
-    classDef actor fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
-    classDef usecase fill:#FBFAF6,stroke:#0F172A,color:#0F172A,rx:18,ry:18
-    classDef external fill:#fef3c7,stroke:#f59e0b,color:#78350f
 
-    Citizen([Citizen]):::actor
-    Officer([Registry officer]):::actor
-    Manager([Department manager]):::actor
+    Citizen([Citizen])
+    Officer([Registry officer])
+    Manager([Department manager])
 
-    SSI[/SSI Provider<br/>ACA-Py/]:::external
-    MAP[/Map Service API<br/>OSM + Mapbox/]:::external
-    NOTIF[/Notification Service<br/>SMS / Email / Push/]:::external
-    NFT[/NFT Minting Service<br/>Ethereum / Hyperledger/]:::external
-    IPFS[/IPFS Pinning/]:::external
+    SSI[/SSI Provider<br/>ACA-Py/]
+    MAP[/Map Service API<br/>OSM + Mapbox/]
+    NOTIF[/Notification Service<br/>SMS / Email / Push/]
+    NFT[/NFT Minting Service<br/>Ethereum / Hyperledger/]
+    IPFS[/IPFS Pinning/]
 
     subgraph SARH[Sarh Platform]
-        UC1((Register / Sign-in)):::usecase
-        UC2((Verify identity via SSI VC)):::usecase
-        UC3((Submit land claim)):::usecase
-        UC4((Pin property location on map)):::usecase
-        UC5((Spatial conflict check)):::usecase
-        UC6((Browse map of approved properties)):::usecase
-        UC7((Track application status)):::usecase
-        UC8((View digital wallet)):::usecase
-        UC9((List property for sale)):::usecase
-        UC10((Verify deed / NFT via QR)):::usecase
-        UC11((Request purchase)):::usecase
-        UC12((Verify documents)):::usecase
-        UC13((Generate technical map)):::usecase
-        UC14((Recommend approval)):::usecase
-        UC15((Final approval + decree)):::usecase
-        UC16((Mint NFT licence)):::usecase
-        UC17((Issue PAdES-signed deed)):::usecase
-        UC18((Issue / re-issue digital ID card)):::usecase
-        UC19((Audit log review)):::usecase
+        UC1((Register / Sign-in))
+        UC2((Verify identity via SSI VC))
+        UC3((Submit land claim))
+        UC4((Pin property location on map))
+        UC5((Spatial conflict check))
+        UC6((Browse map of approved properties))
+        UC7((Track application status))
+        UC8((View digital wallet))
+        UC9((List property for sale))
+        UC10((Verify deed / NFT via QR))
+        UC11((Request purchase))
+        UC12((Verify documents))
+        UC13((Generate technical map))
+        UC14((Recommend approval))
+        UC15((Final approval + decree))
+        UC16((Mint NFT licence))
+        UC17((Issue PAdES-signed deed))
+        UC18((Issue / re-issue digital ID card))
+        UC19((Audit log review))
     end
 
     Citizen --- UC1

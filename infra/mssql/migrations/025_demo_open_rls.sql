@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 025_demo_open_rls.sql — Postgres-only migration; not needed on SQL Server.
 --
 -- The original opened RLS for the demo flow. SQL Server replaces RLS with

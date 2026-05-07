@@ -13,7 +13,11 @@
     "lint": "pnpm -r lint",
     "dev:api": "dotnet run --project apps/api-dotnet/Sarh.Api.csproj",
     "dev:web": "pnpm --filter @sarh/web start",
-    "db:reset": "pwsh ./scripts/db/run-migrations.ps1 -Server localhost -Reset"
+    "db:reset": "pwsh ./scripts/db/run-migrations.ps1 -Server localhost -Reset",
+    "diagrams:render": "node docs/diagrams/render.mjs && node docs/diagrams/render-a4.mjs",
+    "diagrams:classic": "node docs/diagrams/render-classic-local.mjs",
+    "diagrams:pdf": "node docs/print-diagrams-pdf.mjs",
+    "diagrams:pdf:classic": "node docs/print-classic-pdf.mjs"
   },
   "devDependencies": {
     "typescript": "5.4.5"

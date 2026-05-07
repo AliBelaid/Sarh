@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>صَرح — مخططات النظام (Classic UML · A4)</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm; }
+
+    :root {
+      --ink:    #000000;
+      --muted:  #444444;
+      --line:   #000000;
+      --bg:     #FFFFFF;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Cairo", system-ui, sans-serif;
+      font-size: 11pt;
+      line-height: 1.5;
+    }
+
+    .page {
+      page-break-after: always;
+      padding: 6mm 0;
+      min-height: calc(297mm - 28mm);
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+    }
+    .page:last-child { page-break-after: auto; }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1.5px solid var(--ink);
+      padding-bottom: 4mm;
+      margin-bottom: 6mm;
+    }
+    .page-header .title-en {
+      font-size: 14pt;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      direction: ltr;
+      color: var(--ink);
+    }
+    .page-header .title-ar {
+      font-size: 13pt;
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .diagram-image {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .diagram-image img {
+      max-width: 100%;
+      max-height: 240mm;
+      object-fit: contain;
+      background: white;
+    }
+
+    .diagram-caption {
+      margin-top: 5mm;
+      padding-top: 4mm;
+      border-top: 1px solid var(--ink);
+      color: var(--muted);
+      font-size: 10pt;
+      direction: ltr;
+      text-align: left;
+    }
+    .diagram-caption .ar { direction: rtl; text-align: right; margin-bottom: 2mm; color: var(--ink); }
+
+    /* Cover — pure white, no gradient */
+    .cover {
+      page-break-after: always;
+      min-height: calc(297mm - 28mm);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 0 12mm;
+      background: var(--bg);
+    }
+    .cover .crest {
+      font-size: 60pt;
+      color: var(--ink);
+      line-height: 1;
+      margin-bottom: 8mm;
+      border: 2px solid var(--ink);
+      width: 30mm; height: 30mm;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+    }
+    .cover .name-ar {
+      font-size: 48pt;
+      font-weight: 800;
+      color: var(--ink);
+      margin: 0;
+    }
+    .cover .name-en {
+      font-size: 18pt;
+      direction: ltr;
+      color: var(--ink);
+      margin-top: 4mm;
+      letter-spacing: 2px;
+    }
+    .cover .subtitle-ar {
+      margin-top: 14mm;
+      font-size: 18pt;
+      color: var(--muted);
+    }
+    .cover .subtitle-en {
+      margin-top: 3mm;
+      direction: ltr;
+      color: var(--muted);
+      font-size: 12pt;
+    }
+    .cover .meta {
+      margin-top: 30mm;
+      direction: ltr;
+      color: var(--muted);
+      font-size: 10pt;
+      border-top: 1px solid var(--ink);
+      padding-top: 4mm;
+    }
+
+    /* Section divider — pure white, no gradient */
+    .divider {
+      page-break-after: always;
+      min-height: calc(297mm - 28mm);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: var(--bg);
+      padding: 0 12mm;
+    }
+    .divider .num {
+      font-size: 96pt;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 1;
+      border-bottom: 2px solid var(--ink);
+      padding: 0 14mm 4mm;
+    }
+    .divider .heading-ar {
+      font-size: 28pt;
+      font-weight: 700;
+      color: var(--ink);
+      margin-top: 10mm;
+    }
+    .divider .heading-en {
+      font-size: 16pt;
+      direction: ltr;
+      color: var(--ink);
+      margin-top: 4mm;
+      letter-spacing: 1.5px;
+    }
+    .divider .blurb {
+      max-width: 130mm;
+      margin-top: 12mm;
+      color: var(--muted);
+      font-size: 11pt;
+    }
+
+    /* TOC — pure white */
+    .toc {
+      page-break-after: always;
+      padding: 6mm 0;
+      background: var(--bg);
+    }
+    .toc h1 {
+      font-size: 22pt;
+      color: var(--ink);
+      margin: 0 0 8mm 0;
+      border-bottom: 1.5px solid var(--ink);
+      padding-bottom: 3mm;
+    }
+    .toc ol { padding-inline-start: 8mm; }
+    .toc li { margin-bottom: 3mm; font-size: 11pt; }
+    .toc .section-title {
+      font-weight: 700;
+      color: var(--ink);
+      margin-top: 5mm;
+    }
+    .toc .latin { direction: ltr; color: var(--muted); font-size: 10pt; }
+  </style>
+</head>
+<body>
+
+<!-- Cover -->
+<section class="cover">
+  <div class="crest">⚖</div>
+  <h1 class="name-ar">صَرح</h1>
+  <div class="name-en">SARH</div>
+  <div class="subtitle-ar">المخططات الفنية للنظام</div>
+  <div class="subtitle-en">SYSTEM DIAGRAMS · CLASSIC UML · A4 EDITION</div>
+  <div class="meta">
+    LVCT — Libya Vision for Communication &amp; Technology<br/>
+    Version 1.1 · 2026-05-07
+  </div>
+</section>
+
+<!-- TOC -->
+<section class="toc">
+  <h1>المحتويات · Contents</h1>
+  <ol>
+    <li class="section-title">القسم 1 · Use case &amp; org chart</li>
+    <li>1.1 Use-case diagram <span class="latin">— مخطط حالات الاستخدام</span></li>
+    <li>1.2 Organisational chart <span class="latin">— الهيكل التنظيمي</span></li>
+
+    <li class="section-title">القسم 2 · Conceptual + logical ERD</li>
+    <li>2.1 Conceptual ERD (Chen-style) <span class="latin">— المخطط المفاهيمي</span></li>
+    <li>2.2 Logical ERD · Identity cluster</li>
+    <li>2.3 Logical ERD · Property cluster</li>
+    <li>2.4 Logical ERD · System cluster</li>
+
+    <li class="section-title">القسم 3 · Data dictionary (tree)</li>
+    <li>3.1 Identity domain</li>
+    <li>3.2 Property + On-chain domain</li>
+    <li>3.3 System domain</li>
+
+    <li class="section-title">القسم 4 · Class diagram &amp; data flow</li>
+    <li>4.1 Class diagram (.NET 8 backend)</li>
+    <li>4.2 DFD · Level 0 (context)</li>
+    <li>4.3 DFD · Level 1</li>
+    <li>4.4 DFD · Level 2 (spatial)</li>
+    <li>4.5 System flow (end-to-end)</li>
+
+    <li class="section-title">القسم 5 · Sequence diagrams</li>
+    <li>5.1 Sign-in</li>
+    <li>5.2 Property approval (1/3) · Submit + Review + Manager approval</li>
+    <li>5.3 Property approval (2/3) · Deed PDF + SSI + IPFS + NFT mint</li>
+    <li>5.4 Property approval (3/3) · Delivery + public verify</li>
+    <li>5.5 Property approval · full reference (overview)</li>
+    <li>5.6 ID-card issuance (5-step wizard)</li>
+
+    <li class="section-title">القسم 6 · User journeys</li>
+    <li>6.1 Citizen journey</li>
+    <li>6.2 Officer + Manager journey</li>
+  </ol>
+</section>
+
+<!-- Section 1 -->
+<section class="divider">
+  <div class="num">01</div>
+  <div class="heading-ar">حالات الاستخدام والهيكل التنظيمي</div>
+  <div class="heading-en">USE CASE &amp; ORG CHART</div>
+  <p class="blurb">
+    Maps the actors and use-cases the platform exposes, plus the
+    organisational structure of the Digital Land Registry.
+  </p>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">1.1 · مخطط حالات الاستخدام</span>
+    <span class="title-en">Use-case diagram</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/use-case.png" alt="Use-case diagram"/></div>
+  <div class="diagram-caption">
+    <div class="ar">يوضّح المخطط الفاعلين الرئيسيين (المواطن، موظف السجل، مدير القسم) و١٩ حالة استخدام داخل المنصة، مع الأنظمة الخارجية (SSI، Map، Notification، NFT minting، IPFS).</div>
+    Citizen / Registry officer / Department manager actors against 19 use-cases inside the platform, with external systems.
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">1.2 · الهيكل التنظيمي</span>
+    <span class="title-en">Organisational chart</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/org-chart.png" alt="Org chart"/></div>
+  <div class="diagram-caption">
+    <div class="ar">رئيس مصلحة السجل العقاري الرقمي ← أربعة أقسام (الشؤون القانونية والتوثيق، التقني وGIS، تقنية المعلومات والبلوكتشين، خدمة المواطن) ← الأدوار، مع المواطن وأصحاب المصلحة كأطراف خارجية.</div>
+    Head of Digital Land Registry → 4 departments → individual roles, with the Citizen / Landowner and Stakeholders shown as external actors.
+  </div>
+</section>
+
+<!-- Section 2 -->
+<section class="divider">
+  <div class="num">02</div>
+  <div class="heading-ar">المخطط المفاهيمي والمنطقي</div>
+  <div class="heading-en">CONCEPTUAL + LOGICAL ERD</div>
+  <p class="blurb">
+    Chen-style entities + relationships, and the full SQL Server schema split
+    into three printable clusters with explicit PK / FK / UK markers.
+  </p>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">2.1 · المخطط المفاهيمي (Chen-style)</span>
+    <span class="title-en">Conceptual ERD</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/conceptual-erd.png" alt="Conceptual ERD"/></div>
+  <div class="diagram-caption">
+    <div class="ar">كيانات (مستطيلات)، علاقات (معينات)، وصفات أساسية (بيضاوي). يشمل PROPERTY_NFT وOWNERSHIP_HISTORY وBLOCKCHAIN_TX وSMART_CONTRACT والدور الجديد DEPARTMENT_MANAGER.</div>
+    Chen notation — entities (rectangles), relationships (diamonds), key attributes (ovals). Includes the on-chain licence flow and the third human role.
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">2.2 · المخطط المنطقي · مجموعة الهوية</span>
+    <span class="title-en">Logical ERD · Identity cluster</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/db-schema-identity.png" alt="Identity ERD"/></div>
+  <div class="diagram-caption">
+    auth_users, citizens, officers, regions, municipalities, digital_id_cards,
+    nfc_card_secrets, ssi_wallets, ssi_credentials, id_issuance_history.
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">2.3 · المخطط المنطقي · مجموعة العقارات</span>
+    <span class="title-en">Logical ERD · Property cluster</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/db-schema-property.png" alt="Property ERD"/></div>
+  <div class="diagram-caption">
+    properties, registration_requests, review_comments, property_documents,
+    property_nfts, ownership_history.
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">2.4 · المخطط المنطقي · مجموعة النظام</span>
+    <span class="title-en">Logical ERD · System cluster</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/db-schema-system.png" alt="System ERD"/></div>
+  <div class="diagram-caption">
+    notifications + audit_log (append-only via INSTEAD-OF triggers).
+  </div>
+</section>
+
+<!-- Section 3 -->
+<section class="divider">
+  <div class="num">03</div>
+  <div class="heading-ar">قاموس البيانات (شجرة)</div>
+  <div class="heading-en">DATA DICTIONARY · TREE VIEW</div>
+  <p class="blurb">
+    Each table rendered as one rich node showing PK / FK / UK markers, the
+    data type, and the workflow enum values. Three printable trees split by
+    domain.
+  </p>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">3.1 · قاموس البيانات · مجال الهوية</span>
+    <span class="title-en">Data Dictionary · Identity domain</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/data-dictionary-identity.png" alt="Identity dictionary"/></div>
+  <div class="diagram-caption">
+    auth_users · citizens · officers · regions · digital_id_cards · ssi_*
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">3.2 · قاموس البيانات · مجال العقارات والبلوكتشين</span>
+    <span class="title-en">Data Dictionary · Property + On-chain domain</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/data-dictionary-property.png" alt="Property dictionary"/></div>
+  <div class="diagram-caption">
+    properties · registration_requests · review_comments · property_documents · property_nfts · ownership_history.
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">3.3 · قاموس البيانات · مجال النظام</span>
+    <span class="title-en">Data Dictionary · System domain</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/data-dictionary-system.png" alt="System dictionary"/></div>
+  <div class="diagram-caption">notifications · audit_log.</div>
+</section>
+
+<!-- Section 4 -->
+<section class="divider">
+  <div class="num">04</div>
+  <div class="heading-ar">مخطط الفئات وتدفق البيانات</div>
+  <div class="heading-en">CLASS DIAGRAM &amp; DFD</div>
+  <p class="blurb">
+    The .NET 8 backend domain expressed as a UML class diagram, and three
+    levels of data-flow — context, sub-processes, and the spatial-audit
+    decomposition.
+  </p>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">4.1 · مخطط الفئات (UML)</span>
+    <span class="title-en">Class diagram (.NET 8 backend)</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/class-diagram.png" alt="Class diagram"/></div>
+  <div class="diagram-caption">
+    Citizen, Officer, DepartmentManager, Property, RegistrationRequest, PropertyNft, OwnershipHistory,
+    BlockchainService, SmartContract, IpfsService, DigitalIdCard, NfcCardSecret, SsiWallet, SsiCredential,
+    JwtTokenService, StorageService, PadesSigner.
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">4.2 · تدفق البيانات · المستوى ٠</span>
+    <span class="title-en">DFD · Level 0 (context)</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/dfd-level0-context.png" alt="DFD L0"/></div>
+  <div class="diagram-caption">
+    Sarh Platform as a single process with all external entities (Citizen, Registry officer, Department manager, SSI, Map, Notification, NFT minting service).
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">4.3 · تدفق البيانات · المستوى ١</span>
+    <span class="title-en">DFD · Level 1</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/dfd-level1.png" alt="DFD L1"/></div>
+  <div class="diagram-caption">
+    Five main processes (Account &amp; Identity, Land Claim Processing, Spatial Auditing, NFT Documentation &amp; Minting, Notifications) with data stores including <code>D3 Blockchain Ledger</code>.
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">4.4 · تدفق البيانات · المستوى ٢ (التدقيق المكاني)</span>
+    <span class="title-en">DFD · Level 2 (spatial)</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/dfd-level2-spatial.png" alt="DFD L2"/></div>
+  <div class="diagram-caption">
+    Decomposition of process 3.0 — Document Review → Spatial Conflict Check → Technical Map Generation → Status Update.
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">4.5 · تدفق النظام الشامل</span>
+    <span class="title-en">System flow (end-to-end)</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/system-flow.png" alt="System flow"/></div>
+  <div class="diagram-caption">
+    citizen → officer → manager → ID issuer → admin, with the .NET 8 API, SQL Server, ACA-Py, IPFS, and the blockchain at the centre.
+  </div>
+</section>
+
+<!-- Section 5 -->
+<section class="divider">
+  <div class="num">05</div>
+  <div class="heading-ar">مخططات التسلسل</div>
+  <div class="heading-en">SEQUENCE DIAGRAMS</div>
+  <p class="blurb">
+    Step-by-step walk-throughs for sign-in, property approval (split into
+    submit / mint / verify so each fits on A4), and ID-card issuance.
+  </p>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">5.1 · تسجيل الدخول</span>
+    <span class="title-en">Sign-in</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/sequence-signin.png" alt="Sign-in sequence"/></div>
+  <div class="diagram-caption">
+    POST /api/v1/auth/sign-in from browser → proxy → AuthController → BCrypt.Verify → JWT issuance.
+  </div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">5.2 · موافقة العقار (١ / ٣) · التقديم والمراجعة والاعتماد</span>
+    <span class="title-en">Property approval (1/3) · Submit + Review + Manager approval</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/sequence-property-submit-review.png" alt="Submit / review / approve"/></div>
+  <div class="diagram-caption">Citizen submission → Registry-officer recommendation → Department-manager final approval (with decree number).</div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">5.3 · موافقة العقار (٢ / ٣) · السند الإلكتروني وسك NFT</span>
+    <span class="title-en">Property approval (2/3) · Deed PDF + SSI + IPFS + NFT mint</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/sequence-property-mint.png" alt="Mint sequence"/></div>
+  <div class="diagram-caption">PAdES-signed deed → SSI VC issuance → IPFS pin → ERC-721 mint on-chain.</div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">5.4 · موافقة العقار (٣ / ٣) · التسليم والتحقق العام</span>
+    <span class="title-en">Property approval (3/3) · Delivery + public verify</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/sequence-property-verify.png" alt="Verify sequence"/></div>
+  <div class="diagram-caption">Citizen download (signed PDF + QR) → public verifier scans → API checks PDF hash + on-chain ownerOf.</div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">5.5 · موافقة العقار · مرجع شامل</span>
+    <span class="title-en">Property approval · full reference</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/sequence-property-approval.png" alt="Full sequence"/></div>
+  <div class="diagram-caption">Combined sequence including all 12 participants and 6 phases. Dense — split versions (5.2 – 5.4) are easier to read.</div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">5.6 · إصدار البطاقة الرقمية</span>
+    <span class="title-en">ID-card issuance (5-step wizard)</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/sequence-id-issuance.png" alt="ID issuance"/></div>
+  <div class="diagram-caption">Wizard → citizen create → card issue → NFC encode → SSI VC → print.</div>
+</section>
+
+<!-- Section 6 -->
+<section class="divider">
+  <div class="num">06</div>
+  <div class="heading-ar">رحلات المستخدم</div>
+  <div class="heading-en">USER JOURNEYS</div>
+  <p class="blurb">
+    The two end-to-end journeys built into the platform — citizen registering
+    a property and receiving an NFT licence, and officer/manager approving
+    submissions and triggering minting.
+  </p>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">6.1 · رحلة المواطن</span>
+    <span class="title-en">Citizen journey</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/user-flow-citizen.png" alt="Citizen journey"/></div>
+  <div class="diagram-caption">Landing → sign in → register property → wait for officer + manager → receive deed + NFT licence. Includes "My Wallet (NFT licences)" branch.</div>
+</section>
+
+<section class="page">
+  <header class="page-header">
+    <span class="title-ar">6.2 · رحلة الموظف ومدير القسم</span>
+    <span class="title-en">Officer + Department-manager journey</span>
+  </header>
+  <div class="diagram-image"><img src="diagrams-classic/user-flow-officer.png" alt="Officer journey"/></div>
+  <div class="diagram-caption">Officer queue → review → recommend; manager approval queue → final approve → triggers PAdES + SSI + IPFS + mint chain.</div>
+</section>
+
+</body>
+</html>

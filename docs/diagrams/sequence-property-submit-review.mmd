@@ -1,0 +1,41 @@
+﻿---
+title: Sarh — Property approval (1/3) · Submission + Officer review + Manager approval
+---
+sequenceDiagram
+    autonumber
+    actor C as Citizen
+    actor O as Registry officer
+    actor M as Department<br/>Manager
+    participant W as apps/web (Angular)
+    participant API as .NET 8 API
+    participant DB as SQL Server
+
+    Note over C,DB: 1) Submission
+    C->>W: fill form + draw polygon
+    W->>API: POST /api/v1/properties { polygon, area, docs }
+    API->>DB: INSERT properties (status='pending')
+    API->>DB: INSERT registration_requests
+    DB-->>API: property_id, request_no
+    API-->>W: 201 SubmitResult
+
+    Note over O,DB: 2) Officer review (technical + spatial)
+    O->>W: open /app/queue
+    W->>API: GET /api/v1/properties?status=pending
+    API->>DB: SELECT
+    DB-->>W: list
+    O->>W: open detail, read docs, view map, run conflict check
+    O->>W: click "Recommend approval" + technical note
+    W->>API: POST /api/v1/properties/:id/review { decision: 'recommend_approval' }
+    API->>DB: UPDATE properties SET status='under_review',<br/>reviewed_by_officer_id
+    DB->>DB: AFTER UPDATE trigger → audit_log INSERT
+
+    Note over M,DB: 3) Department Manager final approval
+    M->>W: open /app/approvals
+    W->>API: GET /api/v1/properties?status=under_review
+    API->>DB: SELECT
+    DB-->>W: list
+    M->>W: review officer recommendation + decree no
+    M->>W: click "Final approve"
+    W->>API: POST /api/v1/properties/:id/final-approve { approval_decree_no }
+    API->>DB: UPDATE properties SET status='approved',<br/>approved_by_manager_id, approval_decree_no
+    DB->>DB: audit_log INSERT

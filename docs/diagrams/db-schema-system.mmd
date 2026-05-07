@@ -1,0 +1,31 @@
+﻿---
+title: Sarh — Logical ERD · System cluster (notifications, audit log)
+---
+erDiagram
+    auth_users          ||--o{ audit_log             : "actor"
+    citizens            ||--o{ notifications         : "recipient"
+    officers            ||--o{ notifications         : "recipient"
+
+    notifications {
+        UNIQUEIDENTIFIER id                   PK
+        UNIQUEIDENTIFIER recipient_citizen_id FK
+        UNIQUEIDENTIFIER recipient_officer_id FK
+        NVARCHAR         kind                 "sms/push/email/in_app"
+        NVARCHAR         title_ar
+        NVARCHAR_MAX     body_ar
+        NVARCHAR_MAX     payload              "JSON"
+        DATETIMEOFFSET   sent_at
+        DATETIMEOFFSET   read_at
+        NVARCHAR         delivery_status
+    }
+
+    audit_log {
+        BIGINT           id              PK "IDENTITY"
+        UNIQUEIDENTIFIER actor_user_id   FK
+        NVARCHAR         action
+        NVARCHAR         entity
+        UNIQUEIDENTIFIER entity_id
+        NVARCHAR_MAX     before_state    "JSON · append-only"
+        NVARCHAR_MAX     after_state     "JSON · append-only"
+        DATETIMEOFFSET   occurred_at
+    }

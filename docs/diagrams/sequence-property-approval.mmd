@@ -1,4 +1,4 @@
----
+﻿---
 title: Sarh — Property submission, review, manager approval, NFT minting, and verify
 ---
 sequenceDiagram
@@ -17,7 +17,6 @@ sequenceDiagram
     participant SC as Smart Contract<br/>(ERC-721)
     actor V as Public verifier
 
-    rect rgb(239, 246, 255)
     Note over C,DB: 1) Submission
     C->>W: fill form + draw polygon
     W->>API: POST /api/v1/properties { polygon, area, docs }
@@ -25,9 +24,7 @@ sequenceDiagram
     API->>DB: INSERT registration_requests
     DB-->>API: property_id, request_no
     API-->>W: 201 SubmitResult
-    end
 
-    rect rgb(254, 252, 232)
     Note over O,DB: 2) Officer review (technical + spatial)
     O->>W: open /app/queue
     W->>API: GET /api/v1/properties?status=pending
@@ -38,9 +35,7 @@ sequenceDiagram
     W->>API: POST /api/v1/properties/:id/review { decision: 'recommend_approval' }
     API->>DB: UPDATE properties SET status='under_review',<br/>reviewed_by_officer_id
     DB->>DB: AFTER UPDATE trigger → audit_log INSERT
-    end
 
-    rect rgb(252, 231, 243)
     Note over M,DB: 3) Department Manager final approval
     M->>W: open /app/approvals
     W->>API: GET /api/v1/properties?status=under_review
@@ -51,9 +46,7 @@ sequenceDiagram
     W->>API: POST /api/v1/properties/:id/final-approve { approval_decree_no }
     API->>DB: UPDATE properties SET status='approved',<br/>approved_by_manager_id, approval_decree_no
     DB->>DB: audit_log INSERT
-    end
 
-    rect rgb(236, 253, 245)
     Note over API,SSI: 4) Deed PDF + SSI VC issuance
     API->>PDF: generate deed PDF<br/>(citizen, polygon, decree)
     PDF-->>API: signed PAdES bytes + SHA256
@@ -62,9 +55,7 @@ sequenceDiagram
     API->>SSI: issue VC (PropertyDeed) for citizen DID
     SSI-->>API: credential_id
     API->>DB: UPDATE properties SET vc_credential_id
-    end
 
-    rect rgb(224, 231, 255)
     Note over API,SC: 5) NFT licence minting on blockchain
     API->>API: build token metadata<br/>(propertyCode, polygon GeoJSON,<br/>deed SHA256, ownerDID, decree)
     API->>IPFS: pin metadata.json
@@ -77,9 +68,7 @@ sequenceDiagram
     API->>DB: INSERT ownership_history<br/>(from=null, to=owner_did, reason='initial_mint')
     API->>DB: UPDATE properties SET status='minted'
     API->>DB: INSERT notifications (citizen, "deed + NFT licence ready")
-    end
 
-    rect rgb(254, 226, 226)
     Note over C,V: 6) Delivery + public verify (PDF + on-chain)
     C->>W: open /app/my/properties → download PDF + view NFT
     W->>API: GET /api/v1/storage/deeds/<id>.pdf
@@ -92,4 +81,3 @@ sequenceDiagram
     API->>BC: ownerOf(tokenId)
     BC-->>API: current owner address
     API-->>V: 200 { owner, area, decree, signed: true,<br/>nft: { tokenId, contract, network, txHash, currentOwner } }
-    end

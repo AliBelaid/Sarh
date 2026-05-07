@@ -78,3 +78,6 @@ logs/
 # mermaid-cli puppeteer config — machine-specific paths.
 # Re-create per-machine; see docs/diagrams/README.md.
 docs/diagrams/.puppeteer.json
+
+# Temp folder used by render-classic-local.mjs while shelling to mmdc.
+docs/.tmp-classic/

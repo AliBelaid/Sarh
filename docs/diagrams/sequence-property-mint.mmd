@@ -1,0 +1,35 @@
+﻿---
+title: Sarh — Property approval (2/3) · Deed PDF + SSI VC + IPFS + NFT mint
+---
+sequenceDiagram
+    autonumber
+    participant API as .NET 8 API
+    participant DB as SQL Server
+    participant FS as Storage<br/>(local FS)
+    participant PDF as PAdES signer
+    participant SSI as ACA-Py<br/>(Hyperledger Aries)
+    participant IPFS as IPFS<br/>(metadata pin)
+    participant BC as Blockchain<br/>(Ethereum / Hyperledger)
+    participant SC as Smart Contract<br/>(ERC-721)
+
+    Note over API,SSI: 4) Deed PDF + SSI VC issuance
+    API->>PDF: generate deed PDF<br/>(citizen, polygon, decree)
+    PDF-->>API: signed PAdES bytes + SHA256
+    API->>FS: write deeds/<id>.pdf
+    API->>DB: UPDATE properties SET deed_pdf_path, deed_signed_hash
+    API->>SSI: issue VC (PropertyDeed) for citizen DID
+    SSI-->>API: credential_id
+    API->>DB: UPDATE properties SET vc_credential_id
+
+    Note over API,SC: 5) NFT licence minting on blockchain
+    API->>API: build token metadata<br/>(propertyCode, polygon GeoJSON,<br/>deed SHA256, ownerDID, decree)
+    API->>IPFS: pin metadata.json
+    IPFS-->>API: ipfs://Qm…CID
+    API->>BC: mint(toAddress, tokenId, tokenURI)
+    BC->>SC: invoke mint()
+    SC-->>BC: Transfer(0x0, owner, tokenId)
+    BC-->>API: txHash + blockNumber
+    API->>DB: INSERT property_nfts<br/>(token_id, contract, network, metadata_uri,<br/>mint_tx_hash, minted_by_manager_id)
+    API->>DB: INSERT ownership_history<br/>(from=null, to=owner_did, reason='initial_mint')
+    API->>DB: UPDATE properties SET status='minted'
+    API->>DB: INSERT notifications (citizen, "deed + NFT licence ready")

@@ -1,0 +1,38 @@
+﻿---
+title: Sarh — Data Dictionary · Identity domain
+---
+flowchart TB
+
+    ROOT([Identity domain])
+
+    AUTH["<b>auth_users</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id · UNIQUEIDENTIFIER<br/><b>UK</b> email<br/>encrypted_password · bcrypt cost-12<br/>raw_app_meta_data · JSON<br/>email_confirmed_at · last_sign_in_at<br/>created_at · updated_at"]
+
+    CIT["<b>citizens</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK</b> auth_user_id → auth_users<br/><b>UK</b> legacy_national_no<br/>first_name_ar · father_name_ar · grandfather_name_ar · family_name_ar<br/>mother_name_ar · gender · birth_date · nationality<br/><b>FK</b> region_id → regions · municipality_id<br/>phone · UK · email · UK<br/>is_active · created_at · updated_at"]
+
+    OFF["<b>officers</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK,UK</b> auth_user_id → auth_users<br/><b>UK</b> employee_no<br/>full_name_ar · full_name_en<br/>role · super_admin / registry_officer / reviewer / id_issuer / department_manager / auditor<br/><b>FK</b> region_id · municipality_id<br/>permissions · JSON<br/>is_active · created_at · updated_at"]
+
+    REG["<b>regions / municipalities</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> regions.id · INT<br/><b>UK</b> regions.code · '11'…'34'<br/>regions.name_ar · regions.name_en<br/><b>PK</b> municipalities.id<br/><b>FK</b> municipalities.region_id"]
+
+    CARD["<b>digital_id_cards</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK</b> citizen_id → citizens<br/><b>UK</b> digital_id_number · 'LY-RR-YYYY-NNNNNN-X'<br/><b>UK</b> card_serial · nfc_uid<br/>last_nfc_counter · last_nfc_tap_at<br/><b>UK</b> did · 'did:sov:LY:…'<br/><b>FK</b> issued_by_officer_id<br/>issued_at · expires_at<br/>status · active / revoked / expired / lost / frozen"]
+
+    NFC["<b>nfc_card_secrets</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK,UK</b> card_id → digital_id_cards<br/>meta_read_key_enc · VARBINARY · AES-GCM wrapped<br/>sdm_file_read_key_enc · VARBINARY<br/>kms_key_id"]
+
+    HIST["<b>id_issuance_history</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK</b> citizen_id · card_id · officer_id<br/>action · issue / reissue / revoke<br/>reason · occurred_at"]
+
+    WAL["<b>ssi_wallets</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK</b> citizen_id<br/><b>UK</b> did<br/>did_doc · JSON · created_at"]
+
+    VC["<b>ssi_credentials</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK</b> wallet_id → ssi_wallets<br/>credential_type · PropertyDeed / CitizenIdentity<br/>subject_id · cred_data · JSON · issued_at"]
+
+    ROOT --> AUTH
+    ROOT --> CIT
+    ROOT --> OFF
+    ROOT --> REG
+    AUTH -.-> CIT
+    AUTH -.-> OFF
+    REG -.-> CIT
+    REG -.-> OFF
+    CIT --> CARD
+    CARD --> NFC
+    CARD --> HIST
+    CIT --> WAL
+    WAL --> VC

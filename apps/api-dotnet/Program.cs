@@ -70,6 +70,9 @@ builder.Services.AddScoped<Sarh.Api.Audit.AuditService>();
 builder.Services.AddScoped<Sarh.Api.Audit.AuditActionFilter>();
 builder.Services.AddScoped<Sarh.Api.Notifications.NotificationsService>();
 
+// Boot-time seed: re-stamps demo bcrypt hashes and warns if 029 didn't run.
+builder.Services.AddHostedService<Sarh.Api.Data.DbSeeder>();
+
 var jwtBootstrap = new JwtTokenService(builder.Configuration);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>

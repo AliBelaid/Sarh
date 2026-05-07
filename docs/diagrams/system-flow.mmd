@@ -1,67 +1,57 @@
----
+﻿---
 title: Sarh — End-to-end system flow (with NFT licence on blockchain)
 ---
 flowchart LR
-    classDef citizen fill:#3b82f6,stroke:#1e40af,color:#fff
-    classDef officer fill:#239E46,stroke:#15803d,color:#fff
-    classDef manager fill:#8b5cf6,stroke:#6d28d9,color:#fff
-    classDef issuer  fill:#D4AF37,stroke:#B8941F,color:#0F1A14
-    classDef admin   fill:#0F1A14,stroke:#000,color:#D4AF37
-    classDef api     fill:#f4f1e8,stroke:#94a39c,color:#0F1A14
-    classDef db      fill:#fdf2f8,stroke:#ec4899,color:#831843
-    classDef store   fill:#fef3c7,stroke:#f59e0b,color:#78350f
-    classDef chain   fill:#1e293b,stroke:#0f172a,color:#F97316
-    classDef public  fill:#e0e7ff,stroke:#6366f1,color:#312e81
 
     subgraph CIT[المواطن &middot; Citizen]
-      C1[تسجيل / دخول]:::citizen
-      C2[تقديم عقار جديد<br/>+ مستندات + إحداثيات]:::citizen
-      C3[استلام السند الموقع<br/>+ شهادة VC + رخصة NFT]:::citizen
+      C1[تسجيل / دخول]
+      C2[تقديم عقار جديد<br/>+ مستندات + إحداثيات]
+      C3[استلام السند الموقع<br/>+ شهادة VC + رخصة NFT]
     end
 
     subgraph OFF[موظف التسجيل / المراجع]
-      O1[قائمة المراجعة]:::officer
-      O2{قرار فني}:::officer
-      O3[طلب توضيح]:::officer
-      O4[رفض مع سبب]:::officer
-      O5[توصية بالاعتماد]:::officer
+      O1[قائمة المراجعة]
+      O2{قرار فني}
+      O3[طلب توضيح]
+      O4[رفض مع سبب]
+      O5[توصية بالاعتماد]
     end
 
     subgraph MGR[مدير الإدارة &middot; Department Manager]
-      M1[قائمة الاعتمادات النهائية]:::manager
-      M2[اعتماد نهائي + رقم القرار]:::manager
-      M3[رفض الاعتماد]:::manager
+      M1[قائمة الاعتمادات النهائية]
+      M2[اعتماد نهائي + رقم القرار]
+      M3[رفض الاعتماد]
     end
 
     subgraph ISS[مصدر الهويات]
-      I1[إصدار بطاقة NFC جديدة]:::issuer
-      I2[ربط NTAG 424 DNA<br/>+ كتابة المفاتيح]:::issuer
-      I3[إعادة إصدار / استبدال]:::issuer
+      I1[إصدار بطاقة NFC جديدة]
+      I2[ربط NTAG 424 DNA<br/>+ كتابة المفاتيح]
+      I3[إعادة إصدار / استبدال]
     end
 
     subgraph ADM[الإدارة / المدقق]
-      A1[لوحة التحكم<br/>إحصائيات وتقارير]:::admin
-      A2[سجل التدقيق<br/>append-only]:::admin
-      A3[إدارة المستخدمين]:::admin
+      A1[لوحة التحكم<br/>إحصائيات وتقارير]
+      A2[سجل التدقيق<br/>append-only]
+      A3[إدارة المستخدمين]
     end
 
     subgraph BACK[الخادم &middot; .NET 8 API + SignalR]
-      API[/api/v1/*<br/>JWT HS256/]:::api
-      DB[(SQL Server 2019<br/>geography + audit triggers<br/>+ property_nfts + ownership_history)]:::db
-      FS[(Local filesystem<br/>storage_root)]:::store
-      SSI[ACA-Py<br/>Hyperledger Aries]:::api
-      IPFS[IPFS pinning]:::store
+      API[/api/v1/*<br/>JWT HS256/]
+      DB[(SQL Server 2019<br/>geography + audit triggers<br/>+ property_nfts + ownership_history)]
+      FS[(Local filesystem<br/>storage_root)]
+      SSI[ACA-Py<br/>Hyperledger Aries]
+      IPFS[IPFS pinning]
     end
 
     subgraph CHAIN[سلسلة الكتل &middot; Blockchain]
-      BC[Ethereum / Hyperledger]:::chain
-      SC[Smart Contract<br/>ERC-721 / chaincode]:::chain
+      BC[Ethereum / Hyperledger]
+      SC[Smart Contract<br/>ERC-721 / chaincode]
     end
 
     subgraph PUB[الجمهور &middot; Public]
-      V1[التحقق من سند<br/>عبر QR أو رمز]:::public
-      V2[تحقق NFC<br/>SUN counter]:::public
-      V3[تحقق من رخصة NFT<br/>على السلسلة]:::public
+      V1[التحقق من سند<br/>عبر QR أو رمز]
+      V2[تحقق NFC<br/>SUN counter]
+      V3[تحقق من رخصة NFT<br/>على السلسلة]
     end
 
     C1 --> API

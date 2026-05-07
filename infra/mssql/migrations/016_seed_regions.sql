@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 016_seed_regions.sql — Libyan administrative regions (Shabiyah codes)
 --
 -- We bind regions.id to the Shabiyah code (e.g. id=11 → Tripoli) via

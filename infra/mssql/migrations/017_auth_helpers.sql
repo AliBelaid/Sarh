@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 017_auth_helpers.sql — local auth_users table + Sarh claims helper
 --
 -- Postgres + Supabase shipped `auth.users`. Local SQL Server has none, so

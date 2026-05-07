@@ -1,119 +1,104 @@
+﻿---
+title: Sarh — Conceptual ERD (Chen-style, high-level entities + relationships)
 ---
-title: Sarh — Conceptual ERD (high-level entities, including NFT licence)
----
-erDiagram
-    CITIZEN ||--o{ PROPERTY : "owns"
-    CITIZEN ||--o| DIGITAL_ID_CARD : "holds"
-    CITIZEN ||--o| SSI_WALLET : "controls"
-    CITIZEN ||--o{ NOTIFICATION : "receives"
-    CITIZEN ||--o{ REGISTRATION_REQUEST : "submits"
+flowchart TB
+    %% Sarh brand-coloured Chen-style ERD. Entities are rectangles,
+    %% relationships are diamonds, key attributes hang off entities.
 
-    OFFICER ||--o{ REGISTRATION_REQUEST : "reviews"
-    OFFICER ||--o{ DIGITAL_ID_CARD : "issues"
-    OFFICER ||--o{ AUDIT_ENTRY : "writes"
+    %% ---- Core entities --------------------------------------------------
+    Citizen[CITIZEN]
+    Officer[OFFICER<br/>registry / reviewer / id_issuer]
+    Manager[DEPARTMENT_MANAGER]
+    Property[PROPERTY]
+    Request[REGISTRATION_REQUEST]
+    Document[PROPERTY_DOCUMENT]
+    Card[DIGITAL_ID_CARD]
+    NFC[NFC_CARD]
+    Wallet[SSI_WALLET]
+    VC[VERIFIABLE_CREDENTIAL]
+    Deed[DEED_PDF]
+    QR[VERIFY_QR]
+    NFT[PROPERTY_NFT]
+    OH[OWNERSHIP_HISTORY]
+    Tx[BLOCKCHAIN_TX]
+    SC[SMART_CONTRACT]
+    Region[REGION]
+    Notif[NOTIFICATION]
+    Audit[AUDIT_ENTRY]
 
-    DEPARTMENT_MANAGER ||--o{ REGISTRATION_REQUEST : "final approves"
-    DEPARTMENT_MANAGER ||--o{ PROPERTY_NFT : "triggers minting"
+    %% ---- Relationships (diamonds) --------------------------------------
+    R_owns{{owns}}
+    R_holds{{holds}}
+    R_controls{{controls}}
+    R_submits{{submits}}
+    R_reviews{{reviews}}
+    R_finalapprove{{final approves}}
+    R_issues{{issues}}
+    R_mints{{triggers mint}}
+    R_attaches{{has}}
+    R_produces{{produces}}
+    R_embeds{{embeds}}
+    R_encoded{{encoded as}}
+    R_stores{{stores}}
+    R_link{{linked to}}
+    R_minted{{minted via}}
+    R_governs{{governed by}}
+    R_chain{{transfer chain}}
+    R_scope_c{{scopes}}
+    R_scope_p{{scopes}}
+    R_scope_o{{scopes}}
+    R_recv{{receives}}
+    R_audit{{writes}}
 
-    PROPERTY ||--|| REGISTRATION_REQUEST : "submitted as"
-    PROPERTY ||--o{ PROPERTY_DOCUMENT : "has"
-    PROPERTY ||--o| DEED_PDF : "produces"
-    PROPERTY ||--o| PROPERTY_NFT : "is tokenised as"
-    PROPERTY ||--o{ OWNERSHIP_HISTORY : "transfer chain"
+    Citizen --- R_owns ---|1..N| Property
+    Citizen --- R_holds ---|0..1| Card
+    Citizen --- R_controls ---|0..1| Wallet
+    Citizen --- R_submits --- Request
+    Citizen --- R_recv --- Notif
 
-    PROPERTY_NFT ||--|| BLOCKCHAIN_TX : "minted via"
-    PROPERTY_NFT }o--|| SMART_CONTRACT : "governed by"
-    PROPERTY_NFT ||--o{ OWNERSHIP_HISTORY : "transferred"
+    Officer --- R_reviews --- Request
+    Officer --- R_issues --- Card
+    Officer --- R_audit --- Audit
 
-    DEED_PDF ||--|| VERIFY_QR : "embeds"
-    DIGITAL_ID_CARD ||--|| NFC_CARD : "encoded as"
-    DIGITAL_ID_CARD ||--o{ ID_ISSUANCE_EVENT : "tracked by"
-    SSI_WALLET ||--o{ VERIFIABLE_CREDENTIAL : "stores"
-    PROPERTY_NFT ||--o| VERIFIABLE_CREDENTIAL : "linked to"
+    Manager --- R_finalapprove --- Request
+    Manager --- R_mints --- NFT
 
-    REGION ||--o{ CITIZEN : "scopes"
-    REGION ||--o{ PROPERTY : "scopes"
-    REGION ||--o{ OFFICER : "scopes"
+    Property --- R_attaches --- Document
+    Property --- R_produces --- Deed
+    Property --- R_chain --- OH
+    Property -.->|tokenised as| NFT
 
-    CITIZEN {
-        string national_id
-        string full_name_ar
-        string did
-        string region
-    }
-    OFFICER {
-        string role "registry_officer / reviewer / id_issuer"
-        string region
-    }
-    DEPARTMENT_MANAGER {
-        string role "department_manager"
-        string department
-    }
-    PROPERTY {
-        string property_code
-        string status "approved/minted/transferred"
-        polygon boundary
-    }
-    REGISTRATION_REQUEST {
-        string request_no
-        string current_status
-    }
-    PROPERTY_NFT {
-        string token_id
-        string contract_address
-        string owner_did
-        string metadata_uri
-    }
-    BLOCKCHAIN_TX {
-        string tx_hash
-        string network "Ethereum / Hyperledger"
-        bigint block_number
-    }
-    SMART_CONTRACT {
-        string address
-        string standard "ERC-721 / Fabric chaincode"
-    }
-    OWNERSHIP_HISTORY {
-        string from_did
-        string to_did
-        datetime transfer_at
-        string reason
-    }
-    DIGITAL_ID_CARD {
-        string digital_id_number
-        string status
-    }
-    NFC_CARD {
-        string nfc_uid
-        bigint counter
-    }
-    SSI_WALLET {
-        string did
-    }
-    VERIFIABLE_CREDENTIAL {
-        string type
-    }
-    DEED_PDF {
-        string sha256_hash
-        bool pades_signed
-    }
-    VERIFY_QR {
-        string verify_url
-    }
-    REGION {
-        string code
-        string name_ar
-    }
-    PROPERTY_DOCUMENT {
-        string doc_type
-    }
-    ID_ISSUANCE_EVENT {
-        string action
-    }
-    NOTIFICATION {
-        string channel
-    }
-    AUDIT_ENTRY {
-        bigint id
-        string action
-    }
+    Request --- Property
+
+    Deed --- R_embeds --- QR
+
+    Card --- R_encoded --- NFC
+    Card --- Wallet
+    Wallet --- R_stores --- VC
+    NFT --- R_link --- VC
+
+    NFT --- R_minted --- Tx
+    NFT --- R_governs --- SC
+    NFT --- OH
+
+    Region --- R_scope_c --- Citizen
+    Region --- R_scope_p --- Property
+    Region --- R_scope_o --- Officer
+
+    %% ---- Sample attributes (key + identifying) -------------------------
+    A_cn((national_id)) --- Citizen
+    A_cf((full_name_ar)) --- Citizen
+    A_pdid((did)) --- Wallet
+    A_pcode((property_code)) --- Property
+    A_pstatus((status)) --- Property
+    A_token((token_id)) --- NFT
+    A_meta((metadata_uri)) --- NFT
+    A_ohto((to_did)) --- OH
+    A_dno((digital_id_number)) --- Card
+    A_nuid((nfc_uid)) --- NFC
+    A_qr((verify_url)) --- QR
+    A_ttx((tx_hash)) --- Tx
+    A_net((network)) --- Tx
+    A_role((role)) --- Officer
+    A_dept((department)) --- Manager
+    A_rcode((code)) --- Region

@@ -1,0 +1,102 @@
+﻿---
+title: Sarh — Logical ERD · Property cluster (registry, NFT licence, on-chain history)
+---
+erDiagram
+    citizens            ||--o{ properties            : "owner"
+    citizens            ||--o{ registration_requests : "submitter"
+    citizens            ||--o{ ownership_history     : "from / to"
+
+    officers            ||--o{ properties            : "reviewer"
+    officers            ||--o{ properties            : "manager_approver"
+    officers            ||--o{ property_nfts         : "minter"
+    officers            ||--o{ review_comments       : "author"
+
+    regions             ||--o{ properties            : "scope"
+
+    properties          ||--|| registration_requests : "request"
+    properties          ||--o{ property_documents    : "attachments"
+    properties          ||--o{ review_comments       : "comments"
+    properties          ||--o| property_nfts         : "tokenised"
+    properties          ||--o{ ownership_history     : "chain"
+    property_nfts       ||--o{ ownership_history     : "transfers"
+
+    properties {
+        UNIQUEIDENTIFIER id                       PK
+        NVARCHAR         property_code            UK
+        NVARCHAR         parcel_number
+        NVARCHAR         plan_number
+        NVARCHAR         block_number
+        UNIQUEIDENTIFIER owner_citizen_id         FK
+        NVARCHAR         property_type            "residential/agricultural/commercial/industrial/mixed/governmental"
+        INT              region_id                FK
+        INT              municipality_id          FK
+        NVARCHAR         address_ar
+        GEOGRAPHY        boundary_polygon         "SRID 4326"
+        GEOGRAPHY        location_point
+        DECIMAL          area_sqm
+        NVARCHAR         status                   "draft/pending/under_review/approved/rejected/minted/transferred/frozen"
+        UNIQUEIDENTIFIER reviewed_by_officer_id   FK
+        UNIQUEIDENTIFIER approved_by_manager_id   FK
+        DATETIMEOFFSET   final_approved_at
+        NVARCHAR         approval_decree_no
+        NVARCHAR         deed_pdf_path
+        CHAR             deed_signed_hash
+        NVARCHAR         vc_credential_id
+    }
+    registration_requests {
+        UNIQUEIDENTIFIER id                          PK
+        UNIQUEIDENTIFIER property_id                 FK
+        NVARCHAR         request_no                  UK
+        UNIQUEIDENTIFIER submitted_by_citizen_id     FK
+        DATETIMEOFFSET   submitted_at
+        NVARCHAR         current_status              "pending/under_review/needs_clarification/approved/rejected"
+        NVARCHAR_MAX     notes
+    }
+    review_comments {
+        UNIQUEIDENTIFIER id           PK
+        UNIQUEIDENTIFIER property_id  FK
+        UNIQUEIDENTIFIER officer_id   FK
+        UNIQUEIDENTIFIER citizen_id   FK
+        NVARCHAR_MAX     body
+        BIT              is_internal
+        DATETIMEOFFSET   created_at
+    }
+    property_documents {
+        UNIQUEIDENTIFIER id            PK
+        UNIQUEIDENTIFIER property_id   FK
+        NVARCHAR         doc_type
+        NVARCHAR         storage_path
+        CHAR             sha256
+        DATETIMEOFFSET   uploaded_at
+    }
+    property_nfts {
+        UNIQUEIDENTIFIER id                       PK
+        UNIQUEIDENTIFIER property_id              FK
+        NVARCHAR         token_id
+        NVARCHAR         contract_address
+        NVARCHAR         network                  "ethereum-sepolia/polygon-amoy/hyperledger-fabric"
+        NVARCHAR         standard                 "ERC-721/ERC-1155/chaincode"
+        NVARCHAR         owner_did
+        NVARCHAR         owner_address
+        NVARCHAR         metadata_uri             "ipfs://… or https://"
+        CHAR             metadata_sha256
+        NVARCHAR         mint_tx_hash
+        BIGINT           mint_block_number
+        UNIQUEIDENTIFIER minted_by_officer_id     FK
+        DATETIMEOFFSET   minted_at
+        NVARCHAR         status                   "pending/minted/transferred/burned/failed"
+    }
+    ownership_history {
+        UNIQUEIDENTIFIER id                       PK
+        UNIQUEIDENTIFIER property_id              FK
+        UNIQUEIDENTIFIER nft_id                   FK
+        NVARCHAR         from_did                 "null on initial mint"
+        NVARCHAR         to_did
+        UNIQUEIDENTIFIER from_citizen_id          FK
+        UNIQUEIDENTIFIER to_citizen_id            FK
+        NVARCHAR         transfer_tx_hash
+        BIGINT           transfer_block_number
+        NVARCHAR         reason                   "initial_mint/sale/inheritance/gift/court_order/correction"
+        UNIQUEIDENTIFIER recorded_by_officer_id   FK
+        DATETIMEOFFSET   transferred_at
+    }

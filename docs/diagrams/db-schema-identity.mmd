@@ -1,0 +1,100 @@
+﻿---
+title: Sarh — Logical ERD · Identity cluster (auth, citizens, officers, ID cards, SSI)
+---
+erDiagram
+    auth_users          ||--o| officers              : "auth_user_id"
+    citizens            ||--o{ digital_id_cards      : "holder"
+    citizens            ||--o{ id_issuance_history   : "subject"
+    citizens            ||--o{ ssi_wallets           : "controls"
+    officers            ||--o{ digital_id_cards      : "issuer"
+    officers            ||--o{ id_issuance_history   : "officer"
+    regions             ||--o{ citizens              : "scope"
+    regions             ||--o{ officers              : "scope"
+    regions             ||--o{ municipalities        : "parent"
+    digital_id_cards    ||--|| nfc_card_secrets      : "secrets"
+    digital_id_cards    ||--o{ id_issuance_history   : "events"
+    ssi_wallets         ||--o{ ssi_credentials       : "issued"
+
+    auth_users {
+        UNIQUEIDENTIFIER id                  PK
+        NVARCHAR         email               UK
+        NVARCHAR         encrypted_password
+        NVARCHAR_MAX     raw_app_meta_data   "JSON"
+        DATETIMEOFFSET   email_confirmed_at
+        DATETIMEOFFSET   last_sign_in_at
+        DATETIMEOFFSET   created_at
+    }
+    citizens {
+        UNIQUEIDENTIFIER id                  PK
+        UNIQUEIDENTIFIER auth_user_id        FK
+        NVARCHAR         first_name_ar
+        NVARCHAR         family_name_ar
+        NVARCHAR         legacy_national_no  UK
+        NVARCHAR         gender
+        DATE             birth_date
+        INT              region_id           FK
+        BIT              is_active
+    }
+    officers {
+        UNIQUEIDENTIFIER id                  PK
+        UNIQUEIDENTIFIER auth_user_id        FK,UK
+        NVARCHAR         employee_no         UK
+        NVARCHAR         full_name_ar
+        NVARCHAR         role                "registry_officer/reviewer/id_issuer/auditor/super_admin/department_manager"
+        INT              region_id           FK
+        NVARCHAR_MAX     permissions         "JSON"
+        BIT              is_active
+    }
+    regions {
+        INT              id                  PK
+        NVARCHAR         code                UK
+        NVARCHAR         name_ar
+        NVARCHAR         name_en
+    }
+    municipalities {
+        INT              id                  PK
+        INT              region_id           FK
+        NVARCHAR         name_ar
+        NVARCHAR         name_en
+    }
+    digital_id_cards {
+        UNIQUEIDENTIFIER id                       PK
+        UNIQUEIDENTIFIER citizen_id               FK
+        NVARCHAR         digital_id_number        UK
+        NVARCHAR         card_serial              UK
+        NVARCHAR         nfc_uid                  UK
+        BIGINT           last_nfc_counter
+        NVARCHAR         did                      UK
+        UNIQUEIDENTIFIER issued_by_officer_id     FK
+        DATETIMEOFFSET   issued_at
+        DATETIMEOFFSET   expires_at
+        NVARCHAR         status                   "active/revoked/expired/lost/frozen"
+    }
+    nfc_card_secrets {
+        UNIQUEIDENTIFIER id                       PK
+        UNIQUEIDENTIFIER card_id                  FK,UK
+        VARBINARY        meta_read_key_enc
+        VARBINARY        sdm_file_read_key_enc
+        NVARCHAR         kms_key_id
+    }
+    id_issuance_history {
+        UNIQUEIDENTIFIER id           PK
+        UNIQUEIDENTIFIER citizen_id   FK
+        UNIQUEIDENTIFIER card_id      FK
+        NVARCHAR         action       "issue/reissue/revoke"
+        UNIQUEIDENTIFIER officer_id   FK
+        DATETIMEOFFSET   occurred_at
+    }
+    ssi_wallets {
+        UNIQUEIDENTIFIER id           PK
+        UNIQUEIDENTIFIER citizen_id   FK
+        NVARCHAR         did          UK
+        NVARCHAR_MAX     did_doc      "JSON"
+    }
+    ssi_credentials {
+        UNIQUEIDENTIFIER id              PK
+        UNIQUEIDENTIFIER wallet_id       FK
+        NVARCHAR         credential_type "PropertyDeed/CitizenIdentity"
+        NVARCHAR_MAX     cred_data       "JSON"
+        DATETIMEOFFSET   issued_at
+    }

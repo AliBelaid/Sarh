@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 026_seed_demo_officer.sql — demo officer + property submission for the
 -- Phase 3 .NET workflow smoke tests.
 -- Idempotent: safe to re-run.

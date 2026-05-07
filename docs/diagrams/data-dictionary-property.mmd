@@ -1,0 +1,26 @@
+﻿---
+title: Sarh — Data Dictionary · Property + On-chain
+---
+flowchart TB
+
+    ROOT([Property + On-chain domain])
+
+    PROP["<b>properties</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id · UNIQUEIDENTIFIER<br/><b>UK</b> property_code · 'PRP-YYYY-NNNN'<br/>parcel_number · plan_number · block_number<br/><b>FK</b> owner_citizen_id → citizens<br/>property_type · residential / agricultural / commercial / industrial / mixed / governmental<br/><b>FK</b> region_id · municipality_id<br/>address_ar<br/>boundary_polygon · GEOGRAPHY · SRID 4326<br/>location_point · area_sqm · DECIMAL<br/>status · draft / pending / under_review / approved / rejected / minted / transferred / frozen<br/><b>FK</b> reviewed_by_officer_id · approved_by_manager_id<br/>final_approved_at · approval_decree_no<br/>deed_pdf_path · deed_signed_hash · SHA-256<br/>vc_credential_id · SSI VC id"]
+
+    REQ["<b>registration_requests</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>UK</b> request_no · 'REQ-YYYY-NNNN'<br/><b>FK</b> property_id → properties<br/><b>FK</b> submitted_by_citizen_id → citizens<br/>current_status · pending / under_review / approved / rejected / needs_clarification<br/>submitted_at · notes"]
+
+    RC["<b>review_comments</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK</b> property_id · officer_id · citizen_id<br/>body · is_internal · created_at"]
+
+    DOC["<b>property_documents</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK</b> property_id<br/>doc_type · storage_path · sha256 · uploaded_at"]
+
+    NFT["<b>property_nfts</b><br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK</b> property_id → properties (UK on active rows)<br/>token_id · contract_address<br/>network · ethereum-sepolia / polygon-amoy / hyperledger-fabric<br/>standard · ERC-721 / ERC-1155 / chaincode<br/>owner_did · owner_address<br/>metadata_uri · 'ipfs://…' · metadata_sha256<br/>mint_tx_hash · mint_block_number<br/><b>FK</b> minted_by_officer_id · department_manager<br/>minted_at · status · pending / minted / transferred / burned / failed<br/>last_reconciled_at"]
+
+    OH["<b>ownership_history</b> · append-only<br/>━━━━━━━━━━━━━━━━━━━<br/><b>PK</b> id<br/><b>FK</b> property_id · nft_id<br/>from_did · null on initial_mint · to_did<br/><b>FK</b> from_citizen_id · to_citizen_id → citizens<br/>transfer_tx_hash · transfer_block_number<br/>reason · initial_mint / sale / inheritance / gift / court_order / correction<br/>notes_ar · transferred_at"]
+
+    ROOT --> PROP
+    PROP --> REQ
+    PROP --> RC
+    PROP --> DOC
+    PROP --> NFT
+    NFT --> OH
+    PROP --> OH

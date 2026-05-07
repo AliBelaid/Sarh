@@ -1,0 +1,25 @@
+﻿---
+title: Sarh — Property approval (3/3) · Delivery + public verify (PDF + on-chain)
+---
+sequenceDiagram
+    autonumber
+    actor C as Citizen
+    actor V as Public verifier
+    participant W as apps/web (Angular)
+    participant API as .NET 8 API
+    participant DB as SQL Server
+    participant FS as Storage<br/>(local FS)
+    participant BC as Blockchain<br/>(Ethereum / Hyperledger)
+
+    Note over C,V: 6) Delivery + public verify (PDF + on-chain)
+    C->>W: open /app/my/properties → download PDF + view NFT
+    W->>API: GET /api/v1/storage/deeds/<id>.pdf
+    API->>FS: read file
+    FS-->>C: PDF (with QR pointing to /verify/<code>)
+
+    V->>W: scan QR / open /verify/<code>
+    W->>API: GET /api/v1/verify/:code
+    API->>DB: SELECT property + verify hash + nft
+    API->>BC: ownerOf(tokenId)
+    BC-->>API: current owner address
+    API-->>V: 200 { owner, area, decree, signed: true,<br/>nft: { tokenId, contract, network, txHash, currentOwner } }

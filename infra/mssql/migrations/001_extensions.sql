@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 001_extensions.sql — SQL Server has no extensions. We enable the features
 -- that the Postgres extensions provided:
 --   uuid-ossp / pgcrypto  -> NEWID() / CRYPT_GEN_RANDOM are built-in

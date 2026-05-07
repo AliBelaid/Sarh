@@ -1,29 +1,26 @@
----
+﻿---
 title: Sarh — DFD Level 1 (main processes inside Sarh Platform)
 ---
 flowchart LR
-    classDef proc  fill:#bae6fd,stroke:#0284c7,color:#0c4a6e,rx:60,ry:60
-    classDef ext   fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
-    classDef store fill:#fef9c3,stroke:#ca8a04,color:#713f12
 
-    Citizen[Citizen]:::ext
-    Officer[Registry officer]:::ext
-    Manager[Department manager]:::ext
-    SSI[SSI Provider]:::ext
-    MAP[Map Service API]:::ext
-    NOTIF[Notification Service]:::ext
-    NFT[NFT Minting Service]:::ext
+    Citizen[Citizen]
+    Officer[Registry officer]
+    Manager[Department manager]
+    SSI[SSI Provider]
+    MAP[Map Service API]
+    NOTIF[Notification Service]
+    NFT[NFT Minting Service]
 
-    P1((1.0<br/>Account &<br/>Identity Mgmt)):::proc
-    P2((2.0<br/>Land Claim<br/>Processing)):::proc
-    P3((3.0<br/>Spatial &<br/>Technical Auditing)):::proc
-    P4((4.0<br/>NFT Documentation<br/>& NFT Minting)):::proc
-    P5((5.0<br/>Notifications)):::proc
+    P1((1.0<br/>Account &<br/>Identity Mgmt))
+    P2((2.0<br/>Land Claim<br/>Processing))
+    P3((3.0<br/>Spatial &<br/>Technical Auditing))
+    P4((4.0<br/>NFT Documentation<br/>& NFT Minting))
+    P5((5.0<br/>Notifications))
 
-    D1[(D1<br/>Users / DID file)]:::store
-    D2[(D2<br/>Claims & Properties store)]:::store
-    D3[(D3<br/>Blockchain Ledger file<br/>property_nfts + ownership_history)]:::store
-    D4[(D4<br/>Audit log)]:::store
+    D1[(D1<br/>Users / DID file)]
+    D2[(D2<br/>Claims & Properties store)]
+    D3[(D3<br/>Blockchain Ledger file<br/>property_nfts + ownership_history)]
+    D4[(D4<br/>Audit log)]
 
     Citizen -->|"Profile + identity info"| P1
     P1 -->|"Request identity verification"| SSI
