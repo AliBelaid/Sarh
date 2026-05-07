@@ -1,30 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/router.dart';
 import 'core/theme/sarh_theme.dart';
 
-// Supabase project — same project as the web admin so demo signups land
-// in the same auth tables and the lists pulse live across surfaces.
-// Override at build time with --dart-define for staging/prod.
-const _supabaseUrl = String.fromEnvironment(
-  'SUPABASE_URL',
-  defaultValue: 'https://rfmozdgpiaeopeqkkglf.supabase.co',
-);
-const _supabaseAnonKey = String.fromEnvironment(
-  'SUPABASE_ANON_KEY',
-  defaultValue: 'sb_publishable_yuOvAyOAh9fNAX5FtBkFYA_t41vZ9Ql',
-);
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url: _supabaseUrl,
-    anonKey: _supabaseAnonKey,
-    debug: false,
-  );
   runApp(const ProviderScope(child: SarhApp()));
 }
 

@@ -22,10 +22,6 @@ dependencies:
   dio: ^5.7.0
   flutter_secure_storage: ^9.2.2
 
-  # Supabase (real-time auth + tables for demo flow + citizen lookups
-  # without the NestJS API in the loop).
-  supabase_flutter: ^2.5.6
-
   # NFC (NTAG 424 DNA tap on login)
   flutter_nfc_kit: ^3.5.2
 
