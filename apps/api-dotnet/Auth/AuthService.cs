@@ -54,7 +54,7 @@ public sealed class AuthService(SarhDbContext db, JwtTokenService jwt)
             .FirstOrDefaultAsync(ct)
             ?? throw SarhException.Unauthorized();
 
-        if (card.Status is "revoked" or "expired" or "lost")
+        if (card.Status is not "active")
             throw SarhException.Unauthorized();
         if (string.IsNullOrEmpty(card.PinHash))
             throw SarhException.Unauthorized();
