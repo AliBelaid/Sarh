@@ -22,38 +22,44 @@ const tmpDir = join(here, '..', '.tmp-classic');
 const puppeteerCfg = join(here, '.puppeteer.json');
 
 const PROFILES = {
-  default:  { fontSize: 18, w: 2400, h: 1700 },
-  sequence: { fontSize: 18, w: 1800, h: 2400 },
-  mindmap:  { fontSize: 20, w: 2400, h: 1800 },
-  org:      { fontSize: 20, w: 3000, h: 1500 },
-  schema:   { fontSize: 18, w: 2800, h: 2000 },
+  default:  { fontSize: 18, w: 2400, h: 1700, fill: '#FFFFFF' },
+  sequence: { fontSize: 18, w: 1800, h: 2400, fill: '#FFFFFF' },
+  mindmap:  { fontSize: 20, w: 2400, h: 1800, fill: '#FFFFFF' },
+  org:      { fontSize: 20, w: 3000, h: 1500, fill: '#FFFFFF' },
+  schema:   { fontSize: 18, w: 2800, h: 2000, fill: '#FFFFFF' },
+  // Chen-style ERD with the lavender fill from docs/our digram old/conxeptple ERD.jpeg.
+  chen:     { fontSize: 18, w: 2400, h: 1700, fill: '#EDE7F6' },
+  // Logical ERD with lavender table cells matching docs/our digram old/dirgiarionm.jpeg.
+  schemaLav:{ fontSize: 18, w: 2800, h: 2000, fill: '#EDE7F6' },
 };
 
 function profileFor(name) {
+  if (name === 'conceptual-erd')          return PROFILES.chen;
+  if (name.startsWith('db-schema'))       return PROFILES.schemaLav;
   if (name.startsWith('sequence-'))       return PROFILES.sequence;
   if (name.startsWith('data-dictionary')) return PROFILES.mindmap;
   if (name === 'org-chart')               return PROFILES.org;
-  if (name.startsWith('db-schema'))       return PROFILES.schema;
-  if (name === 'class-diagram')           return PROFILES.schema;
+  if (name === 'class-diagram')           return PROFILES.schemaLav;
   return PROFILES.default;
 }
 
-function whiteVars(fontSize) {
+function themeVars(fontSize, fill) {
+  // Page background stays white; only shape fills change with `fill`.
   return {
     fontSize: `${fontSize}px`,
     background: '#FFFFFF',
-    primaryColor: '#FFFFFF',
+    primaryColor: fill,
     primaryBorderColor: '#000000',
     primaryTextColor: '#000000',
-    secondaryColor: '#FFFFFF',
+    secondaryColor: fill,
     secondaryBorderColor: '#000000',
     secondaryTextColor: '#000000',
-    tertiaryColor: '#FFFFFF',
+    tertiaryColor: fill,
     tertiaryBorderColor: '#000000',
     tertiaryTextColor: '#000000',
-    mainBkg: '#FFFFFF',
-    secondBkg: '#FFFFFF',
-    nodeBkg: '#FFFFFF',
+    mainBkg: fill,
+    secondBkg: fill,
+    nodeBkg: fill,
     nodeBorder: '#000000',
     clusterBkg: '#FFFFFF',
     clusterBorder: '#000000',
@@ -62,41 +68,41 @@ function whiteVars(fontSize) {
     edgeLabelBackground: '#FFFFFF',
     lineColor: '#000000',
     textColor: '#000000',
-    actorBkg: '#FFFFFF',
+    actorBkg: fill,
     actorBorder: '#000000',
     actorTextColor: '#000000',
     actorLineColor: '#000000',
     signalColor: '#000000',
     signalTextColor: '#000000',
-    labelBoxBkgColor: '#FFFFFF',
+    labelBoxBkgColor: fill,
     labelBoxBorderColor: '#000000',
     labelTextColor: '#000000',
     loopTextColor: '#000000',
-    noteBkgColor: '#FFFFFF',
+    noteBkgColor: fill,
     noteBorderColor: '#000000',
     noteTextColor: '#000000',
-    activationBkgColor: '#FFFFFF',
+    activationBkgColor: fill,
     activationBorderColor: '#000000',
     sequenceNumberColor: '#000000',
     altBackground: '#FFFFFF',
-    attributeBackgroundColorOdd: '#FFFFFF',
+    attributeBackgroundColorOdd: fill,
     attributeBackgroundColorEven: '#FFFFFF',
     classText: '#000000',
-    fillType0: '#FFFFFF',
-    fillType1: '#FFFFFF',
-    fillType2: '#FFFFFF',
-    fillType3: '#FFFFFF',
-    fillType4: '#FFFFFF',
-    fillType5: '#FFFFFF',
-    fillType6: '#FFFFFF',
-    fillType7: '#FFFFFF',
+    fillType0: fill,
+    fillType1: fill,
+    fillType2: fill,
+    fillType3: fill,
+    fillType4: fill,
+    fillType5: fill,
+    fillType6: fill,
+    fillType7: fill,
   };
 }
 
 function withInitDirective(body, profile) {
   const cfg = {
     theme: 'base',
-    themeVariables: whiteVars(profile.fontSize),
+    themeVariables: themeVars(profile.fontSize, profile.fill),
     flowchart: { curve: 'linear', htmlLabels: true, useMaxWidth: false },
     er: { useMaxWidth: false, layoutDirection: 'LR' },
     sequence: { useMaxWidth: false, actorMargin: 50, messageFontSize: 14 },
