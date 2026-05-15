@@ -26,7 +26,7 @@ const TABS: Array<{ key: Tab; ar: string }> = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">سجل رخص العقارات (NFT)</h1>

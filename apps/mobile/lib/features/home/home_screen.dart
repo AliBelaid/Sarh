@@ -9,49 +9,132 @@ import '../../core/models/property.dart';
 import '../../core/theme/sarh_colors.dart';
 import 'widgets/status_chip.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  int _navIndex = 0;
+
+  String _timeGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'صباح الخير';
+    if (hour < 18) return 'مساء الخير';
+    return 'مساء النور';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
     final properties = ref.watch(myPropertiesProvider);
     final citizen = auth.citizen;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('صرح'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [SarhColors.accent, Color(0xFFC2410C)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: SarhColors.accent.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  'ص',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: SarhColors.primary,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text('صَرح'),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'الإشعارات',
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () => context.push(AppRoutes.notifications),
           ),
-          IconButton(
-            tooltip: 'المحفظة',
-            icon: const Icon(Icons.account_balance_wallet_outlined),
-            onPressed: () => context.push(AppRoutes.wallet),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _navIndex,
+        onTap: (i) {
+          switch (i) {
+            case 0:
+              setState(() => _navIndex = 0);
+              break;
+            case 1:
+              context.push(AppRoutes.wallet);
+              break;
+            case 2:
+              context.push(AppRoutes.wizard);
+              break;
+            case 3:
+              context.push(AppRoutes.notifications);
+              break;
+            case 4:
+              context.push(AppRoutes.profile);
+              break;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'الرئيسية',
           ),
-          IconButton(
-            tooltip: 'الملف الشخصي',
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => context.push(AppRoutes.profile),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            activeIcon: Icon(Icons.account_balance_wallet),
+            label: 'المحفظة',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline, size: 28),
+            activeIcon: Icon(Icons.add_circle, size: 28),
+            label: 'تسجيل',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_outlined),
+            activeIcon: Icon(Icons.notifications),
+            label: 'الإشعارات',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'حسابي',
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: SarhColors.accent,
-        foregroundColor: SarhColors.primary,
-        onPressed: () => context.push(AppRoutes.wizard),
-        icon: const Icon(Icons.add),
-        label: const Text('تسجيل عقار'),
-      ),
       body: RefreshIndicator(
+        color: SarhColors.accent,
         onRefresh: () async => ref.refresh(myPropertiesProvider.future),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _Greeting(name: citizen?.firstNameAr ?? ''),
+            _Greeting(
+              name: citizen?.firstNameAr ?? '',
+              timeGreeting: _timeGreeting(),
+            ),
             const SizedBox(height: 12),
             if (citizen?.digitalIdNumber != null) ...[
               _DigitalIdCard(
@@ -60,7 +143,25 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
             ],
-            Text('عقاراتي', style: Theme.of(context).textTheme.titleLarge),
+            Row(
+              children: [
+                Text('عقاراتي', style: Theme.of(context).textTheme.titleLarge),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => context.push(AppRoutes.wizard),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('تسجيل جديد'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: SarhColors.accent,
+                    textStyle: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             properties.when(
               data: (items) => items.isEmpty
@@ -72,7 +173,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: CircularProgressIndicator(color: SarhColors.accent)),
               ),
               error: (e, _) => _ErrorView(message: '$e'),
             ),
@@ -90,64 +191,144 @@ class _DigitalIdCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      color: SarhColors.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.badge, color: SarhColors.accent, size: 22),
-                const SizedBox(width: 8),
-                Text(
-                  'هويتي الرقمية',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [SarhColors.primary, Color(0xFF1E293B)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: SarhColors.primary.withValues(alpha: 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -20,
+            right: -20,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    SarhColors.accent.withValues(alpha: 0.15),
+                    Colors.transparent,
+                  ],
                 ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: SarhColors.success.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    'فعّالة',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [SarhColors.accent, Color(0xFFC2410C)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: SarhColors.accent.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'ص',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: SarhColors.primary,
+                          ),
+                        ),
+                      ),
                     ),
+                    const SizedBox(width: 10),
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'بطاقة هوية رقمية',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          'LIBYAN DIGITAL ID',
+                          style: TextStyle(
+                            color: SarhColors.accent,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: SarhColors.success.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: SarhColors.success.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: const Text(
+                        'فعّالة',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'رقم الهوية الرقمية',
+                  style: TextStyle(
+                    color: SarhColors.accent.withValues(alpha: 0.7),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  digitalIdNumber,
+                  textDirection: TextDirection.ltr,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 18,
+                    letterSpacing: 1.4,
+                    color: SarhColors.accent,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            SelectableText(
-              digitalIdNumber,
-              textDirection: TextDirection.ltr,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 18,
-                letterSpacing: 1.4,
-                color: SarhColors.accent,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            if (regionId != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                'المنطقة: $regionId',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -155,35 +336,58 @@ class _DigitalIdCard extends StatelessWidget {
 
 class _Greeting extends StatelessWidget {
   final String name;
-  const _Greeting({required this.name});
+  final String timeGreeting;
+  const _Greeting({required this.name, required this.timeGreeting});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              backgroundColor: SarhColors.accent,
-              child: Icon(Icons.person, color: SarhColors.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'مرحباً ${name.isEmpty ? 'بك' : name}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 2),
-                  const Text('استعرض عقاراتك أو سجّل طلباً جديداً.'),
-                ],
-              ),
-            ),
-          ],
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [SarhColors.primary, Color(0xFF1E293B), Color(0xFF243A31)],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: SarhColors.primary.withValues(alpha: 0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            timeGreeting,
+            style: TextStyle(
+              color: SarhColors.accent.withValues(alpha: 0.8),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'أهلاً، ${name.isEmpty ? 'ضيف' : name}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'استعرض عقاراتك أو سجّل طلباً جديداً.',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -243,19 +447,27 @@ class _EmptyState extends StatelessWidget {
   const _EmptyState();
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: const [
-            Icon(Icons.inbox_outlined, size: 48, color: SarhColors.outline),
-            SizedBox(height: 8),
-            Text('لا توجد عقارات مسجّلة بعد.'),
-            SizedBox(height: 4),
-            Text('اضغط "تسجيل عقار" للبدء.',
-                style: TextStyle(color: SarhColors.outline)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: SarhColors.outline, style: BorderStyle.solid),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.home_work_outlined, size: 48, color: SarhColors.muted.withValues(alpha: 0.4)),
+          const SizedBox(height: 12),
+          const Text(
+            'لا توجد عقارات مسجّلة بعد',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'اضغط "تسجيل جديد" لبدء تسجيل أول عقار.',
+            style: TextStyle(color: SarhColors.muted, fontSize: 13),
+          ),
+        ],
       ),
     );
   }

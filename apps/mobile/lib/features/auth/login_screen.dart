@@ -109,101 +109,216 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تسجيل الدخول')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 8),
-              Text(
-                'الدخول بالهوية الرقمية',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _idController,
-                textDirection: TextDirection.ltr,
-                keyboardType: TextInputType.text,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9-]')),
-                ],
-                decoration: const InputDecoration(
-                  labelText: 'الرقم الرقمي (LY-RR-YYYY-SSSSSS-C)',
-                  hintText: 'LY-11-2026-000001-7',
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [SarhColors.primary, Color(0xFF1E293B), Color(0xFF243A31)],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 420),
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.97),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 40,
+                      offset: const Offset(0, 20),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.nfc),
-                label: Text(_nfcPicc == null
-                    ? 'تأكيد بتمرير البطاقة (NFC)'
-                    : 'تمّت قراءة البطاقة ✓'),
-                onPressed: _busy ? null : _tapNfc,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _pinController,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
-                decoration: const InputDecoration(
-                  labelText: 'رمز PIN (6 أرقام)',
-                ),
-              ),
-              if (_statusAr != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  _statusAr!,
-                  style: TextStyle(color: SarhColors.warn),
-                ),
-              ],
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _busy ? null : _submit,
-                child: _busy
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [SarhColors.primary, Color(0xFF1E293B)],
                         ),
-                      )
-                    : const Text('دخول'),
-              ),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.bolt_outlined),
-                label: const Text('دخول تجريبي ببطاقة موجودة'),
-                onPressed: _busy ? null : _demoLogin,
-              ),
-              const SizedBox(height: 6),
-              Center(
-                child: Text(
-                  'بطاقة أحمد التجريبية: LY-11-2026-000101-0  ·  PIN: 123456',
-                  textDirection: TextDirection.ltr,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontFamily: 'monospace',
+                        border: Border.all(color: SarhColors.accent, width: 2.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: SarhColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 16,
+                          ),
+                        ],
                       ),
+                      child: const Center(
+                        child: Text(
+                          'ص',
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w800,
+                            color: SarhColors.accent,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'صَرح',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                    ),
+                    const Text(
+                      'SARH · LIBYAN DIGITAL ID',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 9,
+                        color: SarhColors.muted,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: _idController,
+                      textDirection: TextDirection.ltr,
+                      keyboardType: TextInputType.text,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9-]')),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'رقم الهوية الرقمية',
+                        hintText: 'LY-11-2026-000101-0',
+                        prefixIcon: Icon(Icons.badge_outlined, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    OutlinedButton.icon(
+                      icon: Icon(
+                        _nfcPicc == null ? Icons.nfc : Icons.check_circle,
+                        size: 18,
+                        color: _nfcPicc == null ? SarhColors.muted : SarhColors.success,
+                      ),
+                      label: Text(
+                        _nfcPicc == null ? 'تمرير بطاقة NFC (اختياري)' : 'تمّ قراءة البطاقة',
+                        style: TextStyle(
+                          color: _nfcPicc == null ? SarhColors.primary : SarhColors.success,
+                        ),
+                      ),
+                      onPressed: _busy ? null : _tapNfc,
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: _pinController,
+                      obscureText: true,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'رمز PIN (6 أرقام)',
+                        prefixIcon: Icon(Icons.lock_outline, size: 20),
+                        counterText: '',
+                      ),
+                    ),
+                    if (_statusAr != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: SarhColors.warn.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: SarhColors.warn.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: SarhColors.warn, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _statusAr!,
+                                style: const TextStyle(color: SarhColors.warn, fontSize: 12.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _busy ? null : _submit,
+                        child: _busy
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: SarhColors.accent,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('دخول'),
+                                  SizedBox(width: 8),
+                                  Icon(Icons.arrow_forward, size: 16),
+                                ],
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const Divider(),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'دخول سريع للتجربة',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: SarhColors.muted,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.bolt_outlined, size: 16, color: SarhColors.accent),
+                        label: const Text('أحمد التجريبي (LY-11-2026-000101-0)'),
+                        onPressed: _busy ? null : _demoLogin,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: SarhColors.primary,
+                          textStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'PIN: 123456',
+                      textDirection: TextDirection.ltr,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 11,
+                        color: SarhColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      '© 2026 LVCT — Libya Vision for Communication & Technology',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 9,
+                        color: SarhColors.muted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              Center(
-                child: Text(
-                  'لا تشارك رمز PIN مع أي شخص. صرح لا يطلبه أبداً.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

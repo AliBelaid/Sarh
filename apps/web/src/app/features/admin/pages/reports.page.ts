@@ -12,7 +12,7 @@ import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">التقارير</h1>

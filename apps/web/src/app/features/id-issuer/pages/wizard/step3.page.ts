@@ -18,11 +18,13 @@ import { IdIssuerWizardService } from '../../wizard.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <h1 class="display">إصدار جديد</h1>
         <p class="sub">وقّع داخل المربّع باستخدام لوحة اللمس أو القلم.</p>
       </header>
+
+      <div class="progress-bar"><div class="progress-fill" style="width: 60%"></div></div>
 
       <ol class="stepper">
         @for (s of steps; track s.n) {
@@ -61,6 +63,8 @@ import { IdIssuerWizardService } from '../../wizard.service';
     .head h1 { font-size: 22px; margin: 0 0 4px; color: var(--ink); }
     .sub { font-size: 13px; color: var(--muted); margin: 0; }
 
+    .progress-bar { height: 4px; background: var(--rule); border-radius: 2px; margin-bottom: 16px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #C2410C); border-radius: 2px; }
     .stepper { list-style: none; padding: 0; margin: 0 0 18px; display: flex; gap: 4px; flex-wrap: wrap; }
     .stepper li { flex: 1; min-width: 120px; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; font-size: 12px; color: var(--muted); }
     .stepper li.on { border-color: var(--primary); color: var(--ink); }

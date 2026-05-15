@@ -14,15 +14,25 @@ const QUEUE_STATUSES: PropertyStatus[] = ['pending', 'under_review', 'needs_clar
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">طابور المراجعة</h1>
           <p class="sub">طلبات تسجيل العقارات المنتظرة لقرار من الموظف.</p>
         </div>
-        <div class="kpi">
-          <span class="kpi-num">{{ filtered().length }}</span>
-          <span class="kpi-lbl">في القائمة</span>
+        <div class="kpi-row">
+          <div class="kpi">
+            <span class="kpi-num accent">{{ filtered().length }}</span>
+            <span class="kpi-lbl">في القائمة</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-num good">{{ countByStatus('pending') }}</span>
+            <span class="kpi-lbl">بانتظار المراجعة</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-num warn">{{ countByStatus('needs_clarification') }}</span>
+            <span class="kpi-lbl">يحتاج توضيح</span>
+          </div>
         </div>
       </header>
 
@@ -47,11 +57,22 @@ const QUEUE_STATUSES: PropertyStatus[] = ['pending', 'under_review', 'needs_clar
       </div>
 
       @if (loading()) {
-        <div class="empty"><div class="spin"></div><p>جارٍ التحميل…</p></div>
+        <div class="skel-table">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="skel-row">
+              <div class="skeleton" style="width: 120px; height: 14px;"></div>
+              <div class="skeleton" style="width: 60px; height: 14px;"></div>
+              <div class="skeleton" style="width: 80px; height: 14px;"></div>
+              <div class="skeleton" style="width: 60px; height: 14px;"></div>
+              <div class="skeleton" style="width: 70px; height: 22px; border-radius: 99px;"></div>
+            </div>
+          }
+        </div>
       } @else if (filtered().length === 0) {
-        <div class="empty">
-          <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="4" cy="18" r="1.5"/></svg>
-          <p>لا طلبات بهذه التصفية.</p>
+        <div class="empty slide-up">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="4" cy="18" r="1.5"/></svg>
+          <h3>لا طلبات بهذه التصفية</h3>
+          <p>يمكنك تغيير الفلتر أو الانتظار حتى تصل طلبات جديدة.</p>
         </div>
       } @else {
         <div class="table-wrap">
@@ -112,8 +133,13 @@ const QUEUE_STATUSES: PropertyStatus[] = ['pending', 'under_review', 'needs_clar
     .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
     .head h1 { font-size: 22px; margin: 0 0 4px; color: var(--ink); }
     .sub { font-size: 13px; color: var(--muted); margin: 0; }
-    .kpi { display: flex; flex-direction: column; align-items: center; padding: 9px 18px; background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; min-width: 90px; }
+    .kpi-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .kpi { display: flex; flex-direction: column; align-items: center; padding: 10px 18px; background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; min-width: 90px; transition: all .15s; }
+    .kpi:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(15,23,42,0.06); }
     .kpi-num { font-size: 22px; font-weight: 800; color: var(--primary); line-height: 1; }
+    .kpi-num.accent { color: var(--accent); }
+    .kpi-num.good { color: var(--good); }
+    .kpi-num.warn { color: #f59e0b; }
     .kpi-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
     .filters { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
@@ -157,8 +183,13 @@ const QUEUE_STATUSES: PropertyStatus[] = ['pending', 'under_review', 'needs_clar
     }
     .open-btn:hover { background: var(--primary); color: var(--accent); border-color: var(--primary); }
 
+    .skel-table { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 8px 0; }
+    .skel-row { display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-bottom: 1px solid var(--rule); }
+    .skel-row:last-child { border-bottom: 0; }
+
     .empty { padding: 60px 24px; text-align: center; color: var(--muted); background: var(--paper); border: 1px dashed var(--rule); border-radius: 14px; }
-    .empty svg { opacity: 0.4; margin-bottom: 12px; }
+    .empty svg { opacity: 0.3; margin-bottom: 14px; }
+    .empty h3 { font-size: 15px; color: var(--ink); margin: 0 0 6px; }
     .empty p { margin: 0; font-size: 13px; }
     .spin { width: 24px; height: 24px; border: 2.5px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; margin: 0 auto 10px; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -215,6 +246,10 @@ export class OfficerQueuePage implements OnInit {
 
   open(id: string): void {
     void this.router.navigate(['/app/review', id]);
+  }
+
+  countByStatus(s: string): number {
+    return this.items().filter(p => p.status === s).length;
   }
 
   status_(s: string) { return PROPERTY_STATUS[s] ?? { ar: s, color: '#94a3b8' }; }

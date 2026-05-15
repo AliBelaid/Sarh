@@ -11,7 +11,7 @@ import { CARD_STATUS } from '../../../shared/status-pills';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">الهويات الرقمية</h1>
@@ -52,11 +52,22 @@ import { CARD_STATUS } from '../../../shared/status-pills';
       </div>
 
       @if (loading()) {
-        <div class="empty"><div class="spin"></div><p>جارٍ التحميل…</p></div>
+        <div class="skel-table">
+          @for (i of [1,2,3,4,5]; track i) {
+            <div class="skel-row">
+              <div class="skeleton" style="width: 160px; height: 14px;"></div>
+              <div class="skeleton" style="width: 120px; height: 14px;"></div>
+              <div class="skeleton" style="width: 100px; height: 14px;"></div>
+              <div class="skeleton" style="width: 80px; height: 14px;"></div>
+              <div class="skeleton" style="width: 60px; height: 22px; border-radius: 99px;"></div>
+            </div>
+          }
+        </div>
       } @else if (filtered().length === 0) {
-        <div class="empty">
-          <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="9" cy="12" r="2.5"/><line x1="14" y1="10" x2="19" y2="10"/></svg>
-          <p>لا توجد بطاقات.</p>
+        <div class="empty slide-up">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="9" cy="12" r="2.5"/><line x1="14" y1="10" x2="19" y2="10"/></svg>
+          <h3>لا توجد بطاقات</h3>
+          <p>لم يتم العثور على بطاقات تطابق البحث الحالي.</p>
         </div>
       } @else {
         <div class="table-wrap">
@@ -150,8 +161,13 @@ import { CARD_STATUS } from '../../../shared/status-pills';
     .expiring { color: #f59e0b; font-weight: 600; }
     .badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; color: #fff; }
 
+    .skel-table { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 8px 0; }
+    .skel-row { display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-bottom: 1px solid var(--rule); }
+    .skel-row:last-child { border-bottom: 0; }
+
     .empty { padding: 60px 24px; text-align: center; color: var(--muted); background: var(--paper); border: 1px dashed var(--rule); border-radius: 14px; }
-    .empty svg { opacity: 0.4; margin-bottom: 10px; }
+    .empty svg { opacity: 0.3; margin-bottom: 14px; }
+    .empty h3 { font-size: 15px; color: var(--ink); margin: 0 0 6px; }
     .empty p { margin: 0; font-size: 13px; }
     .spin { width: 24px; height: 24px; border: 2.5px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; margin: 0 auto 10px; }
     @keyframes spin { to { transform: rotate(360deg); } }

@@ -1,9 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AuthService } from '@core/auth.service';
 import { SarhRole } from '@core/auth.types';
+import { CitizensService } from '@core/citizens.service';
+import { PropertiesService } from '@core/properties.service';
+import { DigitalIdCardsService } from '@core/digital-id-cards.service';
 
 interface Tile {
   ar: string;
@@ -15,7 +18,7 @@ interface Tile {
 }
 
 const ALL: readonly SarhRole[] = [
-  'super_admin', 'auditor', 'registry_officer', 'reviewer', 'id_issuer', 'citizen',
+  'super_admin', 'auditor', 'registry_officer', 'reviewer', 'id_issuer', 'department_manager', 'citizen',
 ];
 
 const TILES: Tile[] = [
@@ -62,6 +65,13 @@ const TILES: Tile[] = [
     roles: ['id_issuer', 'super_admin'],
   },
 
+  // Department manager
+  {
+    ar: 'الاعتمادات النهائية', desc: 'الموافقة النهائية على رخص NFT العقارية.',
+    path: '/app/manager/queue', icon: 'check', accent: 'accent',
+    roles: ['department_manager', 'super_admin'],
+  },
+
   // Admin / auditor
   {
     ar: 'العقارات', desc: 'الخريطة الكاملة لكل العقارات في النظام.',
@@ -95,16 +105,24 @@ const TILES: Tile[] = [
   },
 ];
 
+interface Kpi {
+  label: string;
+  icon: string;
+  color: string;
+  bg: string;
+  value: () => number | string;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink],
   template: `
-    <section class="dash">
+    <section class="dash fade-in">
       <header class="hero">
         <div>
-          <div class="hello mono">{{ greetingPrefix() }}</div>
+          <div class="hello mono">{{ timeGreeting() }} · {{ greetingPrefix() }}</div>
           <h1 class="display">{{ greeting() }}</h1>
           <p class="lede">{{ subtitle() }}</p>
         </div>
@@ -114,9 +132,25 @@ const TILES: Tile[] = [
         </div>
       </header>
 
+      @if (showKpis()) {
+        <div class="kpi-row slide-up">
+          @for (k of kpis(); track k.label; let i = $index) {
+            <div class="kpi-card stagger-{{ i + 1 }}">
+              <div class="kpi-icon" [style.color]="k.color" [style.background]="k.bg">
+                <span [innerHTML]="sanitize(k.icon)"></span>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-num" [style.color]="k.color">{{ k.value() }}</div>
+                <div class="kpi-lbl">{{ k.label }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
       <div class="tiles">
-        @for (t of visibleTiles(); track t.path) {
-          <a [routerLink]="t.path" class="tile" [attr.data-accent]="t.accent">
+        @for (t of visibleTiles(); track t.path; let i = $index) {
+          <a [routerLink]="t.path" class="tile slide-up stagger-{{ i + 1 }}" [attr.data-accent]="t.accent">
             <div class="tile-icon" [innerHTML]="iconSvg(t.icon)"></div>
             <div class="tile-text">
               <h3>{{ t.ar }}</h3>
@@ -223,14 +257,52 @@ const TILES: Tile[] = [
     [dir='ltr'] .tile-arrow { transform: scaleX(-1); }
     [dir='ltr'] .tile:hover .tile-arrow { transform: scaleX(-1) translateX(-4px); }
 
+    /* ── KPI row ──────────────────────────────────────────── */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .kpi-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 20px;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      transition: all .2s;
+    }
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+    .kpi-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .kpi-body { display: flex; flex-direction: column; }
+    .kpi-num { font-size: 26px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+    .kpi-lbl { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
     @media (max-width: 640px) {
       .hero { padding: 22px; }
       .hero h1 { font-size: 22px; }
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
     }
   `],
 })
-export class DashboardPage {
+export class DashboardPage implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly citizensApi = inject(CitizensService);
+  private readonly propertiesApi = inject(PropertiesService);
+  private readonly cardsApi = inject(DigitalIdCardsService);
+
+  readonly citizenCount = signal(0);
+  readonly propertyCount = signal(0);
+  readonly cardCount = signal(0);
+  readonly pendingCount = signal(0);
 
   readonly visibleTiles = computed(() => {
     const role = this.auth.user()?.role;
@@ -238,10 +310,75 @@ export class DashboardPage {
     return TILES.filter((t) => t.roles.includes(role));
   });
 
+  readonly showKpis = computed(() => {
+    const role = this.auth.user()?.role;
+    return role === 'super_admin' || role === 'auditor' || role === 'registry_officer' || role === 'reviewer' || role === 'id_issuer' || role === 'department_manager';
+  });
+
+  readonly kpis = computed((): Kpi[] => {
+    const role = this.auth.user()?.role;
+    if (role === 'super_admin' || role === 'auditor') {
+      return [
+        { label: 'المواطنون', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>', color: '#0891B2', bg: 'rgba(8,145,178,0.12)', value: () => this.citizenCount() },
+        { label: 'العقارات', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>', color: '#F97316', bg: 'rgba(249,115,22,0.12)', value: () => this.propertyCount() },
+        { label: 'هويات رقمية', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="9" cy="12" r="2.5"/></svg>', color: '#0F172A', bg: 'rgba(15,23,42,0.08)', value: () => this.cardCount() },
+        { label: 'قيد المراجعة', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', color: '#DC2626', bg: 'rgba(220,38,38,0.10)', value: () => this.pendingCount() },
+      ];
+    }
+    if (role === 'registry_officer' || role === 'reviewer') {
+      return [
+        { label: 'قيد المراجعة', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', color: '#F97316', bg: 'rgba(249,115,22,0.12)', value: () => this.pendingCount() },
+        { label: 'إجمالي العقارات', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>', color: '#0891B2', bg: 'rgba(8,145,178,0.12)', value: () => this.propertyCount() },
+      ];
+    }
+    if (role === 'id_issuer') {
+      return [
+        { label: 'هويات مُصدرة', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="9" cy="12" r="2.5"/></svg>', color: '#0891B2', bg: 'rgba(8,145,178,0.12)', value: () => this.cardCount() },
+      ];
+    }
+    return [];
+  });
+
+  async ngOnInit(): Promise<void> {
+    const role = this.auth.user()?.role;
+    if (!role) return;
+    try {
+      if (role === 'super_admin' || role === 'auditor') {
+        const [citizens, properties, cards, pending] = await Promise.all([
+          this.citizensApi.list({ limit: 1 }).catch(() => ({ items: [], total: 0 })),
+          this.propertiesApi.list({ limit: 1 }).catch(() => ({ items: [], total: 0 })),
+          this.cardsApi.list({ limit: 1 }).catch(() => ({ items: [], total: 0 })),
+          this.propertiesApi.list({ status: 'pending', limit: 1 } as any).catch(() => ({ items: [], total: 0 })),
+        ]);
+        this.citizenCount.set((citizens as any).total ?? citizens.items.length);
+        this.propertyCount.set((properties as any).total ?? properties.items.length);
+        this.cardCount.set((cards as any).total ?? cards.items.length);
+        this.pendingCount.set((pending as any).total ?? pending.items.length);
+      } else if (role === 'registry_officer' || role === 'reviewer') {
+        const [properties, pending] = await Promise.all([
+          this.propertiesApi.list({ limit: 1 }).catch(() => ({ items: [], total: 0 })),
+          this.propertiesApi.list({ status: 'pending', limit: 1 } as any).catch(() => ({ items: [], total: 0 })),
+        ]);
+        this.propertyCount.set((properties as any).total ?? properties.items.length);
+        this.pendingCount.set((pending as any).total ?? pending.items.length);
+      } else if (role === 'id_issuer') {
+        const cards = await this.cardsApi.list({ limit: 1 }).catch(() => ({ items: [], total: 0 }));
+        this.cardCount.set((cards as any).total ?? cards.items.length);
+      }
+    } catch { /* stats are best-effort */ }
+  }
+
   readonly greetingPrefix = computed(() => {
     const u = this.auth.user();
     if (!u?.email) return 'مرحباً';
     return 'WELCOME · مرحباً';
+  });
+
+  readonly timeGreeting = computed(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'صباح الخير';
+    if (hour < 18) return 'مساء الخير';
+    return 'مساء النور';
   });
 
   readonly greeting = computed(() => {
@@ -292,6 +429,10 @@ export class DashboardPage {
   });
 
   private readonly sanitizer = inject(DomSanitizer);
+
+  sanitize(html: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
 
   iconSvg(name: string): SafeHtml {
     const ico: Record<string, string> = {

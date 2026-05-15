@@ -8,7 +8,7 @@ import { RouterLink } from '@angular/router';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">محطة الإصدار</h1>

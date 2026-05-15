@@ -33,7 +33,7 @@ interface SubmitResponse {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <h1 class="display">تسجيل عقار جديد</h1>
         <p class="sub">أدخل بيانات العقار وارسم حدوده على الخريطة، ثم أرسل الطلب للمراجعة.</p>

@@ -17,7 +17,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | null;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <a routerLink="/app/digital-ids" class="back">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>

@@ -14,7 +14,7 @@ import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">قائمة الاعتمادات النهائية</h1>

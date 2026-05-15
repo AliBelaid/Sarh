@@ -14,7 +14,7 @@ import { CARD_STATUS } from '../../../shared/status-pills';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">هويتي الرقمية</h1>

@@ -17,7 +17,28 @@ class WalletScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('المحفظة')),
       body: async.when(
         data: (items) => items.isEmpty
-            ? const Center(child: Text('لا توجد شهادات بعد.'))
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.account_balance_wallet_outlined, size: 56, color: SarhColors.muted.withValues(alpha: 0.3)),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'لا توجد شهادات رقمية بعد',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'ستظهر هنا شهاداتك (هويتك وسنداتك) بعد إصدارها.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: SarhColors.muted, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              )
             : RefreshIndicator(
                 onRefresh: () async => ref.refresh(myCredentialsProvider.future),
                 child: ListView(

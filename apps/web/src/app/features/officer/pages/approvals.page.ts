@@ -13,7 +13,7 @@ type Tab = 'approved' | 'rejected' | 'all';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">الاعتمادات</h1>
@@ -107,7 +107,9 @@ type Tab = 'approved' | 'rejected' | 'all';
       border: 1px solid var(--rule);
       border-radius: 12px;
       min-width: 80px;
+      transition: all .15s;
     }
+    .kpi:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(15,23,42,0.06); }
     .kpi-num { font-size: 22px; font-weight: 800; line-height: 1; }
     .kpi-num.good { color: var(--good); }
     .kpi-num.warn { color: var(--warn); }

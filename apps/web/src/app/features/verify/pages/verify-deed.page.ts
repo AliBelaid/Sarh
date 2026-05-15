@@ -72,8 +72,13 @@ interface DeedView {
             </div>
           </div>
         } @else if (deed(); as d) {
-          <h1 class="hero-title">شهادة معتمدة ✓</h1>
-          <p class="hero-sub">تم التحقّق من صحّة الوثيقة من قاعدة بيانات سجل العقارات الليبي.</p>
+          <div class="hero-badge fade-in">
+            <span class="hero-check">✓</span>
+            <div>
+              <h1 class="hero-title">شهادة معتمدة</h1>
+              <p class="hero-sub">تم التحقّق من صحّة الوثيقة من قاعدة بيانات سجل العقارات الليبي.</p>
+            </div>
+          </div>
 
           <div class="banner ok">
             <span class="banner-mark big">✓</span>
@@ -240,8 +245,22 @@ interface DeedView {
     .spin { width: 28px; height: 28px; border: 3px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .hero-title { font-size: 24px; margin: 0 0 6px; color: var(--ink); }
-    .hero-sub { font-size: 13px; color: var(--muted); margin: 0 0 22px; }
+    .hero-badge {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 22px;
+    }
+    .hero-check {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--good), #06b6d4);
+      color: #fff;
+      display: grid; place-items: center;
+      font-size: 24px; font-weight: 700;
+      flex-shrink: 0;
+      box-shadow: 0 8px 20px rgba(8, 145, 178, 0.25);
+    }
+    .hero-title { font-size: 24px; margin: 0 0 4px; color: var(--ink); }
+    .hero-sub { font-size: 13px; color: var(--muted); margin: 0; }
 
     .banner {
       display: flex; gap: 14px; align-items: flex-start;

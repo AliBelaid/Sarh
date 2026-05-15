@@ -72,7 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: active ? 24 : 8,
                   decoration: BoxDecoration(
                     color:
-                        active ? SarhColors.primary : SarhColors.outline,
+                        active ? SarhColors.accent : SarhColors.outline,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 );

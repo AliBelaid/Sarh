@@ -12,11 +12,15 @@ import { REGIONS } from '../../../../shared/status-pills';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <h1 class="display">إصدار جديد</h1>
         <p class="sub">أكمل المعالج بخمس خطوات لإنشاء سجل المواطن وإصدار بطاقة الهويّة الرقميّة.</p>
       </header>
+
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: 20%"></div>
+      </div>
 
       <ol class="stepper">
         @for (s of steps; track s.n) {
@@ -102,6 +106,20 @@ import { REGIONS } from '../../../../shared/status-pills';
     .head { margin-bottom: 18px; }
     .head h1 { font-size: 22px; margin: 0 0 4px; color: var(--ink); }
     .sub { font-size: 13px; color: var(--muted); margin: 0; }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--rule);
+      border-radius: 2px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #C2410C);
+      border-radius: 2px;
+      transition: width .4s ease;
+    }
 
     .stepper {
       list-style: none; padding: 0; margin: 0 0 18px;

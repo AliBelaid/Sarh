@@ -28,7 +28,7 @@ const REGION_NAMES: Record<number, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">إدارة المستخدمين</h1>

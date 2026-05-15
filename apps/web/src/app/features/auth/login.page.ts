@@ -18,7 +18,7 @@ function canRoleAccess(role: string, path: string): boolean {
 }
 
 interface QuickRole {
-  key: 'citizen' | 'officer' | 'manager' | 'issuer';
+  key: 'citizen' | 'officer' | 'manager' | 'issuer' | 'admin' | 'reviewer';
   ar: string;
   email: string;
   password: string;
@@ -98,7 +98,7 @@ interface QuickRole {
         <div class="quick">
           <div class="quick-label">دخول سريع للتجربة</div>
           <div class="quick-grid">
-            @for (q of quickRoles; track q.key) {
+            @for (q of quickRoles; track q.email) {
               <button type="button" class="quick-btn" [style.--qa]="q.accent"
                       (click)="quickFill(q)" [disabled]="loading()">
                 <span class="quick-dot"></span>
@@ -106,6 +106,17 @@ interface QuickRole {
               </button>
             }
           </div>
+          <div class="quick-divider"></div>
+          <div class="quick-grid">
+            @for (q of adminRoles; track q.email) {
+              <button type="button" class="quick-btn" [style.--qa]="q.accent"
+                      (click)="quickFill(q)" [disabled]="loading()">
+                <span class="quick-dot"></span>
+                {{ q.ar }}
+              </button>
+            }
+          </div>
+          <div class="quick-hint mono">كلمة المرور لجميع الحسابات: Demo!12345</div>
         </div>
 
         <p class="foot mono">© {{ year }} LVCT — Libya Vision for Communication & Technology</p>
@@ -323,6 +334,20 @@ interface QuickRole {
       flex-shrink: 0;
     }
 
+    .quick-divider {
+      height: 1px;
+      background: var(--rule);
+      margin: 8px 0;
+    }
+    .quick-hint {
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 8px;
+      letter-spacing: 0.04em;
+      direction: ltr;
+    }
+
     .foot {
       text-align: center;
       margin: 22px 0 0;
@@ -361,6 +386,11 @@ export class LoginPage {
     { key: 'officer',  ar: 'موظف تسجيل',     email: 'officer@sarh.ly',  password: 'Demo!12345', accent: '#0891B2' },
     { key: 'manager',  ar: 'مدير القسم',     email: 'manager@sarh.ly',  password: 'Demo!12345', accent: '#5b21b6' },
     { key: 'issuer',   ar: 'مصدر هويات',     email: 'idissuer@sarh.ly', password: 'Demo!12345', accent: '#DC2626' },
+  ];
+
+  readonly adminRoles: QuickRole[] = [
+    { key: 'admin',    ar: 'مسؤول عام',       email: 'admin@sarh.ly',    password: 'Demo!12345', accent: '#F97316' },
+    { key: 'reviewer', ar: 'مراجع تقني',      email: 'reviewer@sarh.ly', password: 'Demo!12345', accent: '#0891B2' },
   ];
 
   toggleLang(): void {

@@ -6,14 +6,15 @@ import 'package:flutter/material.dart';
 class SarhColors {
   SarhColors._();
 
-  static const Color primary = Color(0xFF0F1A14); // Libyan black
-  static const Color accent = Color(0xFFD4AF37);  // gold
-  static const Color warn = Color(0xFFE70013);    // Libyan red
-  static const Color success = Color(0xFF239E46); // Libyan green
+  static const Color primary = Color(0xFF0F172A); // slate-900 (matches web --primary)
+  static const Color accent = Color(0xFFF97316);  // orange-500 (matches web --accent)
+  static const Color warn = Color(0xFFDC2626);    // red-600 (matches web --warn)
+  static const Color success = Color(0xFF0891B2); // cyan-600 (matches web --good)
 
-  static const Color surface = Color(0xFFFAFAF7);
-  static const Color onSurface = Color(0xFF111111);
-  static const Color outline = Color(0xFFD8D8D2);
+  static const Color surface = Color(0xFFFAFAF9); // stone-50 (matches web --paper)
+  static const Color onSurface = Color(0xFF0F172A);
+  static const Color outline = Color(0xFFE5E7EB); // gray-200 (matches web --rule)
+  static const Color muted = Color(0xFF64748B);   // slate-500 (matches web --muted)
 
   // Property status chip palette.
   static Color statusBackground(String status) {
@@ -23,7 +24,11 @@ class SarhColors {
       case 'rejected':
         return warn.withValues(alpha: 0.12);
       case 'needs_clarification':
-        return accent.withValues(alpha: 0.18);
+        return accent.withValues(alpha: 0.14);
+      case 'minted':
+        return accent.withValues(alpha: 0.14);
+      case 'frozen':
+        return const Color(0xFF6B7280).withValues(alpha: 0.12);
       case 'pending':
       case 'under_review':
       default:
@@ -38,7 +43,11 @@ class SarhColors {
       case 'rejected':
         return warn;
       case 'needs_clarification':
-        return Color(0xFF8A6A14); // dark gold for contrast
+        return const Color(0xFFC2410C);
+      case 'minted':
+        return accent;
+      case 'frozen':
+        return const Color(0xFF6B7280);
       case 'pending':
       case 'under_review':
       default:

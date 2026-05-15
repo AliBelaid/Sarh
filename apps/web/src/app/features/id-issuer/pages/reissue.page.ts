@@ -18,7 +18,7 @@ interface ReissueResult {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <h1 class="display">إعادة إصدار بطاقة هوية</h1>
         <p class="sub">ابحث عن المواطن، اختر بطاقته الحالية، وأكّد إعادة الإصدار. سيتم إلغاء البطاقة القديمة تلقائياً.</p>

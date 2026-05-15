@@ -10,7 +10,7 @@ import { REGIONS } from '../../../shared/status-pills';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">المواطنون</h1>
@@ -34,11 +34,22 @@ import { REGIONS } from '../../../shared/status-pills';
       </div>
 
       @if (loading()) {
-        <div class="empty"><div class="spin"></div><p>جارٍ التحميل…</p></div>
+        <div class="skel-table">
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="skel-row">
+              <div class="skeleton" style="width: 32px; height: 32px; border-radius: 8px;"></div>
+              <div class="skeleton" style="width: 140px; height: 14px;"></div>
+              <div class="skeleton" style="width: 80px; height: 14px;"></div>
+              <div class="skeleton" style="width: 100px; height: 14px;"></div>
+              <div class="skeleton" style="width: 90px; height: 14px;"></div>
+            </div>
+          }
+        </div>
       } @else if (filtered().length === 0) {
-        <div class="empty">
-          <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <p>لا توجد نتائج.</p>
+        <div class="empty slide-up">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <h3>لا توجد نتائج</h3>
+          <p>جرّب تغيير معايير البحث أو الفلتر.</p>
         </div>
       } @else {
         <div class="table-wrap">
@@ -119,8 +130,13 @@ import { REGIONS } from '../../../shared/status-pills';
     .status.on { background: rgba(8, 145, 178, 0.12); color: var(--good); }
     .status.off { background: rgba(220, 38, 38, 0.10); color: var(--warn); }
 
+    .skel-table { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 8px 0; }
+    .skel-row { display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--rule); }
+    .skel-row:last-child { border-bottom: 0; }
+
     .empty { padding: 60px 24px; text-align: center; color: var(--muted); background: var(--paper); border: 1px dashed var(--rule); border-radius: 14px; }
-    .empty svg { opacity: 0.4; margin-bottom: 10px; }
+    .empty svg { opacity: 0.3; margin-bottom: 14px; }
+    .empty h3 { font-size: 15px; color: var(--ink); margin: 0 0 6px; }
     .empty p { margin: 0; font-size: 13px; }
     .spin { width: 24px; height: 24px; border: 2.5px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; margin: 0 auto 10px; }
     @keyframes spin { to { transform: rotate(360deg); } }

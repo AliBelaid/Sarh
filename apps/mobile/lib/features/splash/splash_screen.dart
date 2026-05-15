@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -48,41 +47,77 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SarhColors.primary,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              'assets/branding/logo-sarh.svg',
-              width: 144,
-              height: 144,
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'صرح',
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                color: Colors.white,
-                fontSize: 48,
-                fontWeight: FontWeight.w700,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [SarhColors.primary, Color(0xFF1E293B), Color(0xFF243A31)],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [SarhColors.accent, Color(0xFFC2410C)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: SarhColors.accent.withValues(alpha: 0.35),
+                      blurRadius: 30,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    'ص',
+                    style: TextStyle(
+                      fontSize: 44,
+                      fontWeight: FontWeight.w800,
+                      color: SarhColors.primary,
+                    ),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'صرح لتوثيق العقاري',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 20),
+              const Text(
+                'صَرح',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  color: Colors.white,
+                  fontSize: 38,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Sarh — Real Estate Documentation',
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                'SARH · LIBYAN REGISTRY + DIGITAL ID',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  color: SarhColors.accent.withValues(alpha: 0.8),
+                  fontSize: 9,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: SarhColors.accent.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

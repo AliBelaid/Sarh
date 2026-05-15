@@ -13,7 +13,7 @@ type Phase = 'idle' | 'issuing' | 'awaiting_card' | 'encoding' | 'printing' | 'd
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <h1 class="display">إنتاج البطاقة</h1>
         <p class="sub">تم إنشاء سجل المواطن. ضع بطاقة NTAG 424 DNA فارغة في القارئ ثم اضغط "إصدار وتشفير".</p>

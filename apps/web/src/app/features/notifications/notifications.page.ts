@@ -18,7 +18,7 @@ type Tab = 'all' | 'unread';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink],
   template: `
-    <section class="page">
+    <section class="page fade-in">
       <header class="head">
         <div>
           <h1 class="display">الإشعارات</h1>

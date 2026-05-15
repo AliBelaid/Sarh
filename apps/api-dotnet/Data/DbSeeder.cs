@@ -40,6 +40,15 @@ public sealed class DbSeeder(
         (Guid.Parse("00000000-0000-0000-0000-000000000112"), "fatima@sarh.ly"),
         (Guid.Parse("00000000-0000-0000-0000-000000000113"), "khaled@sarh.ly"),
         (Guid.Parse("00000000-0000-0000-0000-000000000114"), "layla@sarh.ly"),
+        // 034-seeded super_admin
+        (Guid.Parse("00000000-0000-0000-0000-000000000214"), "admin@sarh.ly"),
+        // 034-seeded additional citizens
+        (Guid.Parse("00000000-0000-0000-0000-000000000115"), "omar@sarh.ly"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000116"), "amina@sarh.ly"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000117"), "youssef@sarh.ly"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000118"), "hanan@sarh.ly"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000119"), "salem@sarh.ly"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000120"), "nadia@sarh.ly"),
     ];
 
     public Task StartAsync(CancellationToken ct)
@@ -153,6 +162,25 @@ public sealed class DbSeeder(
         (Guid.Parse("00000000-0000-0000-0000-000000000304"),
          Guid.Parse("00000000-0000-0000-0000-000000000104"),
          "LY-15-2026-000104-0", "CARD-DEMO-0104", "04A1B2C3D4E5F604", "did:sov:LY:demo:layla",  "frozen"),
+        // 034-seeded additional cards with varied statuses
+        (Guid.Parse("00000000-0000-0000-0000-000000000305"),
+         Guid.Parse("00000000-0000-0000-0000-000000000105"),
+         "LY-22-2026-000105-0", "CARD-DEMO-0105", "04A1B2C3D4E5F605", "did:sov:LY:demo:omar",   "active"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000306"),
+         Guid.Parse("00000000-0000-0000-0000-000000000106"),
+         "LY-13-2026-000106-0", "CARD-DEMO-0106", "04A1B2C3D4E5F606", "did:sov:LY:demo:amina",  "revoked"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000307"),
+         Guid.Parse("00000000-0000-0000-0000-000000000107"),
+         "LY-21-2026-000107-0", "CARD-DEMO-0107", "04A1B2C3D4E5F607", "did:sov:LY:demo:youssef", "active"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000308"),
+         Guid.Parse("00000000-0000-0000-0000-000000000108"),
+         "LY-24-2026-000108-0", "CARD-DEMO-0108", "04A1B2C3D4E5F608", "did:sov:LY:demo:hanan",  "expired"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000309"),
+         Guid.Parse("00000000-0000-0000-0000-000000000109"),
+         "LY-31-2026-000109-0", "CARD-DEMO-0109", "04A1B2C3D4E5F609", "did:sov:LY:demo:salem",  "active"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000310"),
+         Guid.Parse("00000000-0000-0000-0000-000000000110"),
+         "LY-12-2026-000110-0", "CARD-DEMO-0110", "04A1B2C3D4E5F610", "did:sov:LY:demo:nadia",  "lost"),
     ];
     private static readonly Guid[] DemoCardIds = DemoCards.Select(c => c.CardId).ToArray();
     private const string DemoCardPin = "123456";
