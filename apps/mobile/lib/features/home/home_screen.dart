@@ -325,6 +325,23 @@ class _DigitalIdCard extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.nfc, size: 16, color: Colors.white70),
+                    label: const Text(
+                      'تحقق من البطاقة عبر NFC',
+                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    onPressed: () => context.push(AppRoutes.nfcVerify),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: SarhColors.accent.withValues(alpha: 0.4)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

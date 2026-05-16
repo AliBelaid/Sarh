@@ -16,6 +16,7 @@ import '../features/property/wizard/step_review.dart';
 import '../features/wallet/wallet_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/nfc/nfc_verify_screen.dart';
 
 class AppRoutes {
   static const splash = '/';
@@ -30,6 +31,7 @@ class AppRoutes {
   static const wallet = '/wallet';
   static const notifications = '/notifications';
   static const profile = '/profile';
+  static const nfcVerify = '/nfc-verify';
   static String propertyDetail(String id) => '/property/$id';
 }
 
@@ -91,6 +93,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const NotificationsScreen(),
       ),
       GoRoute(path: AppRoutes.profile, builder: (_, __) => const ProfileScreen()),
+      GoRoute(path: AppRoutes.nfcVerify, builder: (_, __) => const NfcVerifyScreen()),
     ],
     errorBuilder: (_, st) => Scaffold(
       appBar: AppBar(),
