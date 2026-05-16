@@ -61,4 +61,26 @@ export class PropertiesService {
       this.http.post<LicenseResult>(`${API_BASE}/properties/${id}/final-approve`, body),
     );
   }
+
+  bulkReview(propertyIds: string[], decision: string, note?: string, approvalDecreeNo?: string): Promise<BulkResult> {
+    return firstValueFrom(
+      this.http.post<BulkResult>(`${API_BASE}/properties/bulk-review`, {
+        property_ids: propertyIds, decision, note, approval_decree_no: approvalDecreeNo,
+      }),
+    );
+  }
+
+  bulkFinalApprove(propertyIds: string[], note?: string): Promise<BulkResult> {
+    return firstValueFrom(
+      this.http.post<BulkResult>(`${API_BASE}/properties/bulk-final-approve`, {
+        property_ids: propertyIds, note,
+      }),
+    );
+  }
+}
+
+export interface BulkResult {
+  results: { id: string; success: boolean; error?: string }[];
+  success_count: number;
+  failed_count: number;
 }

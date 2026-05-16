@@ -75,10 +75,20 @@ const QUEUE_STATUSES: PropertyStatus[] = ['pending', 'under_review', 'needs_clar
           <p>يمكنك تغيير الفلتر أو الانتظار حتى تصل طلبات جديدة.</p>
         </div>
       } @else {
+        @if (selected.size > 0) {
+          <div class="bulk-bar slide-up">
+            <span class="bulk-count">{{ selected.size }} محدّد</span>
+            <button class="bulk-btn approve" (click)="bulkApprove()" [disabled]="bulkBusy()">اعتماد الكل</button>
+            <button class="bulk-btn reject" (click)="bulkReject()" [disabled]="bulkBusy()">رفض الكل</button>
+            <button class="bulk-btn clear" (click)="clearSelection()">إلغاء التحديد</button>
+          </div>
+        }
+
         <div class="table-wrap">
           <table class="tbl">
             <thead>
               <tr>
+                <th style="width:36px"><input type="checkbox" [checked]="allSelected()" (change)="toggleAll()" /></th>
                 <th>الرمز / القطعة</th>
                 <th>النوع</th>
                 <th>المنطقة</th>
@@ -90,7 +100,10 @@ const QUEUE_STATUSES: PropertyStatus[] = ['pending', 'under_review', 'needs_clar
             </thead>
             <tbody>
               @for (p of filtered(); track p.id) {
-                <tr (click)="open(p.id)">
+                <tr (click)="open(p.id)" [class.selected]="selected.has(p.id)">
+                  <td (click)="$event.stopPropagation()">
+                    <input type="checkbox" [checked]="selected.has(p.id)" (change)="toggleSelect(p.id)" />
+                  </td>
                   <td>
                     <div class="code-cell">
                       <span class="mono code">{{ p.property_code ?? p.parcel_number ?? '—' }}</span>
@@ -197,6 +210,27 @@ const QUEUE_STATUSES: PropertyStatus[] = ['pending', 'under_review', 'needs_clar
     .banner { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 8px; }
     .banner.err { background: #fff5f5; color: var(--warn); border: 1px solid #fecaca; }
     .banner-mark { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--warn); color: #fff; font-size: 12px; font-weight: 700; }
+
+    .tbl tbody tr.selected { background: rgba(249,115,22,0.06); }
+    .tbl input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+    .bulk-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 12px 16px; margin-bottom: 12px;
+      background: var(--primary); border-radius: 12px;
+    }
+    .bulk-count { color: #fff; font-size: 13px; font-weight: 700; margin-inline-end: 8px; }
+    .bulk-btn {
+      padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      border: 0; cursor: pointer; font-family: inherit; transition: all .12s;
+    }
+    .bulk-btn.approve { background: var(--good); color: #fff; }
+    .bulk-btn.approve:hover:not(:disabled) { filter: brightness(1.1); }
+    .bulk-btn.reject { background: var(--warn); color: #fff; }
+    .bulk-btn.reject:hover:not(:disabled) { filter: brightness(1.1); }
+    .bulk-btn.clear { background: rgba(255,255,255,0.15); color: #fff; }
+    .bulk-btn.clear:hover { background: rgba(255,255,255,0.25); }
+    .bulk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   `],
 })
 export class OfficerQueuePage implements OnInit {
@@ -208,8 +242,10 @@ export class OfficerQueuePage implements OnInit {
   readonly status = signal<PropertyStatus | ''>('pending');
   readonly items = signal<Property[]>([]);
   readonly loading = signal(false);
+  readonly bulkBusy = signal(false);
   readonly error = signal<string | null>(null);
   typeFilter: PropertyType | '' = '';
+  selected = new Set<string>();
 
   readonly filtered = computed(() => {
     const t = this.typeFilter;
@@ -246,6 +282,59 @@ export class OfficerQueuePage implements OnInit {
 
   open(id: string): void {
     void this.router.navigate(['/app/review', id]);
+  }
+
+  toggleSelect(id: string): void {
+    if (this.selected.has(id)) this.selected.delete(id);
+    else this.selected.add(id);
+  }
+
+  toggleAll(): void {
+    if (this.allSelected()) {
+      this.selected.clear();
+    } else {
+      for (const p of this.filtered()) this.selected.add(p.id);
+    }
+  }
+
+  allSelected(): boolean {
+    const f = this.filtered();
+    return f.length > 0 && f.every(p => this.selected.has(p.id));
+  }
+
+  clearSelection(): void { this.selected.clear(); }
+
+  async bulkApprove(): Promise<void> {
+    if (this.selected.size === 0) return;
+    this.bulkBusy.set(true);
+    this.error.set(null);
+    try {
+      const res = await this.api.bulkReview([...this.selected], 'approve');
+      this.error.set(null);
+      alert(`تم اعتماد ${res.success_count} عقار. ${res.failed_count > 0 ? `فشل ${res.failed_count}.` : ''}`);
+      this.selected.clear();
+      await this.reload();
+    } catch {
+      this.error.set('تعذّر تنفيذ العملية الجماعية.');
+    } finally {
+      this.bulkBusy.set(false);
+    }
+  }
+
+  async bulkReject(): Promise<void> {
+    if (this.selected.size === 0) return;
+    this.bulkBusy.set(true);
+    this.error.set(null);
+    try {
+      const res = await this.api.bulkReview([...this.selected], 'reject', 'رفض جماعي');
+      alert(`تم رفض ${res.success_count} عقار. ${res.failed_count > 0 ? `فشل ${res.failed_count}.` : ''}`);
+      this.selected.clear();
+      await this.reload();
+    } catch {
+      this.error.set('تعذّر تنفيذ العملية الجماعية.');
+    } finally {
+      this.bulkBusy.set(false);
+    }
   }
 
   countByStatus(s: string): number {
