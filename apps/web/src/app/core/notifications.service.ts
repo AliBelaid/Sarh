@@ -1,7 +1,9 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import * as signalR from '@microsoft/signalr';
 import { API_BASE } from './api-config';
+import { AuthService } from './auth.service';
 
 export interface SarhNotification {
   id: string;
@@ -28,10 +30,9 @@ export interface ListNotificationsParams {
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+  private connection: signalR.HubConnection | null = null;
 
-  // Shared unread-count signal — the layout's topbar badge reads this, the
-  // inbox page writes to it after mark-read / mark-all-read calls. Single
-  // source of truth so the badge stays in sync without prop drilling.
   private readonly _unread = signal(0);
   readonly unread = this._unread.asReadonly();
 
@@ -44,8 +45,6 @@ export class NotificationsService {
       `${API_BASE}/me/notifications`, { params: p }));
   }
 
-  // Hits the server and updates the shared signal. Returns the count too
-  // for callers that want to assert/await on it.
   async refreshUnread(): Promise<number> {
     try {
       const res = await firstValueFrom(
@@ -53,8 +52,6 @@ export class NotificationsService {
       this._unread.set(res.count);
       return res.count;
     } catch {
-      // Backend hiccup shouldn't break the badge — keep showing the last
-      // known count rather than zeroing out.
       return this._unread();
     }
   }
@@ -62,7 +59,6 @@ export class NotificationsService {
   async markRead(id: string): Promise<SarhNotification> {
     const res = await firstValueFrom(
       this.http.post<SarhNotification>(`${API_BASE}/me/notifications/${id}/read`, {}));
-    // Decrement optimistically — refreshUnread() reconciles on next poll.
     this._unread.update(c => Math.max(0, c - 1));
     return res;
   }
@@ -72,5 +68,27 @@ export class NotificationsService {
       this.http.post<{ updated: number }>(`${API_BASE}/me/notifications/read-all`, {}));
     this._unread.set(0);
     return res.updated;
+  }
+
+  connect(): void {
+    const token = this.auth.token();
+    if (!token || this.connection) return;
+
+    const hubUrl = API_BASE.replace('/api/v1', '/hubs/notifications');
+    this.connection = new signalR.HubConnectionBuilder()
+      .withUrl(hubUrl, { accessTokenFactory: () => token })
+      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+      .build();
+
+    this.connection.on('notification', (_msg: { id: string; title_ar: string; body_ar: string }) => {
+      this._unread.update(c => c + 1);
+    });
+
+    this.connection.start().catch(() => {});
+  }
+
+  disconnect(): void {
+    this.connection?.stop();
+    this.connection = null;
   }
 }

@@ -34,6 +34,8 @@ var origins = builder.Configuration.GetSection("Sarh:CorsOrigins").Get<string[]>
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
+builder.Services.AddSignalR();
+
 // EF Core → SQL Server.
 var connStr = builder.Configuration["Sarh:ConnectionString"]
     ?? throw new InvalidOperationException("Sarh:ConnectionString is required.");
@@ -145,8 +147,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-// Liveness probe lives on HealthController (controllers route table) so nginx
-// /healthz hits it without the inline endpoint causing AmbiguousMatchException.
+app.MapHub<Sarh.Api.Notifications.NotificationsHub>("/hubs/notifications");
 
 app.Run();

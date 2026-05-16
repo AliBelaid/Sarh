@@ -487,11 +487,13 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     void this.notifications.refreshUnread();
-    this.pollHandle = setInterval(() => void this.notifications.refreshUnread(), 60_000);
+    this.notifications.connect();
+    this.pollHandle = setInterval(() => void this.notifications.refreshUnread(), 120_000);
   }
 
   ngOnDestroy(): void {
     if (this.pollHandle) clearInterval(this.pollHandle);
+    this.notifications.disconnect();
   }
 
   toggleCollapsed(): void { this.collapsed.update((v) => !v); }

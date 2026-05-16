@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Sarh.Api.Auth;
 using Sarh.Api.Common;
@@ -8,14 +9,10 @@ using Sarh.Api.Data.Entities;
 
 namespace Sarh.Api.Notifications;
 
-// Phase-6 notifications. Writes in-app rows to the notifications table on
-// key workflow events. Real SMS/email/push transports land in Phase 12 —
-// the existing schema already has a `kind` column with sms/push/email/in_app
-// values, so adding transports later is a service-layer change only.
-//
-// Failures here MUST NOT escalate. Notification loss is acceptable; losing
-// the originating request because of a notification failure is not.
-public sealed class NotificationsService(SarhDbContext db, ILogger<NotificationsService> log)
+public sealed class NotificationsService(
+    SarhDbContext db,
+    IHubContext<NotificationsHub> hub,
+    ILogger<NotificationsService> log)
 {
     public async Task NotifyCitizenAsync(
         Guid citizenId, string titleAr, string bodyAr, object? payload, CancellationToken ct)
@@ -147,13 +144,29 @@ public sealed class NotificationsService(SarhDbContext db, ILogger<Notifications
         {
             db.Notifications.Add(n);
             await db.SaveChangesAsync(ct);
+            await BroadcastAsync(n);
         }
         catch (Exception ex)
         {
             log.LogError(ex, "Notification insert failed (recipient_citizen={C}, recipient_officer={O})",
                 n.RecipientCitizenId, n.RecipientOfficerId);
-            // Detach so a later SaveChanges in the same scope doesn't retry.
             db.Entry(n).State = EntityState.Detached;
+        }
+    }
+
+    private async Task BroadcastAsync(Notification n)
+    {
+        try
+        {
+            var payload = new { id = n.Id, title_ar = n.TitleAr, body_ar = n.BodyAr };
+            if (n.RecipientCitizenId is Guid cid)
+                await hub.Clients.Group($"citizen:{cid}").SendAsync("notification", payload);
+            else if (n.RecipientOfficerId is Guid oid)
+                await hub.Clients.Group($"officer:{oid}").SendAsync("notification", payload);
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "SignalR broadcast failed (non-critical).");
         }
     }
 }
