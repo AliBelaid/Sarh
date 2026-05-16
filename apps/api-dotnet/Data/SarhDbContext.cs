@@ -16,6 +16,7 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<PropertyNft> PropertyNfts => Set<PropertyNft>();
     public DbSet<OwnershipHistory> OwnershipHistory => Set<OwnershipHistory>();
+    public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -59,6 +60,13 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
         {
             t.HasTrigger("tr_ownership_history_no_update");
             t.HasTrigger("tr_ownership_history_no_delete");
+        });
+
+        b.Entity<AuditLogEntry>().HasKey(x => x.Id);
+        b.Entity<AuditLogEntry>().ToTable("audit_log", t =>
+        {
+            t.HasTrigger("tr_audit_log_no_update");
+            t.HasTrigger("tr_audit_log_no_delete");
         });
     }
 }
