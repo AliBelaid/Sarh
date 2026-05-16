@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 032_drop_did_cards_rls.sql — disable the legacy digital_id_cards RLS policy.
 --
 -- 015_rls.sql created `sec_did_cards` to filter cards based on

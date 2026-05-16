@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 031_digital_id_pin.sql — add a 6-digit PIN to every digital ID card.
 --
 -- Stored as a bcrypt hash (`pin_hash`) so we never persist the plaintext.

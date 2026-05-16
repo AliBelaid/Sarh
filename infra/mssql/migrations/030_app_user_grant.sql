@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 030_app_user_grant.sql — bind the sarh_app login to the sarh database.
 --
 -- run-migrations.ps1 drops and recreates the sarh database on -Reset, but

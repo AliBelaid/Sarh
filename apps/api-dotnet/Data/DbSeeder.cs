@@ -1,3 +1,5 @@
+using System.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Sarh.Api.Data;
@@ -110,11 +112,10 @@ public sealed class DbSeeder(
                     UPDATE auth_users SET encrypted_password = @pw, raw_app_meta_data = @meta, updated_at = SYSDATETIMEOFFSET() WHERE id = @id
                 """,
                 [
-                    new Microsoft.Data.SqlClient.SqlParameter("@id", Guid.Parse(id)),
-                    new Microsoft.Data.SqlClient.SqlParameter("@email", email),
-                    new Microsoft.Data.SqlClient.SqlParameter("@pw", hash),
-                    new Microsoft.Data.SqlClient.SqlParameter("@meta", meta),
-                    new Microsoft.Data.SqlClient.SqlParameter("@umeta", "{}"),
+                    new SqlParameter("@id", Guid.Parse(id)),
+                    new SqlParameter("@email", email),
+                    new SqlParameter("@pw", hash),
+                    N("@meta", meta), N("@umeta", "{}"),
                 ], ct);
             if (n > 0) inserted++;
         }
@@ -151,17 +152,14 @@ public sealed class DbSeeder(
                     VALUES (@id, @f, @fa, @g, @fam, @gen, @dob, N'Libyan', @reg, NULLIF(@ph,N''), NULLIF(@em,N''), NULLIF(@leg,N''), 1)
                 """,
                 [
-                    new Microsoft.Data.SqlClient.SqlParameter("@id", Guid.Parse(c.Item1)),
-                    new Microsoft.Data.SqlClient.SqlParameter("@f", c.Item2),
-                    new Microsoft.Data.SqlClient.SqlParameter("@fa", c.Item3),
-                    new Microsoft.Data.SqlClient.SqlParameter("@g", c.Item4),
-                    new Microsoft.Data.SqlClient.SqlParameter("@fam", c.Item5),
-                    new Microsoft.Data.SqlClient.SqlParameter("@gen", c.Item6),
-                    new Microsoft.Data.SqlClient.SqlParameter("@dob", c.Item7),
-                    new Microsoft.Data.SqlClient.SqlParameter("@reg", c.Item8),
-                    new Microsoft.Data.SqlClient.SqlParameter("@ph", c.Item9),
-                    new Microsoft.Data.SqlClient.SqlParameter("@em", c.Item10),
-                    new Microsoft.Data.SqlClient.SqlParameter("@leg", c.Item11),
+                    new SqlParameter("@id", Guid.Parse(c.Item1)),
+                    N("@f", c.Item2), N("@fa", c.Item3), N("@g", c.Item4), N("@fam", c.Item5),
+                    new SqlParameter("@gen", c.Item6),
+                    new SqlParameter("@dob", c.Item7),
+                    new SqlParameter("@reg", c.Item8),
+                    new SqlParameter("@ph", c.Item9),
+                    new SqlParameter("@em", c.Item10),
+                    new SqlParameter("@leg", c.Item11),
                 ], ct);
             if (n > 0) inserted++;
         }
@@ -192,15 +190,14 @@ public sealed class DbSeeder(
                     VALUES (@id, @auth, @emp, @nar, @nen, @role, @reg, @email, @perms, 1)
                 """,
                 [
-                    new Microsoft.Data.SqlClient.SqlParameter("@id", Guid.Parse(o.Item1)),
-                    new Microsoft.Data.SqlClient.SqlParameter("@auth", Guid.Parse(o.Item2)),
-                    new Microsoft.Data.SqlClient.SqlParameter("@emp", o.Item3),
-                    new Microsoft.Data.SqlClient.SqlParameter("@nar", o.Item4),
-                    new Microsoft.Data.SqlClient.SqlParameter("@nen", o.Item5),
-                    new Microsoft.Data.SqlClient.SqlParameter("@role", o.Item6),
-                    new Microsoft.Data.SqlClient.SqlParameter("@reg", o.Item7),
-                    new Microsoft.Data.SqlClient.SqlParameter("@email", o.Item8),
-                    new Microsoft.Data.SqlClient.SqlParameter("@perms", o.Item9),
+                    new SqlParameter("@id", Guid.Parse(o.Item1)),
+                    new SqlParameter("@auth", Guid.Parse(o.Item2)),
+                    new SqlParameter("@emp", o.Item3),
+                    N("@nar", o.Item4), N("@nen", o.Item5),
+                    new SqlParameter("@role", o.Item6),
+                    new SqlParameter("@reg", o.Item7),
+                    new SqlParameter("@email", o.Item8),
+                    N("@perms", o.Item9),
                 ], ct);
             if (n > 0) inserted++;
         }
@@ -239,13 +236,13 @@ public sealed class DbSeeder(
                         SYSDATETIMEOFFSET(), DATEADD(YEAR, 10, SYSDATETIMEOFFSET()), @st)
                 """,
                 [
-                    new Microsoft.Data.SqlClient.SqlParameter("@id", Guid.Parse(c.Item1)),
-                    new Microsoft.Data.SqlClient.SqlParameter("@cit", Guid.Parse(c.Item2)),
-                    new Microsoft.Data.SqlClient.SqlParameter("@did", c.Item3),
-                    new Microsoft.Data.SqlClient.SqlParameter("@ser", c.Item4),
-                    new Microsoft.Data.SqlClient.SqlParameter("@nfc", c.Item5),
-                    new Microsoft.Data.SqlClient.SqlParameter("@sov", c.Item6),
-                    new Microsoft.Data.SqlClient.SqlParameter("@st", c.Item7),
+                    new SqlParameter("@id", Guid.Parse(c.Item1)),
+                    new SqlParameter("@cit", Guid.Parse(c.Item2)),
+                    new SqlParameter("@did", c.Item3),
+                    new SqlParameter("@ser", c.Item4),
+                    new SqlParameter("@nfc", c.Item5),
+                    new SqlParameter("@sov", c.Item6),
+                    new SqlParameter("@st", c.Item7),
                 ], ct);
             if (n > 0) inserted++;
         }
@@ -261,7 +258,7 @@ public sealed class DbSeeder(
             SET pin_hash = @ph, pin_set_at = SYSDATETIMEOFFSET(), updated_at = SYSDATETIMEOFFSET()
             WHERE pin_hash IS NULL OR pin_hash = N''
             """,
-            [new Microsoft.Data.SqlClient.SqlParameter("@ph", pinHash)], ct);
+            [new SqlParameter("@ph", pinHash)], ct);
         if (stamped > 0)
             logger.LogInformation("DbSeeder: stamped PIN onto {N} card(s).", stamped);
     }
@@ -304,15 +301,15 @@ public sealed class DbSeeder(
                 """;
             var n = await db.Database.ExecuteSqlRawAsync(sql,
                 [
-                    new Microsoft.Data.SqlClient.SqlParameter("@id", Guid.Parse(p.Id)),
-                    new Microsoft.Data.SqlClient.SqlParameter("@owner", Guid.Parse(p.Owner)),
-                    new Microsoft.Data.SqlClient.SqlParameter("@code", p.Code),
-                    new Microsoft.Data.SqlClient.SqlParameter("@type", p.Type),
-                    new Microsoft.Data.SqlClient.SqlParameter("@region", p.Region),
-                    new Microsoft.Data.SqlClient.SqlParameter("@addr", p.Addr),
-                    new Microsoft.Data.SqlClient.SqlParameter("@area", p.Area),
-                    new Microsoft.Data.SqlClient.SqlParameter("@status", p.Status),
-                    new Microsoft.Data.SqlClient.SqlParameter("@days", p.DaysAgo),
+                    new SqlParameter("@id", Guid.Parse(p.Id)),
+                    new SqlParameter("@owner", Guid.Parse(p.Owner)),
+                    new SqlParameter("@code", p.Code),
+                    new SqlParameter("@type", p.Type),
+                    new SqlParameter("@region", p.Region),
+                    N("@addr", p.Addr),
+                    new SqlParameter("@area", p.Area),
+                    new SqlParameter("@status", p.Status),
+                    new SqlParameter("@days", p.DaysAgo),
                 ], ct);
             if (n > 0) inserted++;
         }
@@ -329,10 +326,13 @@ public sealed class DbSeeder(
                 VALUES (@id, @cit, @title, @body, N'in_app', N'queued')
             """,
             [
-                new Microsoft.Data.SqlClient.SqlParameter("@id", Guid.Parse("00000000-0000-0000-0000-000000000801")),
-                new Microsoft.Data.SqlClient.SqlParameter("@cit", Guid.Parse("00000000-0000-0000-0000-000000000001")),
-                new Microsoft.Data.SqlClient.SqlParameter("@title", "مرحبا بك في سجلي"),
-                new Microsoft.Data.SqlClient.SqlParameter("@body", "تم إنشاء حسابك بنجاح. يمكنك الآن تقديم طلب تسجيل عقار."),
+                new SqlParameter("@id", Guid.Parse("00000000-0000-0000-0000-000000000801")),
+                new SqlParameter("@cit", Guid.Parse("00000000-0000-0000-0000-000000000001")),
+                N("@title", "مرحبا بك في سجلي"),
+                N("@body", "تم إنشاء حسابك بنجاح. يمكنك الآن تقديم طلب تسجيل عقار."),
             ], ct);
     }
+
+    private static SqlParameter N(string name, string value) =>
+        new(name, SqlDbType.NVarChar, value.Length > 0 ? value.Length * 2 : 1) { Value = value };
 }

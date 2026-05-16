@@ -1,4 +1,4 @@
--- =========================================================================
+﻿-- =========================================================================
 -- 033_seed_card_pins.sql — wire up demo digital-ID PINs + auth_user link.
 --
 -- Mobile login uses POST /api/v1/auth/sign-in-with-pin which looks up a
