@@ -196,4 +196,19 @@ public sealed class OfficersService(SarhDbContext db)
         await db.SaveChangesAsync(ct);
         return OfficerView.From(o);
     }
+
+    public async Task ResetPasswordAsync(Guid id, string newPassword, CancellationToken ct)
+    {
+        if (newPassword.Length < 8)
+            throw SarhException.Validation("كلمة المرور يجب أن تكون 8 أحرف على الأقل.", "Password must be at least 8 characters.");
+
+        var o = await db.Officers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw SarhException.NotFound("الموظف", "Officer");
+
+        var authUser = await db.AuthUsers.FirstOrDefaultAsync(u => u.Id == o.AuthUserId, ct)
+            ?? throw SarhException.NotFound("الحساب", "Auth user");
+
+        authUser.EncryptedPassword = BCrypt.Net.BCrypt.HashPassword(newPassword, 12);
+        await db.SaveChangesAsync(ct);
+    }
 }

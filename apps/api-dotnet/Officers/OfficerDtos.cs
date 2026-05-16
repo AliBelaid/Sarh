@@ -46,6 +46,11 @@ public sealed class SetOfficerActiveRequest
     [Required] public bool IsActive { get; set; }
 }
 
+public sealed class ResetPasswordRequest
+{
+    [Required, MinLength(8)] public string NewPassword { get; set; } = "";
+}
+
 public sealed class OfficerView
 {
     public Guid Id { get; init; }

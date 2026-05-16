@@ -196,6 +196,9 @@ const REGION_NAMES: Record<number, string> = {
                         <button class="icon-btn" (click)="openEdit(o)" title="تعديل">
                           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
+                        <button class="icon-btn" (click)="resetPassword(o)" title="إعادة تعيين كلمة المرور">
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </button>
                       </td>
                     </tr>
                   }
@@ -764,6 +767,24 @@ export class AdminOfficersPage implements OnInit {
       await this.reloadOfficers();
     } catch {
       this.error.set('تعذّر تغيير حالة الموظف.');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async resetPassword(o: Officer): Promise<void> {
+    const newPw = prompt(`إعادة تعيين كلمة المرور لـ ${o.full_name_ar}\n\nأدخل كلمة المرور الجديدة (8 أحرف على الأقل):`);
+    if (!newPw || newPw.length < 8) {
+      if (newPw !== null) this.formError.set('كلمة المرور يجب أن تكون 8 أحرف على الأقل.');
+      return;
+    }
+    this.saving.set(true);
+    try {
+      await this.officersApi.resetPassword(o.id, newPw);
+      this.showSuccess(`تم إعادة تعيين كلمة المرور لـ ${o.full_name_ar}.`);
+    } catch (e: any) {
+      const msg = e?.error?.error?.message_ar ?? 'تعذّر إعادة تعيين كلمة المرور.';
+      this.error.set(msg);
     } finally {
       this.saving.set(false);
     }

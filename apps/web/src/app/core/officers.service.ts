@@ -90,4 +90,10 @@ export class OfficersService {
       this.http.post<Officer>(`${API_BASE}/officers/${id}/set-active`, { is_active: isActive }),
     );
   }
+
+  resetPassword(id: string, newPassword: string): Promise<{ success: boolean }> {
+    return firstValueFrom(
+      this.http.post<{ success: boolean }>(`${API_BASE}/officers/${id}/reset-password`, { new_password: newPassword }),
+    );
+  }
 }

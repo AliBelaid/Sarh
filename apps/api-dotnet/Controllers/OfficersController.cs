@@ -39,4 +39,13 @@ public class OfficersController(OfficersService svc) : ControllerBase
     [Audit(Action = AuditActions.Update, Entity = "officers")]
     public Task<OfficerView> SetActive(Guid id, [FromBody] SetOfficerActiveRequest req, CancellationToken ct)
         => svc.SetActiveAsync(id, req.IsActive, ct);
+
+    [HttpPost("{id:guid}/reset-password")]
+    [OfficerOnly("super_admin")]
+    [Audit(Action = AuditActions.Update, Entity = "officers", CaptureRequestBody = false)]
+    public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetPasswordRequest req, CancellationToken ct)
+    {
+        await svc.ResetPasswordAsync(id, req.NewPassword, ct);
+        return Ok(new { success = true });
+    }
 }
