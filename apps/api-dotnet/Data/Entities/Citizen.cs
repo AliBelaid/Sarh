@@ -12,6 +12,8 @@ public class Citizen
     [Column("grandfather_name_ar")] public string GrandfatherNameAr { get; set; } = "";
     [Column("family_name_ar")] public string FamilyNameAr { get; set; } = "";
 
+    [Column("full_name_ar")] public string FullNameAr { get; set; } = "";
+
     [Column("first_name_en")] public string? FirstNameEn { get; set; }
     [Column("father_name_en")] public string? FatherNameEn { get; set; }
     [Column("grandfather_name_en")] public string? GrandfatherNameEn { get; set; }

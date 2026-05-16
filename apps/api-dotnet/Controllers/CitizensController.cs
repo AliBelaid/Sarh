@@ -24,8 +24,8 @@ public class CitizensController(CitizensService svc, SarhDbContext db, StorageSe
 
     [HttpGet]
     [OfficerOnly("id_issuer", "registry_officer", "super_admin", "auditor", "reviewer")]
-    public Task<CursorPage<CitizenView>> List([FromQuery] ListCitizensQuery q, CancellationToken ct)
-        => svc.ListAsync(q, User.RequireUser(), ct);
+    public Task<CursorPage<CitizenView>> List([FromQuery] ListCitizensQuery filters, CancellationToken ct)
+        => svc.ListAsync(filters, User.RequireUser(), ct);
 
     [HttpGet("{id:guid}")]
     public Task<CitizenView> Get(Guid id, CancellationToken ct)

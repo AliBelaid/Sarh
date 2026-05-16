@@ -8,7 +8,7 @@ public sealed class ListOfficersQuery
 {
     public string? Cursor { get; set; }
     [Range(1, 100)] public int Limit { get; set; } = 20;
-    public string? Q { get; set; }
+    [FromQuery(Name = "q")] public string? Q { get; set; }
     public string? Role { get; set; }
     [FromQuery(Name = "region_id")] public int? RegionId { get; set; }
     [FromQuery(Name = "is_active")] public bool? IsActive { get; set; }

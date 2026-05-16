@@ -112,6 +112,17 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
             query = query.Where(p => p.RegionId == actor.RegionId);
         }
 
+        if (!string.IsNullOrWhiteSpace(q.Q) && q.Q.Trim().Length >= 2)
+        {
+            var term = q.Q.Trim();
+            var pat = "%" + term.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]") + "%";
+            query = query.Where(p =>
+                EF.Functions.Like(p.PropertyCode ?? "", pat) ||
+                EF.Functions.Like(p.ParcelNumber ?? "", pat) ||
+                EF.Functions.Like(p.AddressAr ?? "", pat) ||
+                EF.Functions.Like(p.PlanNumber ?? "", pat));
+        }
+
         if (!string.IsNullOrWhiteSpace(q.Cursor) &&
             DateTimeOffset.TryParse(q.Cursor, out var cursorTs))
         {

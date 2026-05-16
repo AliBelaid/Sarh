@@ -19,8 +19,8 @@ public class PropertiesController(PropertiesService svc, ReviewService review, L
         => svc.SubmitAsync(dto, User.RequireUser(), ct);
 
     [HttpGet]
-    public Task<CursorPage<PropertyView>> List([FromQuery] ListPropertiesQuery q, CancellationToken ct)
-        => svc.ListAsync(q, User.RequireUser(), ct);
+    public Task<CursorPage<PropertyView>> List([FromQuery] ListPropertiesQuery filters, CancellationToken ct)
+        => svc.ListAsync(filters, User.RequireUser(), ct);
 
     [HttpGet("nearby")]
     public async Task<NearbyResult> Nearby([FromQuery] NearbyQuery q, CancellationToken ct)

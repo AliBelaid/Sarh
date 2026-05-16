@@ -64,6 +64,7 @@ public sealed class ListCitizensQuery
 {
     public string? Cursor { get; set; }
     [Range(1, 100)] public int Limit { get; set; } = 20;
+    [Microsoft.AspNetCore.Mvc.FromQuery(Name = "q")]
     public string? Q { get; set; }
     [Microsoft.AspNetCore.Mvc.FromQuery(Name = "region_id")]
     public int? RegionId { get; set; }

@@ -26,6 +26,7 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
         b.Entity<Officer>().HasIndex(x => x.AuthUserId);
         b.Entity<Officer>().ToTable("officers", t => t.HasTrigger("tr_officers_updated_at"));
         b.Entity<Citizen>().HasKey(x => x.Id);
+        b.Entity<Citizen>().Property(x => x.FullNameAr).HasComputedColumnSql();
         b.Entity<Citizen>().ToTable("citizens", t => t.HasTrigger("tr_citizens_updated_at"));
         b.Entity<Property>().HasKey(x => x.Id);
         b.Entity<Property>().ToTable("properties", t =>

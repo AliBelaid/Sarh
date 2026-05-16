@@ -27,6 +27,8 @@ public sealed class ListPropertiesQuery
 {
     public string? Cursor { get; set; }
     [Range(1, 100)] public int Limit { get; set; } = 20;
+    [Microsoft.AspNetCore.Mvc.FromQuery(Name = "q")]
+    public string? Q { get; set; }
     // Mirror of ck_properties_status in 028_property_nfts_ownership_history.sql.
     [RegularExpression("^(draft|pending|under_review|approved|rejected|needs_clarification|frozen|minted|transferred)$")]
     public string? Status { get; set; }

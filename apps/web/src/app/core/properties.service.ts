@@ -17,6 +17,7 @@ interface ListResponse {
 }
 
 export interface ListPropertiesParams {
+  q?: string;
   status?: PropertyStatus | '';
   limit?: number;
   cursor?: string;
@@ -35,6 +36,7 @@ export class PropertiesService {
 
   list(params: ListPropertiesParams = {}): Promise<ListResponse> {
     let p = new HttpParams();
+    if (params.q) p = p.set('q', params.q);
     if (params.status) p = p.set('status', params.status);
     if (params.limit) p = p.set('limit', String(params.limit));
     if (params.cursor) p = p.set('cursor', params.cursor);

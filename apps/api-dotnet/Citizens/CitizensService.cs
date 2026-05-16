@@ -87,13 +87,15 @@ public sealed class CitizensService(SarhDbContext db)
 
         if (!string.IsNullOrWhiteSpace(q.Q) && q.Q.Trim().Length >= 2)
         {
-            // Arabic_CI_AS collation makes LIKE case-insensitive for Latin
-            // and accent-insensitive for Arabic. Escape % and _.
             var pat = "%" + q.Q.Trim().Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]") + "%";
             query = query.Where(c =>
                 EF.Functions.Like(c.FirstNameAr, pat) ||
                 EF.Functions.Like(c.FatherNameAr, pat) ||
-                EF.Functions.Like(c.FamilyNameAr, pat));
+                EF.Functions.Like(c.GrandfatherNameAr, pat) ||
+                EF.Functions.Like(c.FamilyNameAr, pat) ||
+                EF.Functions.Like(c.Email ?? "", pat) ||
+                EF.Functions.Like(c.Phone ?? "", pat) ||
+                EF.Functions.Like(c.LegacyNationalNo ?? "", pat));
         }
 
         var rows = await query
