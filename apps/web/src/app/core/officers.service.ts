@@ -33,6 +33,31 @@ export interface ListOfficersParams {
   cursor?: string;
 }
 
+export interface CreateOfficerPayload {
+  email: string;
+  password: string;
+  full_name_ar: string;
+  full_name_en?: string;
+  employee_no: string;
+  role: string;
+  region_id?: number;
+  municipality_id?: number;
+  phone?: string;
+  permissions?: string;
+}
+
+export interface UpdateOfficerPayload {
+  full_name_ar?: string;
+  full_name_en?: string;
+  employee_no?: string;
+  role?: string;
+  region_id?: number;
+  municipality_id?: number;
+  phone?: string;
+  email?: string;
+  permissions?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OfficersService {
   private readonly http = inject(HttpClient);
@@ -50,5 +75,19 @@ export class OfficersService {
 
   get(id: string): Promise<Officer> {
     return firstValueFrom(this.http.get<Officer>(`${API_BASE}/officers/${id}`));
+  }
+
+  create(payload: CreateOfficerPayload): Promise<Officer> {
+    return firstValueFrom(this.http.post<Officer>(`${API_BASE}/officers`, payload));
+  }
+
+  update(id: string, payload: UpdateOfficerPayload): Promise<Officer> {
+    return firstValueFrom(this.http.patch<Officer>(`${API_BASE}/officers/${id}`, payload));
+  }
+
+  setActive(id: string, isActive: boolean): Promise<Officer> {
+    return firstValueFrom(
+      this.http.post<Officer>(`${API_BASE}/officers/${id}/set-active`, { is_active: isActive }),
+    );
   }
 }

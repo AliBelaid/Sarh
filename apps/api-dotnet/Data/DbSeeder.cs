@@ -286,44 +286,101 @@ public sealed class DbSeeder(
             citizenCount, propertyCount, await db.AuthUsers.CountAsync(ct));
     }
 
+    private static readonly string[] SeedMigrations =
+    [
+        "024_seed_demo.sql",
+        "026_seed_demo_officer.sql",
+        "029_seed_mock_data.sql",
+        "033_seed_card_pins.sql",
+        "034_seed_expanded_demo.sql",
+    ];
+
     private bool TryApplyMockDataSeed()
     {
-        // ContentRoot is apps/api-dotnet/. Walk up to repo root and find
-        // infra/mssql/migrations/029_seed_mock_data.sql.
-        var seedPath = Path.GetFullPath(
-            Path.Combine(env.ContentRootPath, "..", "..", "infra", "mssql", "migrations", "029_seed_mock_data.sql"));
+        var migrationsDir = Path.GetFullPath(
+            Path.Combine(env.ContentRootPath, "..", "..", "infra", "mssql", "migrations"));
 
-        if (!File.Exists(seedPath))
+        if (!Directory.Exists(migrationsDir))
         {
-            logger.LogWarning("DbSeeder: cannot auto-seed — 029_seed_mock_data.sql not found at {Path}.", seedPath);
+            logger.LogWarning("DbSeeder: cannot auto-seed — migrations dir not found at {Path}.", migrationsDir);
             return false;
         }
 
-        logger.LogInformation("DbSeeder: empty DB detected, applying 029_seed_mock_data.sql via sqlcmd …");
+        // Read connection string from the current config to use SQL auth
+        // instead of -E (Windows auth) which fails on machines where
+        // the current user is not a SQL Server admin.
+        var connStr = services.CreateScope().ServiceProvider
+            .GetRequiredService<SarhDbContext>().Database.GetConnectionString() ?? "";
+        var sqlUser = "";
+        var sqlPassword = "";
+        foreach (var part in connStr.Split(';'))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length != 2) continue;
+            var key = kv[0].Trim().ToLowerInvariant().Replace(" ", "");
+            if (key is "userid" or "uid" or "user") sqlUser = kv[1].Trim();
+            if (key is "password" or "pwd") sqlPassword = kv[1].Trim();
+        }
 
+        var applied = 0;
+        foreach (var seedFile in SeedMigrations)
+        {
+            var seedPath = Path.Combine(migrationsDir, seedFile);
+            if (!File.Exists(seedPath)) continue;
+
+            logger.LogInformation("DbSeeder: applying {File} via sqlcmd …", seedFile);
+            if (RunSqlcmd(seedPath, sqlUser, sqlPassword))
+                applied++;
+            else
+                logger.LogWarning("DbSeeder: {File} failed — continuing with remaining seeds.", seedFile);
+        }
+
+        return applied > 0;
+    }
+
+    private bool RunSqlcmd(string filePath, string sqlUser, string sqlPassword)
+    {
         try
         {
             var psi = new ProcessStartInfo
             {
                 FileName = "sqlcmd",
-                ArgumentList = { "-S", "localhost", "-d", "sarh", "-E", "-b", "-I", "-i", seedPath },
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+            psi.ArgumentList.Add("-S");
+            psi.ArgumentList.Add("localhost");
+            psi.ArgumentList.Add("-d");
+            psi.ArgumentList.Add("sarh");
+            if (!string.IsNullOrEmpty(sqlUser))
+            {
+                psi.ArgumentList.Add("-U");
+                psi.ArgumentList.Add(sqlUser);
+                psi.ArgumentList.Add("-P");
+                psi.ArgumentList.Add(sqlPassword);
+            }
+            else
+            {
+                psi.ArgumentList.Add("-E");
+            }
+            psi.ArgumentList.Add("-b");
+            psi.ArgumentList.Add("-I");
+            psi.ArgumentList.Add("-i");
+            psi.ArgumentList.Add(filePath);
+
             using var proc = Process.Start(psi);
             if (proc is null)
             {
-                logger.LogWarning("DbSeeder: sqlcmd could not be launched (PATH issue?). Run `pnpm db:reset` manually.");
+                logger.LogWarning("DbSeeder: sqlcmd could not be launched. Run `pnpm db:reset` manually.");
                 return false;
             }
             proc.WaitForExit(60_000);
             if (proc.ExitCode != 0)
             {
-                logger.LogWarning(
-                    "DbSeeder: sqlcmd exited {Code}. stderr: {Err}",
-                    proc.ExitCode, proc.StandardError.ReadToEnd());
+                var stderr = proc.StandardError.ReadToEnd();
+                logger.LogWarning("DbSeeder: sqlcmd exited {Code}. stderr: {Err}", proc.ExitCode, stderr);
                 return false;
             }
             return true;

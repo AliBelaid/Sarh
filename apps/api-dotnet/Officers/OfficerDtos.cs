@@ -14,6 +14,38 @@ public sealed class ListOfficersQuery
     [FromQuery(Name = "is_active")] public bool? IsActive { get; set; }
 }
 
+public sealed class CreateOfficerRequest
+{
+    [Required, EmailAddress] public string Email { get; set; } = "";
+    [Required, MinLength(8)] public string Password { get; set; } = "";
+    [Required, MinLength(2)] public string FullNameAr { get; set; } = "";
+    public string? FullNameEn { get; set; }
+    [Required] public string EmployeeNo { get; set; } = "";
+    [Required] public string Role { get; set; } = "";
+    public int? RegionId { get; set; }
+    public int? MunicipalityId { get; set; }
+    public string? Phone { get; set; }
+    public string? Permissions { get; set; }
+}
+
+public sealed class UpdateOfficerRequest
+{
+    public string? FullNameAr { get; set; }
+    public string? FullNameEn { get; set; }
+    public string? EmployeeNo { get; set; }
+    public string? Role { get; set; }
+    public int? RegionId { get; set; }
+    public int? MunicipalityId { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? Permissions { get; set; }
+}
+
+public sealed class SetOfficerActiveRequest
+{
+    [Required] public bool IsActive { get; set; }
+}
+
 public sealed class OfficerView
 {
     public Guid Id { get; init; }

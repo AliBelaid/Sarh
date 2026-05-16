@@ -2,24 +2,26 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Citizen, CitizensService } from '@core/citizens.service';
-import { Officer, OfficersService } from '@core/officers.service';
+import { CreateOfficerPayload, Officer, OfficersService, UpdateOfficerPayload } from '@core/officers.service';
 
 type Tab = 'citizens' | 'officers' | 'auth';
 
 const ROLE_LABELS: Record<string, { ar: string; color: string }> = {
-  super_admin:      { ar: 'مسؤول عام',  color: '#F97316' },
-  auditor:          { ar: 'مدقق',       color: '#DC2626' },
-  registry_officer: { ar: 'موظف تسجيل',  color: '#0891B2' },
-  reviewer:         { ar: 'مراجع',      color: '#3b82f6' },
-  id_issuer:        { ar: 'مصدر هويات',  color: '#0F172A' },
+  super_admin:        { ar: 'مسؤول عام',     color: '#F97316' },
+  department_manager: { ar: 'مدير قسم',      color: '#8b5cf6' },
+  auditor:            { ar: 'مدقق',          color: '#DC2626' },
+  registry_officer:   { ar: 'موظف تسجيل',    color: '#0891B2' },
+  reviewer:           { ar: 'مراجع',         color: '#3b82f6' },
+  id_issuer:          { ar: 'مصدر هويات',    color: '#0F172A' },
 };
 
 const REGION_NAMES: Record<number, string> = {
-  10: 'طرابلس', 11: 'بنغازي', 12: 'الزاوية', 13: 'تاجوراء', 14: 'مصراتة',
-  15: 'الخمس',  16: 'الواحات', 17: 'المرج',   18: 'الجبل الأخضر', 19: 'درنة',
-  20: 'سرت',    21: 'الجفارة', 22: 'الجبل الغربي', 23: 'النقاط الخمس', 24: 'سبها',
-  25: 'مرزق',   26: 'وادي الشاطئ', 27: 'وادي الحياة', 28: 'الكفرة',
-  29: 'غات',    30: 'الجفرة',     31: 'النوقاط',
+  11: 'طرابلس',       12: 'الجفارة',      13: 'الزاوية',
+  14: 'النقاط الخمس',  15: 'مصراتة',       16: 'المرقب',
+  21: 'بنغازي',       22: 'الجبل الأخضر', 23: 'المرج',
+  24: 'درنة',         25: 'طبرق',
+  31: 'سبها',         32: 'مرزق',         33: 'وادي الحياة',
+  34: 'غات',
 };
 
 @Component({
@@ -38,6 +40,10 @@ const REGION_NAMES: Record<number, string> = {
           <div class="kpi">
             <span class="kpi-num">{{ citizens().length }}</span>
             <span class="kpi-lbl">مواطن</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-num">{{ officers().length }}</span>
+            <span class="kpi-lbl">موظف</span>
           </div>
         </div>
       </header>
@@ -132,6 +138,10 @@ const REGION_NAMES: Record<number, string> = {
                 <option [value]="r[0]">{{ r[1].ar }}</option>
               }
             </select>
+            <button class="btn accent" (click)="openCreate()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              إضافة موظف
+            </button>
           </div>
 
           @if (officersLoading()) {
@@ -151,6 +161,7 @@ const REGION_NAMES: Record<number, string> = {
                     <th>المنطقة</th>
                     <th>البريد</th>
                     <th>الحالة</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -176,9 +187,15 @@ const REGION_NAMES: Record<number, string> = {
                       <td>{{ regionLabel(o.region_id) }}</td>
                       <td dir="ltr" class="mono small">{{ o.email ?? '—' }}</td>
                       <td>
-                        <span class="status" [class.on]="o.is_active" [class.off]="!o.is_active">
+                        <button class="status-btn" [class.on]="o.is_active" [class.off]="!o.is_active"
+                                (click)="toggleActive(o)" [disabled]="saving()">
                           {{ o.is_active ? 'نشط' : 'موقوف' }}
-                        </span>
+                        </button>
+                      </td>
+                      <td>
+                        <button class="icon-btn" (click)="openEdit(o)" title="تعديل">
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
                       </td>
                     </tr>
                   }
@@ -192,12 +209,8 @@ const REGION_NAMES: Record<number, string> = {
           <div class="placeholder">
             <h3>حسابات الدخول</h3>
             <p>
-              يتم حالياً إنشاء حسابات <code class="mono">auth_users</code> عن طريق
-              ملفات بذر قاعدة البيانات. واجهة الإدارة لإعادة تعيين كلمات المرور
-              وتعطيل الحسابات سيتم بناؤها في مرحلة لاحقة.
-            </p>
-            <p class="hint">
-              للتجربة في وضع التطوير: استخدم زر "دخول سريع" في صفحة تسجيل الدخول.
+              يتم إنشاء حسابات <code class="mono">auth_users</code> تلقائياً عند إضافة موظف جديد
+              من تبويب "الموظفون". يمكنك أيضاً إعادة تعيين كلمات المرور من خلال تعديل بيانات الموظف.
             </p>
           </div>
         }
@@ -209,7 +222,91 @@ const REGION_NAMES: Record<number, string> = {
           {{ error() }}
         </div>
       }
+
+      @if (success()) {
+        <div class="banner ok">
+          <span class="banner-mark ok-mark">✓</span>
+          {{ success() }}
+        </div>
+      }
     </section>
+
+    <!-- Officer Form Dialog -->
+    @if (dialogOpen()) {
+      <div class="overlay" (click)="closeDialog()">
+        <div class="dialog slide-up" (click)="$event.stopPropagation()">
+          <header class="dialog-head">
+            <h2>{{ editingOfficer() ? 'تعديل بيانات الموظف' : 'إضافة موظف جديد' }}</h2>
+            <button class="icon-btn" (click)="closeDialog()">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </header>
+
+          <div class="dialog-body">
+            <div class="form-row">
+              <label>الاسم بالعربية <span class="req">*</span></label>
+              <input type="text" [(ngModel)]="form.full_name_ar" placeholder="الاسم الكامل بالعربية" />
+            </div>
+            <div class="form-row">
+              <label>الاسم بالإنجليزية</label>
+              <input type="text" [(ngModel)]="form.full_name_en" placeholder="Full name in English" dir="ltr" />
+            </div>
+            <div class="form-row two">
+              <div>
+                <label>رقم الموظف <span class="req">*</span></label>
+                <input type="text" [(ngModel)]="form.employee_no" placeholder="EMP-XXX" dir="ltr" />
+              </div>
+              <div>
+                <label>الدور <span class="req">*</span></label>
+                <select [(ngModel)]="form.role">
+                  <option value="">— اختر الدور —</option>
+                  @for (r of roleEntries; track r[0]) {
+                    <option [value]="r[0]">{{ r[1].ar }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+            <div class="form-row two">
+              <div>
+                <label>البريد الإلكتروني <span class="req">*</span></label>
+                <input type="email" [(ngModel)]="form.email" placeholder="name@sarh.ly" dir="ltr" />
+              </div>
+              <div>
+                <label>الهاتف</label>
+                <input type="tel" [(ngModel)]="form.phone" placeholder="+218 9X XXX XXXX" dir="ltr" />
+              </div>
+            </div>
+            @if (!editingOfficer()) {
+              <div class="form-row">
+                <label>كلمة المرور <span class="req">*</span></label>
+                <input type="password" [(ngModel)]="form.password" placeholder="8 أحرف على الأقل" dir="ltr" />
+              </div>
+            }
+            <div class="form-row">
+              <label>المنطقة</label>
+              <select [(ngModel)]="form.region_id">
+                <option [ngValue]="null">— بدون تحديد —</option>
+                @for (entry of regionEntries; track entry[0]) {
+                  <option [ngValue]="entry[0]">{{ entry[1] }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          @if (formError()) {
+            <div class="form-err">{{ formError() }}</div>
+          }
+
+          <footer class="dialog-foot">
+            <button class="btn ghost" (click)="closeDialog()" [disabled]="saving()">إلغاء</button>
+            <button class="btn accent" (click)="submitForm()" [disabled]="saving()">
+              @if (saving()) { <span class="spin sm"></span> }
+              {{ editingOfficer() ? 'حفظ التعديلات' : 'إضافة الموظف' }}
+            </button>
+          </footer>
+        </div>
+      </div>
+    }
   `,
   styles: [`
     :host { display: block; }
@@ -258,7 +355,7 @@ const REGION_NAMES: Record<number, string> = {
     .tab.on { color: var(--primary); border-bottom-color: var(--accent); }
 
     .filters {
-      display: flex; gap: 10px; flex-wrap: wrap;
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
       margin-bottom: 14px;
     }
     .search {
@@ -280,6 +377,13 @@ const REGION_NAMES: Record<number, string> = {
       font-family: inherit;
       min-width: 160px;
     }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; border: 1.5px solid transparent; transition: all .12s; white-space: nowrap; }
+    .btn.accent { background: var(--accent); color: var(--primary); border-color: var(--accent); }
+    .btn.accent:hover:not(:disabled) { filter: brightness(1.08); }
+    .btn.ghost { background: var(--paper); border-color: var(--rule); color: var(--ink); }
+    .btn.ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .table-wrap {
       background: var(--paper);
@@ -327,15 +431,28 @@ const REGION_NAMES: Record<number, string> = {
     .id { font-size: 10.5px; color: var(--muted); }
     .small { font-size: 12px; }
 
-    .status {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 99px;
-      font-size: 11px;
-      font-weight: 600;
-    }
+    .status { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; }
     .status.on { background: rgba(8, 145, 178, 0.12); color: var(--good); }
     .status.off { background: rgba(220, 38, 38, 0.10); color: var(--warn); }
+
+    .status-btn {
+      padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 600;
+      border: 1.5px solid transparent; cursor: pointer; font-family: inherit; transition: all .15s;
+    }
+    .status-btn.on { background: rgba(8, 145, 178, 0.12); color: var(--good); border-color: rgba(8,145,178,0.2); }
+    .status-btn.on:hover:not(:disabled) { background: rgba(220, 38, 38, 0.10); color: var(--warn); border-color: rgba(220,38,38,0.2); }
+    .status-btn.off { background: rgba(220, 38, 38, 0.10); color: var(--warn); border-color: rgba(220,38,38,0.2); }
+    .status-btn.off:hover:not(:disabled) { background: rgba(8, 145, 178, 0.12); color: var(--good); border-color: rgba(8,145,178,0.2); }
+    .status-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .icon-btn {
+      display: grid; place-items: center;
+      width: 30px; height: 30px;
+      border: 0; border-radius: 8px;
+      background: transparent; color: var(--muted);
+      cursor: pointer; transition: all .12s;
+    }
+    .icon-btn:hover { background: rgba(249,115,22,0.08); color: var(--accent); }
 
     .role-pill {
       display: inline-block;
@@ -356,6 +473,7 @@ const REGION_NAMES: Record<number, string> = {
     .empty svg { opacity: 0.4; margin-bottom: 10px; }
     .empty p { margin: 0; font-size: 13px; }
     .spin { width: 24px; height: 24px; border: 2.5px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; margin: 0 auto 10px; }
+    .spin.sm { width: 14px; height: 14px; margin: 0; border-width: 2px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .placeholder {
@@ -370,7 +488,6 @@ const REGION_NAMES: Record<number, string> = {
     .placeholder h3 { font-size: 16px; color: var(--ink); margin: 0 0 10px; }
     .placeholder p { font-size: 13px; color: var(--muted); line-height: 1.7; margin: 0 0 8px; }
     .placeholder code { background: rgba(15, 23, 42, 0.06); padding: 1px 6px; border-radius: 4px; font-size: 11.5px; }
-    .placeholder .hint { font-size: 12px; color: #94a3b8; margin-top: 12px; }
 
     .banner {
       margin-top: 14px;
@@ -380,6 +497,7 @@ const REGION_NAMES: Record<number, string> = {
       display: inline-flex; align-items: center; gap: 8px;
     }
     .banner.err { background: #fff5f5; color: var(--warn); border: 1px solid #fecaca; }
+    .banner.ok { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
     .banner-mark {
       display: grid; place-items: center;
       width: 18px; height: 18px;
@@ -388,11 +506,57 @@ const REGION_NAMES: Record<number, string> = {
       color: #fff;
       font-size: 11px; font-weight: 700;
     }
+    .banner-mark.ok-mark { background: #16a34a; }
+
+    /* ── Dialog ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 900;
+      background: rgba(15,23,42,0.45);
+      display: grid; place-items: center;
+      padding: 20px;
+    }
+    .dialog {
+      background: #fff;
+      border-radius: 16px;
+      width: 100%; max-width: 540px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .dialog-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .dialog-head h2 { font-size: 16px; margin: 0; color: var(--ink); }
+    .dialog-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; }
+    .dialog-foot {
+      display: flex; justify-content: flex-end; gap: 10px;
+      padding: 14px 22px;
+      border-top: 1px solid var(--rule);
+    }
+
+    .form-row { display: flex; flex-direction: column; gap: 5px; }
+    .form-row.two { flex-direction: row; gap: 12px; }
+    .form-row.two > div { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .form-row label { font-size: 12px; font-weight: 600; color: var(--ink); }
+    .req { color: var(--warn); }
+    .form-row input, .form-row select {
+      padding: 9px 12px;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      background: #fff;
+    }
+    .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.10); }
+    .form-err { margin: 0 22px; padding: 8px 12px; background: #fff5f5; color: var(--warn); border-radius: 8px; font-size: 12px; border: 1px solid #fecaca; }
 
     @media (max-width: 720px) {
       .head { flex-direction: column; align-items: flex-start; }
       .filters { flex-direction: column; }
       .region { width: 100%; }
+      .form-row.two { flex-direction: column; }
     }
   `],
 })
@@ -405,11 +569,19 @@ export class AdminOfficersPage implements OnInit {
   readonly officers = signal<Officer[]>([]);
   readonly loading = signal(false);
   readonly officersLoading = signal(false);
+  readonly saving = signal(false);
   readonly error = signal<string | null>(null);
+  readonly success = signal<string | null>(null);
+  readonly dialogOpen = signal(false);
+  readonly editingOfficer = signal<Officer | null>(null);
+  readonly formError = signal<string | null>(null);
+
   search = '';
   regionFilter: number | null = null;
   officerSearch = '';
   officerRoleFilter = '';
+
+  form = this.emptyForm();
 
   readonly regionEntries = Object.entries(REGION_NAMES)
     .map(([k, v]) => [Number(k), v] as [number, string])
@@ -442,6 +614,7 @@ export class AdminOfficersPage implements OnInit {
   });
 
   private officerSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private successTimer: ReturnType<typeof setTimeout> | null = null;
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -465,7 +638,7 @@ export class AdminOfficersPage implements OnInit {
         q: this.search.trim() || undefined,
       });
       this.citizens.set(res.items);
-    } catch (e) {
+    } catch {
       this.error.set('تعذّر تحميل قائمة المواطنين.');
       this.citizens.set([]);
     } finally {
@@ -498,6 +671,106 @@ export class AdminOfficersPage implements OnInit {
     this.officerSearchTimer = setTimeout(() => void this.reloadOfficers(), 250);
   }
 
+  // ── Officer CRUD ──
+
+  openCreate(): void {
+    this.form = this.emptyForm();
+    this.editingOfficer.set(null);
+    this.formError.set(null);
+    this.dialogOpen.set(true);
+  }
+
+  openEdit(o: Officer): void {
+    this.editingOfficer.set(o);
+    this.form = {
+      full_name_ar: o.full_name_ar,
+      full_name_en: o.full_name_en ?? '',
+      employee_no: o.employee_no,
+      role: o.role,
+      email: o.email ?? '',
+      phone: o.phone ?? '',
+      password: '',
+      region_id: o.region_id,
+    };
+    this.formError.set(null);
+    this.dialogOpen.set(true);
+  }
+
+  closeDialog(): void {
+    this.dialogOpen.set(false);
+    this.editingOfficer.set(null);
+    this.formError.set(null);
+  }
+
+  async submitForm(): Promise<void> {
+    const f = this.form;
+    if (!f.full_name_ar.trim() || !f.employee_no.trim() || !f.role || !f.email.trim()) {
+      this.formError.set('الرجاء تعبئة جميع الحقول المطلوبة.');
+      return;
+    }
+
+    const editing = this.editingOfficer();
+    this.saving.set(true);
+    this.formError.set(null);
+
+    try {
+      if (editing) {
+        const payload: UpdateOfficerPayload = {
+          full_name_ar: f.full_name_ar.trim(),
+          full_name_en: f.full_name_en.trim() || undefined,
+          employee_no: f.employee_no.trim(),
+          role: f.role,
+          email: f.email.trim(),
+          phone: f.phone.trim() || undefined,
+          region_id: f.region_id ?? undefined,
+        };
+        await this.officersApi.update(editing.id, payload);
+        this.showSuccess('تم تحديث بيانات الموظف بنجاح.');
+      } else {
+        if (!f.password || f.password.length < 8) {
+          this.formError.set('كلمة المرور يجب أن تكون 8 أحرف على الأقل.');
+          this.saving.set(false);
+          return;
+        }
+        const payload: CreateOfficerPayload = {
+          full_name_ar: f.full_name_ar.trim(),
+          full_name_en: f.full_name_en.trim() || undefined,
+          employee_no: f.employee_no.trim(),
+          role: f.role,
+          email: f.email.trim(),
+          password: f.password,
+          phone: f.phone.trim() || undefined,
+          region_id: f.region_id ?? undefined,
+        };
+        await this.officersApi.create(payload);
+        this.showSuccess('تم إضافة الموظف بنجاح.');
+      }
+      this.closeDialog();
+      await this.reloadOfficers();
+    } catch (e: any) {
+      const msg = e?.error?.error?.message_ar ?? e?.message ?? 'حدث خطأ غير متوقع.';
+      this.formError.set(msg);
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async toggleActive(o: Officer): Promise<void> {
+    this.saving.set(true);
+    this.error.set(null);
+    try {
+      await this.officersApi.setActive(o.id, !o.is_active);
+      this.showSuccess(o.is_active ? `تم إيقاف ${o.full_name_ar}.` : `تم تفعيل ${o.full_name_ar}.`);
+      await this.reloadOfficers();
+    } catch {
+      this.error.set('تعذّر تغيير حالة الموظف.');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  // ── Helpers ──
+
   fullName(c: Citizen): string {
     return [c.first_name_ar, c.father_name_ar, c.grandfather_name_ar, c.family_name_ar]
       .filter(Boolean).join(' ');
@@ -510,4 +783,23 @@ export class AdminOfficersPage implements OnInit {
 
   roleLabel(role: string): string { return ROLE_LABELS[role]?.ar ?? role; }
   roleAccent(role: string): string { return ROLE_LABELS[role]?.color ?? '#94a3b8'; }
+
+  private emptyForm() {
+    return {
+      full_name_ar: '',
+      full_name_en: '',
+      employee_no: '',
+      role: '',
+      email: '',
+      phone: '',
+      password: '',
+      region_id: null as number | null,
+    };
+  }
+
+  private showSuccess(msg: string): void {
+    if (this.successTimer) clearTimeout(this.successTimer);
+    this.success.set(msg);
+    this.successTimer = setTimeout(() => this.success.set(null), 4000);
+  }
 }
