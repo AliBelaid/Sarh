@@ -33,7 +33,7 @@ public sealed class NftLicenseView
     public string MetadataSha256 { get; init; } = "";
     public string MintTxHash { get; init; } = "";
     public long? MintBlockNumber { get; init; }
-    public Guid MintedByOfficerId { get; init; }
+    public Guid? MintedByOfficerId { get; init; }
     public DateTimeOffset MintedAt { get; init; }
     public string Status { get; init; } = "";
 

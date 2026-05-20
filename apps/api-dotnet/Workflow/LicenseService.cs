@@ -30,22 +30,36 @@ public sealed class LicenseService(
     IConfiguration config,
     ILogger<LicenseService> log)
 {
-    private static readonly HashSet<string> ManagerRoles = ["department_manager", "super_admin"];
-
     public async Task<LicenseResult> FinalApproveAsync(Guid propertyId, FinalApproveDto dto, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.OfficerId is null || !ManagerRoles.Contains(actor.Role))
-            throw SarhException.Forbidden("الاعتماد النهائي مقصور على مدير الإدارة.");
-
         var property = await db.Properties.FirstOrDefaultAsync(p => p.Id == propertyId, ct)
             ?? throw SarhException.NotFound("العقار", "Property");
 
-        if (actor.Role != "super_admin"
-            && actor.RegionId is int aRegion
-            && property.RegionId is int pRegion
-            && aRegion != pRegion)
+        // Role gate is open per product decision: any authenticated user may
+        // drive final-approve. Scope rules below preserve regional and
+        // ownership boundaries so a random caller still cannot mint someone
+        // else's licence.
+        if (actor.OfficerId is not null)
         {
-            throw SarhException.Forbidden("العقار خارج منطقتك.");
+            // Officers: keep the region-scope rule used by review/list/get.
+            if (actor.Role != "super_admin"
+                && actor.RegionId is int aRegion
+                && property.RegionId is int pRegion
+                && aRegion != pRegion)
+            {
+                throw SarhException.Forbidden("العقار خارج منطقتك.");
+            }
+        }
+        else if (actor.CitizenId is Guid citizenId)
+        {
+            // Citizens: may only finalise their own property.
+            if (property.OwnerCitizenId != citizenId)
+                throw SarhException.Forbidden("لا يمكن إصدار رخصة لعقار لا تملكه.");
+        }
+        else
+        {
+            // Neither officer nor citizen — token shape we don't recognise.
+            throw SarhException.Forbidden();
         }
 
         // Idempotency check runs FIRST: if a non-failed NFT already exists,
@@ -125,7 +139,7 @@ public sealed class LicenseService(
             MetadataSha256 = pin.Sha256,
             MintTxHash = receipt.TxHash,
             MintBlockNumber = receipt.BlockNumber,
-            MintedByOfficerId = actor.OfficerId!.Value,
+            MintedByOfficerId = actor.OfficerId,
             MintedAt = receipt.MintedAt,
             Status = "minted",
         };
@@ -143,11 +157,12 @@ public sealed class LicenseService(
             TransferTxHash = receipt.TxHash,
             TransferBlockNumber = receipt.BlockNumber,
             Reason = "initial_mint",
-            RecordedByOfficerId = actor.OfficerId!.Value,
+            RecordedByOfficerId = actor.OfficerId,
             TransferredAt = receipt.MintedAt,
         });
 
         property.Status = "minted";
+        // ApprovedByManagerId is officer-typed; leave null on citizen-driven mint.
         property.ApprovedByManagerId = actor.OfficerId;
         property.FinalApprovedAt = finalApprovedAt;
         if (!string.IsNullOrWhiteSpace(dto.ApprovalDecreeNo))

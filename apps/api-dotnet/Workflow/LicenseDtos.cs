@@ -36,7 +36,7 @@ public sealed class NftView
     public required string MetadataSha256 { get; init; }
     public required string MintTxHash { get; init; }
     public long? MintBlockNumber { get; init; }
-    public required Guid MintedByOfficerId { get; init; }
+    public Guid? MintedByOfficerId { get; init; }
     public required DateTimeOffset MintedAt { get; init; }
     public required string Status { get; init; }
 

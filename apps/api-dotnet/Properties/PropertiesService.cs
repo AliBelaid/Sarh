@@ -17,8 +17,8 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
     // ----- Submit -----
     public async Task<SubmitResult> SubmitAsync(CreatePropertyDto dto, CurrentUser actor, CancellationToken ct)
     {
-        if (actor.CitizenId is null)
-            throw SarhException.Forbidden("فقط المواطنون يمكنهم تقديم طلبات تسجيل عقار.");
+        var ownerCitizenId = await ResolveOwnerAsync(dto, actor, ct);
+        EnforceOfficerRegionScope(dto, actor);
 
         var (wkt, geoJson) = GeoJsonPolygon.ValidateAndConvert(dto.BoundaryPolygon);
 
@@ -42,16 +42,20 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
         }
 
         // insert_property_with_polygon already accepts WKT and parses GeoJSON.
-        var propertyId = await CallInsertPropertyAsync(dto, wkt, actor.CitizenId.Value, ct);
+        var propertyId = await CallInsertPropertyAsync(dto, wkt, ownerCitizenId, ct);
 
         var requestNo = await NextRequestNoAsync(DateTime.UtcNow.Year, ct);
 
         var requestId = Guid.NewGuid();
+        // submitted_by_citizen_id is the OWNER, not the actor — keeps the
+        // column semantically meaningful when an officer is submitting on
+        // behalf of a citizen. The audit interceptor still captures the
+        // real actor (officer or citizen) for accountability.
         await db.Database.ExecuteSqlInterpolatedAsync($@"
             INSERT INTO registration_requests
                 (id, property_id, request_no, submitted_by_citizen_id, current_status)
             VALUES
-                ({requestId}, {propertyId}, {requestNo}, {actor.CitizenId.Value}, N'pending');
+                ({requestId}, {propertyId}, {requestNo}, {ownerCitizenId}, N'pending');
         ", ct);
 
         var property = await db.Properties.AsNoTracking().FirstAsync(p => p.Id == propertyId, ct);
@@ -238,6 +242,47 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
     }
 
     // ----- helpers -----
+    private async Task<Guid> ResolveOwnerAsync(CreatePropertyDto dto, CurrentUser actor, CancellationToken ct)
+    {
+        // Citizen submitting in their own name. They may omit owner_citizen_id
+        // or echo their own id — anything else is a proxy attempt and gets 403.
+        if (actor.CitizenId is Guid selfCit)
+        {
+            if (dto.OwnerCitizenId is Guid req && req != selfCit)
+            {
+                throw SarhException.Forbidden(
+                    "لا يمكن للمواطن تسجيل عقار باسم شخص آخر.");
+            }
+            return selfCit;
+        }
+
+        // Officer (or any non-citizen actor) submitting on behalf of a citizen.
+        // owner_citizen_id is required, and must point to an active citizen row.
+        if (dto.OwnerCitizenId is not Guid ownerId)
+        {
+            throw SarhException.Validation(
+                "حقل owner_citizen_id مطلوب عند تسجيل عقار نيابةً عن مواطن.",
+                "owner_citizen_id is required when an officer submits on behalf of a citizen.");
+        }
+        var exists = await db.Citizens.AsNoTracking()
+            .AnyAsync(c => c.Id == ownerId && c.IsActive, ct);
+        if (!exists) throw SarhException.NotFound("المواطن", "Citizen");
+        return ownerId;
+    }
+
+    private static void EnforceOfficerRegionScope(CreatePropertyDto dto, CurrentUser actor)
+    {
+        // Region scope only matters when an officer is the actor. Citizens
+        // may register property in any region of Libya.
+        if (actor.OfficerId is null) return;
+        if (actor.Role is "super_admin" or "auditor") return;
+        if (actor.RegionId is not int region || region != dto.RegionId)
+        {
+            throw SarhException.Forbidden(
+                "لا يمكنك تسجيل عقار خارج منطقتك.");
+        }
+    }
+
     private record ValidationRow(decimal ComputedAreaSqm, decimal? AreaDiffPct,
         bool HasApprovedCentroidMatch, Guid? MatchedPropertyId, string? MatchedPropertyCode);
 

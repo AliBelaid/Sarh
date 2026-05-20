@@ -21,6 +21,11 @@ public sealed class CreatePropertyDto
     public decimal? LengthM { get; set; }
     public decimal? WidthM { get; set; }
     public decimal? DepthM { get; set; }
+
+    // Set by an officer registering a property on behalf of a citizen.
+    // Citizens must omit it (or send their own id); the service rejects
+    // any other value to stop proxy submits.
+    public Guid? OwnerCitizenId { get; set; }
 }
 
 public sealed class ListPropertiesQuery

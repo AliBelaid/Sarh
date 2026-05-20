@@ -17,7 +17,8 @@ public class PropertyNft
     [Column("metadata_sha256")] public string MetadataSha256 { get; set; } = "";
     [Column("mint_tx_hash")] public string MintTxHash { get; set; } = "";
     [Column("mint_block_number")] public long? MintBlockNumber { get; set; }
-    [Column("minted_by_officer_id")] public Guid MintedByOfficerId { get; set; }
+    // Nullable since migration 038: citizen-driven mints have no officer.
+    [Column("minted_by_officer_id")] public Guid? MintedByOfficerId { get; set; }
     [Column("minted_at")] public DateTimeOffset MintedAt { get; set; }
     [Column("status")] public string Status { get; set; } = "pending";
     [Column("last_reconciled_at")] public DateTimeOffset? LastReconciledAt { get; set; }
