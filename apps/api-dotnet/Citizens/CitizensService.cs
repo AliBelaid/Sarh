@@ -44,6 +44,10 @@ public sealed class CitizensService(SarhDbContext db)
             SignaturePath = dto.SignaturePath,
             CreatedBy = actor.OfficerId,
             IsActive = true,
+            // nationality is NOT NULL DEFAULT N'Libyan' in migration 003.
+            // EF sends the property in the INSERT list — without an explicit
+            // value the column receives NULL and the constraint fires.
+            Nationality = "Libyan",
         };
 
         db.Citizens.Add(c);

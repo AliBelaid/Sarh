@@ -42,7 +42,16 @@ public class DigitalIdCardsController(DigitalIdCardsService cards) : ControllerB
 
     [HttpPost("{id:guid}/reset-pin")]
     [OfficerOnly("id_issuer", "super_admin")]
-    [Audit(Action = AuditActions.Update, Entity = "digital_id_cards")]
+    [Audit(Action = AuditActions.Update, Entity = "digital_id_cards", EntityIdFrom = "card_id")]
     public Task<ResetPinResult> ResetPin(Guid id, CancellationToken ct)
         => cards.ResetPinAsync(id, User.RequireUser(), ct);
+
+    // Super-admin only. Soft-deletes the card (status=revoked, PIN+NFC
+    // scrubbed) and purges nfc_card_secrets. Body is optional — if a
+    // reason is supplied it lands in revoked_reason and id_issuance_history.
+    [HttpDelete("{id:guid}")]
+    [OfficerOnly("super_admin")]
+    [Audit(Action = AuditActions.Delete, Entity = "digital_id_cards", EntityIdFrom = "card_id")]
+    public Task<DeleteCardResult> Delete(Guid id, [FromBody] DeleteCardDto? dto, CancellationToken ct)
+        => cards.DeleteAsync(id, dto ?? new DeleteCardDto(), User.RequireUser(), ct);
 }
