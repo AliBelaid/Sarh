@@ -71,6 +71,28 @@ import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-
                   </span>
                 }
               </footer>
+              @if (p.status === 'approved') {
+                <button class="btn-mint" type="button"
+                        (click)="mint(p)"
+                        [disabled]="minting() === p.id">
+                  @if (minting() === p.id) {
+                    <span class="spin sm"></span>
+                    <span>جارٍ السكّ…</span>
+                  } @else {
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <span>إصدار رخصتي (NFT)</span>
+                  }
+                </button>
+                @if (mintError() && mintErrorFor() === p.id) {
+                  <p class="mint-err">{{ mintError() }}</p>
+                }
+              }
+              @if (p.status === 'minted') {
+                <div class="mint-done">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>تم إصدار الرخصة على البلوكتشين</span>
+                </div>
+              }
             </article>
           }
         </div>
@@ -157,6 +179,32 @@ import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-
     .banner { padding: 12px 14px; border-radius: 10px; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; }
     .banner.err { background: #fff5f5; color: var(--warn); border: 1px solid #fecaca; }
     .banner-mark { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--warn); color: #fff; font-size: 12px; font-weight: 700; }
+
+    .btn-mint {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; margin-top: 12px;
+      padding: 9px 14px;
+      background: linear-gradient(135deg, var(--accent), #C2410C);
+      color: var(--primary);
+      border: 0; border-radius: 10px;
+      font-size: 12.5px; font-weight: 700; letter-spacing: 0.03em;
+      cursor: pointer; font-family: inherit;
+      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.25);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-mint:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(249, 115, 22, 0.35); }
+    .btn-mint:disabled { opacity: 0.6; cursor: not-allowed; }
+    .mint-err { margin: 8px 0 0; font-size: 11.5px; color: var(--warn); }
+    .mint-done {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 12px; padding: 7px 12px;
+      background: rgba(8,145,178,0.08);
+      color: var(--good);
+      border: 1px solid rgba(8,145,178,0.25);
+      border-radius: 8px;
+      font-size: 11.5px; font-weight: 700;
+    }
+    .spin.sm { width: 14px; height: 14px; border: 2px solid rgba(15,23,42,0.25); border-top-color: var(--primary); border-radius: 50%; animation: spin .6s linear infinite; }
   `],
 })
 export class CitizenPropertiesPage implements OnInit {
@@ -165,6 +213,13 @@ export class CitizenPropertiesPage implements OnInit {
   readonly items = signal<Property[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+
+  // Per-card mint state. `minting` holds the id of the property currently
+  // being minted (so the right button shows the spinner); `mintError` is
+  // the most recent failure message, scoped to `mintErrorFor`.
+  readonly minting = signal<string | null>(null);
+  readonly mintError = signal<string | null>(null);
+  readonly mintErrorFor = signal<string | null>(null);
 
   async ngOnInit(): Promise<void> {
     this.loading.set(true);
@@ -175,6 +230,25 @@ export class CitizenPropertiesPage implements OnInit {
       this.error.set('تعذّر تحميل قائمة العقارات.');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async mint(p: Property): Promise<void> {
+    if (this.minting()) return;
+    if (!confirm('سيتم سكّ رخصة NFT لعقارك على البلوكتشين. هل تريد المتابعة؟')) return;
+    this.minting.set(p.id);
+    this.mintError.set(null);
+    this.mintErrorFor.set(null);
+    try {
+      const r = await this.api.finalApprove(p.id, {});
+      // Update the card in-place rather than re-fetching the whole list.
+      this.items.update((items) => items.map((it) => (it.id === p.id ? r.property : it)));
+    } catch (e: unknown) {
+      const err = e as { error?: { error?: { message_ar?: string } } };
+      this.mintErrorFor.set(p.id);
+      this.mintError.set(err.error?.error?.message_ar ?? 'تعذّر إصدار الرخصة. حاول مجدداً.');
+    } finally {
+      this.minting.set(null);
     }
   }
 

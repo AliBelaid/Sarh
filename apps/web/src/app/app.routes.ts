@@ -82,6 +82,15 @@ export const APP_ROUTES: Routes = [
 
       // ---- Officer / reviewer ----------------------------------------
       {
+        // Officer-side property registration (on behalf of a citizen).
+        // Backend accepts any officer role with region-scope; id_issuer +
+        // department_manager also opened for office-counter use.
+        path: 'properties/new',
+        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES, 'id_issuer'])],
+        loadComponent: () =>
+          import('./features/officer/pages/new-property.page').then((m) => m.OfficerNewPropertyPage),
+      },
+      {
         path: 'queue',
         canActivate: [roleGuard([...OFFICER_ROLES])],
         loadComponent: () =>
@@ -100,16 +109,20 @@ export const APP_ROUTES: Routes = [
           import('./features/officer/pages/review.page').then((m) => m.OfficerReviewPage),
       },
 
-      // ---- Department manager (NFT licence final approval) ----------
+      // ---- Final-approval (NFT licence mint) -------------------------
+      // Originally manager-only; backend now accepts any authenticated role
+      // (LicenseService enforces region scope for officers + ownership for
+      // citizens). Office-side staff get the page in their sidebar;
+      // citizens reach final-approve through their own property detail.
       {
         path: 'manager/queue',
-        canActivate: [roleGuard([...MANAGER_ROLES])],
+        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES, 'id_issuer'])],
         loadComponent: () =>
           import('./features/manager/pages/manager-queue.page').then((m) => m.ManagerQueuePage),
       },
       {
         path: 'manager/approve/:id',
-        canActivate: [roleGuard([...MANAGER_ROLES])],
+        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES, 'id_issuer'])],
         loadComponent: () =>
           import('./features/manager/pages/manager-approve.page').then((m) => m.ManagerApprovePage),
       },

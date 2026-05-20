@@ -41,6 +41,22 @@ export class AuthService {
     return res.user;
   }
 
+  // Citizen-only PIN login. Same JWT shape as signIn — server picks the
+  // role from the card's owner citizen and stamps `sarh_role=citizen` on
+  // the token. Mobile uses the same endpoint.
+  async signInWithPin(digitalIdNumber: string, pin: string): Promise<AuthUser> {
+    const res = await firstValueFrom(
+      this.http.post<SignInResponse>(`${API_BASE}/auth/sign-in-with-pin`, {
+        digital_id_number: digitalIdNumber,
+        pin,
+      }),
+    );
+    localStorage.setItem(TOKEN_KEY, res.access_token);
+    localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+    this._user.set(res.user);
+    return res.user;
+  }
+
   signOut(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);

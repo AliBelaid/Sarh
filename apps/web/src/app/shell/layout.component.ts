@@ -34,9 +34,12 @@ const NAV: NavItem[] = [
   // Officer / reviewer
   { ar: 'قائمة المراجعة', en: 'Review queue',  path: '/app/queue',     icon: 'queue',     roles: ['registry_officer', 'reviewer', 'super_admin'], group: 'main' },
   { ar: 'الاعتمادات',    en: 'Approvals',     path: '/app/approvals', icon: 'approvals', roles: ['registry_officer', 'reviewer', 'super_admin'], group: 'main' },
+  // Officer-side property registration (on behalf of a citizen).
+  { ar: 'تسجيل عقار',    en: 'Register property', path: '/app/properties/new', icon: 'properties', roles: ['registry_officer', 'reviewer', 'id_issuer', 'department_manager', 'super_admin'], group: 'main' },
 
-  // Department manager (NFT licence final approval)
-  { ar: 'الاعتمادات النهائية', en: 'Final approvals', path: '/app/manager/queue', icon: 'nft', roles: ['department_manager', 'super_admin'], group: 'main' },
+  // Final approvals — backend opened to any authenticated role; sidebar
+  // shows it to anyone office-side so they can drive a licence through.
+  { ar: 'الاعتمادات النهائية', en: 'Final approvals', path: '/app/manager/queue', icon: 'nft', roles: ['registry_officer', 'reviewer', 'id_issuer', 'department_manager', 'super_admin'], group: 'main' },
 
   // ID issuer
   { ar: 'محطة الإصدار',   en: 'Issue station', path: '/app/issue',       icon: 'issue',      roles: ['id_issuer', 'super_admin'], group: 'main' },

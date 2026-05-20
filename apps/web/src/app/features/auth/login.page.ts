@@ -25,6 +25,13 @@ interface QuickRole {
   accent: string;
 }
 
+interface QuickPinRole {
+  ar: string;
+  digitalId: string;
+  pin: string;
+  accent: string;
+}
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -49,6 +56,19 @@ interface QuickRole {
           <p class="sub mono">SARH · LIBYAN REGISTRY + DIGITAL ID</p>
         </div>
 
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab"
+                  class="tab" [class.active]="mode() === 'email'"
+                  (click)="setMode('email')" [disabled]="loading()">
+            موظف · بريد + كلمة مرور
+          </button>
+          <button type="button" role="tab"
+                  class="tab" [class.active]="mode() === 'pin'"
+                  (click)="setMode('pin')" [disabled]="loading()">
+            مواطن · هوية رقمية + PIN
+          </button>
+        </div>
+
         @if (error()) {
           <div class="err">
             <span class="err-mark">!</span>
@@ -56,67 +76,116 @@ interface QuickRole {
           </div>
         }
 
-        <form (ngSubmit)="submit()" autocomplete="off" class="form">
-          <label class="field">
-            <span class="lbl">البريد الإلكتروني</span>
-            <input
-              type="email" name="email" [(ngModel)]="email" required
-              dir="ltr" autocomplete="username" placeholder="user@sarh.ly"
-              [disabled]="loading()" />
-          </label>
-
-          <label class="field">
-            <span class="lbl">كلمة المرور</span>
-            <div class="pw-wrap">
+        @if (mode() === 'email') {
+          <form (ngSubmit)="submit()" autocomplete="off" class="form">
+            <label class="field">
+              <span class="lbl">البريد الإلكتروني</span>
               <input
-                [type]="showPw() ? 'text' : 'password'"
-                name="password" [(ngModel)]="password" required dir="ltr"
-                autocomplete="current-password" placeholder="••••••••"
+                type="email" name="email" [(ngModel)]="email" required
+                dir="ltr" autocomplete="username" placeholder="user@sarh.ly"
                 [disabled]="loading()" />
-              <button type="button" class="pw-toggle" (click)="showPw.set(!showPw())"
-                [title]="showPw() ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'">
-                @if (showPw()) {
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                } @else {
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                }
-              </button>
-            </div>
-          </label>
+            </label>
 
-          <button type="submit" class="submit" [disabled]="loading() || !email || !password">
-            @if (loading()) {
-              <span class="spin"></span>
-              <span>جارٍ التحقق…</span>
-            } @else {
-              <span>دخول</span>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            }
-          </button>
-        </form>
+            <label class="field">
+              <span class="lbl">كلمة المرور</span>
+              <div class="pw-wrap">
+                <input
+                  [type]="showPw() ? 'text' : 'password'"
+                  name="password" [(ngModel)]="password" required dir="ltr"
+                  autocomplete="current-password" placeholder="••••••••"
+                  [disabled]="loading()" />
+                <button type="button" class="pw-toggle" (click)="showPw.set(!showPw())"
+                  [title]="showPw() ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'">
+                  @if (showPw()) {
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  }
+                </button>
+              </div>
+            </label>
+
+            <button type="submit" class="submit" [disabled]="loading() || !email || !password">
+              @if (loading()) {
+                <span class="spin"></span>
+                <span>جارٍ التحقق…</span>
+              } @else {
+                <span>دخول</span>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              }
+            </button>
+          </form>
+        } @else {
+          <form (ngSubmit)="submitPin()" autocomplete="off" class="form">
+            <label class="field">
+              <span class="lbl">رقم الهوية الرقمية</span>
+              <input
+                type="text" name="digitalId"
+                [(ngModel)]="digitalId" required
+                dir="ltr" autocomplete="off"
+                placeholder="LY-11-2026-000101-0"
+                [disabled]="loading()" />
+            </label>
+
+            <label class="field">
+              <span class="lbl">رمز PIN (6 أرقام)</span>
+              <input
+                [type]="showPin() ? 'text' : 'password'"
+                name="pin" [(ngModel)]="pin" required dir="ltr"
+                inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+                autocomplete="off" placeholder="••••••"
+                [disabled]="loading()" />
+            </label>
+
+            <button type="submit" class="submit"
+                    [disabled]="loading() || !digitalId || pin.length !== 6">
+              @if (loading()) {
+                <span class="spin"></span>
+                <span>جارٍ التحقق…</span>
+              } @else {
+                <span>دخول</span>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              }
+            </button>
+          </form>
+        }
 
         <div class="quick">
           <div class="quick-label">دخول سريع للتجربة</div>
-          <div class="quick-grid">
-            @for (q of quickRoles; track q.email) {
-              <button type="button" class="quick-btn" [style.--qa]="q.accent"
-                      (click)="quickFill(q)" [disabled]="loading()">
-                <span class="quick-dot"></span>
-                {{ q.ar }}
-              </button>
-            }
-          </div>
-          <div class="quick-divider"></div>
-          <div class="quick-grid">
-            @for (q of adminRoles; track q.email) {
-              <button type="button" class="quick-btn" [style.--qa]="q.accent"
-                      (click)="quickFill(q)" [disabled]="loading()">
-                <span class="quick-dot"></span>
-                {{ q.ar }}
-              </button>
-            }
-          </div>
-          <div class="quick-hint mono">كلمة المرور لجميع الحسابات: Demo!12345</div>
+
+          @if (mode() === 'email') {
+            <div class="quick-grid">
+              @for (q of quickRoles; track q.email) {
+                <button type="button" class="quick-btn" [style.--qa]="q.accent"
+                        (click)="quickFill(q)" [disabled]="loading()">
+                  <span class="quick-dot"></span>
+                  {{ q.ar }}
+                </button>
+              }
+            </div>
+            <div class="quick-divider"></div>
+            <div class="quick-grid">
+              @for (q of adminRoles; track q.email) {
+                <button type="button" class="quick-btn" [style.--qa]="q.accent"
+                        (click)="quickFill(q)" [disabled]="loading()">
+                  <span class="quick-dot"></span>
+                  {{ q.ar }}
+                </button>
+              }
+            </div>
+            <div class="quick-hint mono">كلمة المرور لجميع الحسابات: Demo!12345</div>
+          } @else {
+            <div class="quick-grid">
+              @for (q of quickPinRoles; track q.digitalId) {
+                <button type="button" class="quick-btn" [style.--qa]="q.accent"
+                        (click)="quickFillPin(q)" [disabled]="loading()">
+                  <span class="quick-dot"></span>
+                  {{ q.ar }}
+                </button>
+              }
+            </div>
+            <div class="quick-hint mono">رمز PIN التجريبي لجميع البطاقات: 123456</div>
+          }
         </div>
 
         <p class="foot mono">© {{ year }} LVCT — Libya Vision for Communication & Technology</p>
@@ -207,6 +276,33 @@ interface QuickRole {
     }
     .card-head h1 { font-size: 28px; font-weight: 800; color: var(--ink); margin: 0 0 4px; letter-spacing: -0.5px; }
     .sub { font-size: 9px; letter-spacing: 0.22em; color: var(--muted); margin: 0; }
+
+    .tabs {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 4px;
+      margin-bottom: 16px;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+    }
+    .tab {
+      padding: 9px 10px;
+      background: transparent;
+      border: 0; border-radius: 8px;
+      font-size: 11.5px; font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .15s;
+    }
+    .tab:hover:not(:disabled) { color: var(--ink); }
+    .tab.active {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+    .tab:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .err {
       display: flex; align-items: center; gap: 10px;
@@ -370,11 +466,18 @@ export class LoginPage {
 
   readonly year = new Date().getFullYear();
 
+  // 'email' = officer email+password, 'pin' = citizen digital_id + 6-digit PIN.
+  // Both POST to /auth/* on the same backend; the JWT shape is identical.
+  readonly mode = signal<'email' | 'pin'>('email');
+
   email = '';
   password = '';
+  digitalId = '';
+  pin = '';
   loading = signal(false);
   error = signal<string | null>(null);
   showPw = signal(false);
+  showPin = signal(false);
   lang = signal<'ar' | 'en'>(
     typeof localStorage !== 'undefined'
       ? ((localStorage.getItem('sarh.lang') as 'ar' | 'en') || 'ar')
@@ -393,6 +496,20 @@ export class LoginPage {
     { key: 'reviewer', ar: 'مراجع تقني',      email: 'reviewer@sarh.ly', password: 'Demo!12345', accent: '#0891B2' },
   ];
 
+  // Seeded by DbSeeder — every demo card gets PIN '123456'. Digital ID
+  // numbers come from migrations 029/034 / DbSeeder.SeedDigitalIdCardsAsync.
+  readonly quickPinRoles: QuickPinRole[] = [
+    { ar: 'أحمد البارودي',  digitalId: 'LY-11-2026-000101-0', pin: '123456', accent: '#3b82f6' },
+    { ar: 'فاطمة الزروق',   digitalId: 'LY-11-2026-000102-0', pin: '123456', accent: '#a855f7' },
+    { ar: 'خالد العبيدي',   digitalId: 'LY-21-2026-000103-0', pin: '123456', accent: '#0891B2' },
+    { ar: 'عمر الهادي',     digitalId: 'LY-22-2026-000105-0', pin: '123456', accent: '#F97316' },
+  ];
+
+  setMode(m: 'email' | 'pin'): void {
+    this.mode.set(m);
+    this.error.set(null);
+  }
+
   toggleLang(): void {
     const next = this.lang() === 'ar' ? 'en' : 'ar';
     this.lang.set(next);
@@ -408,6 +525,36 @@ export class LoginPage {
   quickFill(q: QuickRole): void {
     this.email = q.email;
     this.password = q.password;
+  }
+
+  quickFillPin(q: QuickPinRole): void {
+    this.digitalId = q.digitalId;
+    this.pin = q.pin;
+  }
+
+  async submitPin(): Promise<void> {
+    this.error.set(null);
+    if (!this.digitalId.trim() || this.pin.length !== 6) {
+      this.error.set('أدخل رقم الهوية الرقمية ورمز PIN المكوّن من 6 أرقام.');
+      return;
+    }
+    this.loading.set(true);
+    try {
+      const user = await this.auth.signInWithPin(this.digitalId.trim(), this.pin);
+      const next = this.route.snapshot.queryParamMap.get('next');
+      const target = next && canRoleAccess(user.role, next) ? next : this.auth.homeFor(user.role);
+      this.router.navigateByUrl(target);
+    } catch (e: unknown) {
+      const err = e as { error?: { error?: { message_ar?: string; message_en?: string } }; status?: number };
+      this.error.set(
+        err.error?.error?.message_ar ??
+          (err.status === 401
+            ? 'رقم الهوية الرقمية أو رمز PIN غير صحيح.'
+            : 'تعذّر تسجيل الدخول. حاول مجدداً.'),
+      );
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   async submit(): Promise<void> {
