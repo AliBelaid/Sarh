@@ -18,26 +18,33 @@ public class ReportsController(SarhDbContext db) : ControllerBase
         if (days is < 7 or > 90) days = 30;
         var since = DateTimeOffset.UtcNow.AddDays(-days);
 
-        var submitted = await db.Properties
+        // EF Core can't translate DateTime.ToString("yyyy-MM-dd") to SQL.
+        // Pull the grouped raw dates first, then format in-memory.
+        static List<DayCount> Format(List<(DateTime Day, int Count)> rows) =>
+            rows.Select(r => new DayCount { Date = r.Day.ToString("yyyy-MM-dd"), Count = r.Count })
+                .OrderBy(x => x.Date)
+                .ToList();
+
+        var submittedRaw = await db.Properties
             .Where(p => p.SubmittedAt >= since)
             .GroupBy(p => p.SubmittedAt!.Value.Date)
-            .Select(g => new DayCount { Date = g.Key.ToString("yyyy-MM-dd"), Count = g.Count() })
-            .OrderBy(x => x.Date)
+            .Select(g => new ValueTuple<DateTime, int>(g.Key, g.Count()))
             .ToListAsync(ct);
+        var submitted = Format(submittedRaw);
 
-        var approved = await db.Properties
+        var approvedRaw = await db.Properties
             .Where(p => p.FinalApprovedAt >= since)
             .GroupBy(p => p.FinalApprovedAt!.Value.Date)
-            .Select(g => new DayCount { Date = g.Key.ToString("yyyy-MM-dd"), Count = g.Count() })
-            .OrderBy(x => x.Date)
+            .Select(g => new ValueTuple<DateTime, int>(g.Key, g.Count()))
             .ToListAsync(ct);
+        var approved = Format(approvedRaw);
 
-        var cards = await db.DigitalIdCards
+        var cardsRaw = await db.DigitalIdCards
             .Where(c => c.IssuedAt >= since)
             .GroupBy(c => c.IssuedAt.Date)
-            .Select(g => new DayCount { Date = g.Key.ToString("yyyy-MM-dd"), Count = g.Count() })
-            .OrderBy(x => x.Date)
+            .Select(g => new ValueTuple<DateTime, int>(g.Key, g.Count()))
             .ToListAsync(ct);
+        var cards = Format(cardsRaw);
 
         return new TrendsResponse
         {

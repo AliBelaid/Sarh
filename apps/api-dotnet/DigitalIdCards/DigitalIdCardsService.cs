@@ -188,9 +188,14 @@ public sealed partial class DigitalIdCardsService(
 
         var year = DateTime.UtcNow.Year;
         var region = ParseRegionFromDigitalId(old.DigitalIdNumber);
-        var digitalIdNumber = dto.KeepDigitalIdNumber == false
-            ? await numbers.NextAsync(region, year, ct)
-            : old.DigitalIdNumber;
+        // Default-mint-new: digital_id_number is NOT NULL UNIQUE at the DB
+        // level, and the old card row stays around (revoked) for audit, so
+        // reusing the same number would 409. Only keep the old number when
+        // the caller is explicit about it AND has freed it first (advanced
+        // use; not exercised by default).
+        var digitalIdNumber = dto.KeepDigitalIdNumber == true
+            ? old.DigitalIdNumber
+            : await numbers.NextAsync(region, year, ct);
 
         var cardSerial = $"LY-{RandomHexUpper(12)}";
         var card = new DigitalIdCard
