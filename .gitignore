@@ -40,6 +40,15 @@ obj/
 .pub-cache/
 .pub/
 .metadata
+# Kotlin daemon cache (Gradle for Android)
+.kotlin/
+
+# Local test scripts + screenshots (Playwright drives, API batteries, logs)
+/.testing/
+
+# Storage roots — IPFS stubs + signed deed PDFs generated at runtime
+/storage/ipfs-stub/
+/storage/property_deeds/
 **/ios/Pods/
 **/ios/.symlinks/
 **/ios/Flutter/Flutter.framework
