@@ -152,27 +152,37 @@ interface SubmitResponse {
 
           <div class="card">
             <h2>4 · الأبعاد</h2>
+            <p class="sub-hint">أدخل الطول والعرض ثم اضغط "احسب المساحة" لتوليدها تلقائياً. لا يمكن إدخال المساحة مباشرة.</p>
             <div class="grid-2">
               <div class="field">
-                <label for="area">المساحة (م²) <span class="req">*</span></label>
-                <input id="area" type="number" step="0.01" min="0.01" [(ngModel)]="areaSqm" name="areaSqm" required dir="ltr" [disabled]="busy() || !selected()" />
-                @if (computedArea() != null && areaSqm) {
-                  <p class="hint">المساحة المحسوبة من الخريطة: <span class="mono">{{ computedArea() | number: '1.0-2' }} م²</span></p>
-                }
+                <label for="length">الطول (م) <span class="req">*</span></label>
+                <input id="length" type="number" step="0.01" min="0.01" [(ngModel)]="lengthM" name="lengthM" required dir="ltr" [disabled]="busy() || !selected()" (ngModelChange)="onDimensionChanged()" />
               </div>
               <div class="field">
-                <label for="length">الطول (م)</label>
-                <input id="length" type="number" step="0.01" [(ngModel)]="lengthM" name="lengthM" dir="ltr" [disabled]="busy() || !selected()" />
+                <label for="width">العرض (م) <span class="req">*</span></label>
+                <input id="width" type="number" step="0.01" min="0.01" [(ngModel)]="widthM" name="widthM" required dir="ltr" [disabled]="busy() || !selected()" (ngModelChange)="onDimensionChanged()" />
               </div>
               <div class="field">
-                <label for="width">العرض (م)</label>
-                <input id="width" type="number" step="0.01" [(ngModel)]="widthM" name="widthM" dir="ltr" [disabled]="busy() || !selected()" />
-              </div>
-              <div class="field">
-                <label for="depth">العمق (م)</label>
+                <label for="depth">العمق (م) — اختياري</label>
                 <input id="depth" type="number" step="0.01" [(ngModel)]="depthM" name="depthM" dir="ltr" [disabled]="busy() || !selected()" />
               </div>
             </div>
+            <button type="button" class="mini-btn compute-btn" (click)="computeArea()" [disabled]="!canCompute() || busy() || !selected()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>
+              احسب المساحة
+            </button>
+            <div class="area-result" [class.ok]="areaSqm != null">
+              @if (areaSqm != null) {
+                <span class="ok-mark">✓</span>
+                المساحة المحسوبة: <span class="mono">{{ areaSqm | number: '1.2-2' }} م²</span>
+                <span class="muted">({{ lengthM | number: '1.2-2' }} × {{ widthM | number: '1.2-2' }})</span>
+              } @else {
+                <span class="muted">لم يتم احتساب المساحة بعد.</span>
+              }
+            </div>
+            @if (computedArea() != null && areaSqm != null) {
+              <p class="hint">المساحة المحسوبة من الخريطة (مرجعية): <span class="mono">{{ computedArea() | number: '1.0-2' }} م²</span></p>
+            }
           </div>
 
           <div class="actions">
@@ -282,6 +292,18 @@ interface SubmitResponse {
     }
     .field input:disabled, .field select:disabled, .field textarea:disabled { background: #f4f1e8; cursor: not-allowed; }
     .hint { font-size: 11.5px; color: var(--muted); margin: 0; }
+    .sub-hint { font-size: 12px; color: var(--muted); margin: -8px 0 14px; line-height: 1.55; }
+    .compute-btn { margin: 8px 0 12px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; }
+    .area-result {
+      padding: 10px 14px; border-radius: 8px;
+      background: #f4f1e8; border: 1px dashed var(--rule);
+      font-size: 12.5px; color: var(--muted);
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .area-result.ok { background: rgba(8,145,178,0.08); border-style: solid; border-color: rgba(8,145,178,0.3); color: var(--good); }
+    .area-result .ok-mark { font-weight: 800; color: var(--good); }
+    .area-result .mono { font-family: 'Courier New', monospace; font-weight: 700; color: var(--ink); }
+    .area-result .muted { color: var(--muted); font-weight: 500; }
 
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -376,6 +398,22 @@ export class OfficerNewPropertyPage implements AfterViewInit, OnDestroy {
     if (pts.length < 3) return null;
     return this.geographicArea(pts);
   });
+
+  canCompute(): boolean {
+    return (this.lengthM ?? 0) > 0 && (this.widthM ?? 0) > 0;
+  }
+
+  computeArea(): void {
+    if (!this.canCompute()) return;
+    this.areaSqm = +(this.lengthM! * this.widthM!).toFixed(2);
+  }
+
+  // Any change to length/width invalidates a previously computed area —
+  // mirrors the mobile dimensions step. Officer must press "احسب المساحة"
+  // again so the value the API receives matches the dimensions they typed.
+  onDimensionChanged(): void {
+    this.areaSqm = null;
+  }
 
   private map?: L.Map;
   private polygonLayer?: L.Polygon;

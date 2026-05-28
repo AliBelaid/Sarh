@@ -102,6 +102,7 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
                   _row('المساحة (م²)', s.areaSqm?.toStringAsFixed(2) ?? '—'),
                   _row('الطول (م)', s.lengthM?.toStringAsFixed(2) ?? '—'),
                   _row('العرض (م)', s.widthM?.toStringAsFixed(2) ?? '—'),
+                  _row('العمق (م)', s.depthM?.toStringAsFixed(2) ?? '—'),
                   _row('المستندات', '${s.documents.length}'),
                 ],
               ),

@@ -13,6 +13,10 @@ namespace Sarh.Api.Properties;
 public sealed class PropertiesService(SarhDbContext db, NotificationsService notifications)
 {
     private const decimal AREA_TOLERANCE_PCT = 5m;
+    // Absolute tolerance for area-vs-(length×width) check. The mobile + web
+    // clients call `.toFixed(2)` before sending, so the worst legitimate
+    // rounding error is a few hundredths of a square metre.
+    private const decimal AREA_LXW_TOLERANCE_SQM = 0.05m;
 
     // ----- Submit -----
     public async Task<SubmitResult> SubmitAsync(CreatePropertyDto dto, CurrentUser actor, CancellationToken ct)
@@ -21,6 +25,22 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
         EnforceOfficerRegionScope(dto, actor);
 
         var (wkt, geoJson) = GeoJsonPolygon.ValidateAndConvert(dto.BoundaryPolygon);
+
+        // Defence-in-depth for the "no direct area entry" rule the clients
+        // enforce: when explicit length+width are provided, the area must
+        // equal length × width (within rounding). A non-UI caller cannot
+        // ship inconsistent dimensions even if it bypasses the form.
+        if (dto.LengthM is decimal l && dto.WidthM is decimal w && l > 0 && w > 0)
+        {
+            var expected = decimal.Round(l * w, 2, MidpointRounding.AwayFromZero);
+            if (Math.Abs(dto.AreaSqm - expected) > AREA_LXW_TOLERANCE_SQM)
+            {
+                throw SarhException.Validation(
+                    $"المساحة المُدخلة ({dto.AreaSqm} م²) لا تساوي حاصل ضرب الطول × العرض ({expected} م²).",
+                    $"area_sqm ({dto.AreaSqm}) does not equal length_m × width_m ({expected}).",
+                    new { expected_area_sqm = expected, submitted_area_sqm = dto.AreaSqm });
+            }
+        }
 
         // Server-side area + centroid pre-check. SQL Server geography STArea
         // returns square metres directly on WGS84 (no UTM transform needed).
