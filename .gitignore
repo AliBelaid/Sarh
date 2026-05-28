@@ -90,3 +90,10 @@ docs/diagrams/.puppeteer.json
 
 # Temp folder used by render-classic-local.mjs while shelling to mmdc.
 docs/.tmp-classic/
+
+# Playwright + adb screenshots produced by scripts/verify-web-citizen.mjs
+# and run-skill captures. The committed baseline stays; future runs are
+# local artifacts and shouldn't bloat the repo. Re-run the verify script
+# to regenerate.
+docs/runtime-checks/*.png
+.tmp/
