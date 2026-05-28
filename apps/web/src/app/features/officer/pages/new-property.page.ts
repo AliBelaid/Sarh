@@ -389,9 +389,14 @@ export class OfficerNewPropertyPage implements AfterViewInit, OnDestroy {
     .map(([k, v]) => [Number(k), v] as [number, string])
     .sort((a, b) => a[0] - b[0]);
 
-  readonly canSubmit = computed(() =>
-    !!this.selected() && !!this.propertyType && !!this.regionId && !!this.areaSqm && this.points().length >= 3,
-  );
+  // Plain method, NOT a computed() signal. propertyType/regionId/areaSqm
+  // are non-signal class fields bound via [(ngModel)]; computed only
+  // tracks signals it actually reads, so the first short-circuit on a
+  // null field would freeze it at false forever. See the matching note
+  // on the citizen page for the longer explanation.
+  canSubmit(): boolean {
+    return !!this.selected() && !!this.propertyType && !!this.regionId && !!this.areaSqm && this.points().length >= 3;
+  }
 
   readonly computedArea = computed(() => {
     const pts = this.points();

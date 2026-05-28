@@ -337,9 +337,17 @@ export class NewPropertyPage implements AfterViewInit, OnDestroy {
     .map(([k, v]) => [Number(k), v] as [number, string])
     .sort((a, b) => a[0] - b[0]);
 
-  readonly canSubmit = computed(() =>
-    !!this.propertyType && !!this.regionId && !!this.areaSqm && this.points().length >= 3,
-  );
+  // Plain method, NOT a computed() signal. propertyType/regionId/areaSqm
+  // are non-signal class fields (bound via [(ngModel)]), and `computed`
+  // only tracks signals it actually reads. The first call short-circuits
+  // at `!!this.regionId` (null on load) before reaching `this.points()`,
+  // so the computed records zero dependencies and stays frozen at false
+  // — leaving submit permanently disabled even after the user fills
+  // every field. A plain method re-evaluates on every change-detection
+  // tick, which is what we want here.
+  canSubmit(): boolean {
+    return !!this.propertyType && !!this.regionId && !!this.areaSqm && this.points().length >= 3;
+  }
 
   readonly computedArea = computed(() => {
     const pts = this.points();

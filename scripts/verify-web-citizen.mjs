@@ -22,7 +22,7 @@ page.on('response', (r) => {
 });
 
 await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' });
-await page.screenshot({ path: `${OUT_DIR}/01-login.png`, fullPage: true });
+await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/01-login.png`, fullPage: true });
 
 // Switch to PIN tab and fill Ahmed's credentials.
 await page.getByRole('tab', { name: /هوية رقمية/ }).click();
@@ -32,7 +32,7 @@ await page.locator('button[type="submit"]').click();
 
 await page.waitForURL(/\/app\/dashboard/, { timeout: 10_000 });
 await page.waitForLoadState('networkidle');
-await page.screenshot({ path: `${OUT_DIR}/02-dashboard.png`, fullPage: true });
+await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/02-dashboard.png`, fullPage: true });
 
 // Walk the sidebar — find every visible nav link and confirm it resolves.
 const links = await page.locator('aside.sidebar a.nav-link').evaluateAll(els =>
@@ -49,7 +49,7 @@ for (const l of links) {
 // Final stop: My digital ID page — screenshot for visual proof of the BIN.
 await page.goto(`${BASE}/app/my/digital-id`, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(800); // let the card render
-await page.screenshot({ path: `${OUT_DIR}/03-my-digital-id.png`, fullPage: true });
+await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/03-my-digital-id.png`, fullPage: true });
 
 const bin = await page.locator('.card-bottom .val.mono.small').first().textContent().catch(() => null);
 findings.push(`BIN on page: ${bin ?? '(not found)'}`);
@@ -62,7 +62,7 @@ findings.push(`BIN on page: ${bin ?? '(not found)'}`);
 await page.goto(`${BASE}/app/my/properties/new`, { waitUntil: 'domcontentloaded' });
 await page.waitForSelector('.map', { state: 'visible' });
 await page.waitForTimeout(500); // let Leaflet finish tile load
-await page.screenshot({ path: `${OUT_DIR}/70-wizard-empty.png`, fullPage: true });
+await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/70-wizard-empty.png`, fullPage: true });
 
 // Direct area input is gone — only its label as a column header. Make
 // sure no <input name="areaSqm"> can be found; if one shows up again
@@ -108,7 +108,7 @@ await page.waitForTimeout(100); // signal flush
 const okComputed = await areaResult.evaluate((el) => el.classList.contains('ok'));
 const areaText = await areaResult.textContent();
 findings.push(`wizard: computed → area .ok=${okComputed} (expected true), text contains "180.00"=${areaText.includes('180.00')}`);
-await page.screenshot({ path: `${OUT_DIR}/71-wizard-computed.png`, fullPage: true });
+await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/71-wizard-computed.png`, fullPage: true });
 
 // Invalidate: editing length must wipe the area. Submit gates on
 // areaSqm being non-null via canSubmit, so this is the real guard.
@@ -117,14 +117,6 @@ await page.waitForTimeout(50);
 const okInvalidated = await areaResult.evaluate((el) => el.classList.contains('ok'));
 findings.push(`wizard: edit length → area .ok=${okInvalidated} (expected false)`);
 
-// NB: we intentionally do NOT assert that the submit button enables
-// after polygon + recompute. canSubmit() is a `computed()` whose first
-// read short-circuits at !!regionId (null) BEFORE reaching this.points(),
-// so the signal has zero tracked deps and stays frozen at false even
-// after a real user fills every field. Fixing that requires converting
-// regionId/propertyType/areaSqm to signals — outside this script's
-// scope (regression-test the area-derived UI invariant only). Leave a
-// screenshot so a reviewer can eyeball the final state.
 await compute.click();
 await page.waitForTimeout(1000); // let Leaflet finish tile load
 const mapBox = await page.locator('.map').boundingBox();
@@ -137,8 +129,9 @@ if (mapBox) {
   }
 }
 const pointsCount = await page.locator('.counter').textContent();
-findings.push(`wizard: polygon counter="${pointsCount?.trim()}" (expected ≥3 points)`);
-await page.screenshot({ path: `${OUT_DIR}/72-wizard-ready.png`, fullPage: true });
+const submitEnabled = await submit.isEnabled();
+findings.push(`wizard: polygon counter="${pointsCount?.trim()}", submit enabled=${submitEnabled} (expected true)`);
+await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/72-wizard-ready.png`, fullPage: true });
 
 await browser.close();
 console.log(findings.join('\n'));
