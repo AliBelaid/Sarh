@@ -13,7 +13,12 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
     final c = auth.citizen;
-    final initial = (c?.firstNameAr ?? 'ص').characters.first;
+    // `?? 'ص'` only fires on null — an empty string still hits
+    // `''.characters.first` which throws "Bad state: No element". Guard
+    // explicitly: take the first character only when one exists.
+    final initial = (c?.firstNameAr.isNotEmpty ?? false)
+        ? c!.firstNameAr.characters.first
+        : 'ص';
 
     return Scaffold(
       appBar: AppBar(title: const Text('الملف الشخصي')),

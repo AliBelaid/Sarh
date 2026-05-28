@@ -5,6 +5,11 @@ import '../api/sarh_api_client.dart';
 import '../models/api_error.dart';
 import '../models/citizen.dart';
 
+// The api client's _ErrorInterceptor fires `authBusProvider` on a 401
+// from any non-auth endpoint. AuthController subscribes here so that a
+// stale/expired JWT mid-session immediately flips us to signed-out and
+// the GoRouter redirect sends the user back to /login.
+
 class AuthState {
   final bool initializing;
   final Citizen? citizen;
@@ -32,9 +37,23 @@ class AuthState {
 // without manual data entry.
 class AuthController extends StateNotifier<AuthState> {
   final SarhApiClient client;
+  final AuthBus _bus;
 
-  AuthController(this.client) : super(const AuthState()) {
+  AuthController(this.client, this._bus) : super(const AuthState()) {
+    _bus.addListener(_onUnauthorized);
     _restore();
+  }
+
+  @override
+  void dispose() {
+    _bus.removeListener(_onUnauthorized);
+    super.dispose();
+  }
+
+  void _onUnauthorized() {
+    // Token expired or revoked mid-session. signOut() already clears
+    // storage and flips state; the router redirect handles navigation.
+    signOut();
   }
 
   // Cached citizen JSON from the last successful login. The .NET API has
@@ -90,7 +109,7 @@ class AuthController extends StateNotifier<AuthState> {
           if (nfcCmac != null) 'nfc_cmac': nfcCmac,
         },
       );
-      await _persistSignInResponse(res.data);
+      await _persistSignInResponse(res.data, digitalIdNumber);
     } on DioException catch (e) {
       if (e.error is SarhApiError) throw e.error as SarhApiError;
       throw SarhApiError.unknown(e.message ?? 'تعذّر الاتصال بالخادم.');
@@ -115,25 +134,49 @@ class AuthController extends StateNotifier<AuthState> {
     state = const AuthState(initializing: false);
   }
 
-  Future<void> _persistSignInResponse(dynamic raw) async {
+  Future<void> _persistSignInResponse(
+    dynamic raw,
+    String submittedDigitalIdNumber,
+  ) async {
     final data = (raw as Map).cast<String, dynamic>();
     final token = data['access_token'] as String?;
     if (token == null) {
       throw SarhApiError.unknown('لم يصل رمز الدخول.');
     }
     final user = (data['user'] as Map?)?.cast<String, dynamic>() ?? const {};
-    // Build a minimal Citizen from the JWT user payload. The full citizen
-    // record (names, region, photo) gets fetched lazily by the home page
-    // — keeping this small avoids a /citizens/{id} round-trip on login.
-    final citizen = Citizen(
-      id: (user['citizen_id'] as String?) ?? (user['id'] as String? ?? ''),
-      firstNameAr: '',
-      familyNameAr: '',
-      digitalIdNumber: user['email'] is String && (user['email'] as String).startsWith('LY-')
-          ? user['email'] as String
-          : null,
-    );
+    final citizenId =
+        (user['citizen_id'] as String?) ?? (user['id'] as String? ?? '');
+
+    // Cache the JWT first so the upcoming /citizens/{id} fetch authenticates.
     await client.writeToken(token);
+
+    // Resolve the full citizen record so the home screen can render the
+    // BIN card + greeting properly. The .NET API has no /auth/me, but
+    // /citizens/{id} returns the same shape that mobile expects. Falls
+    // back to a minimal record built from the JWT + the digital ID the
+    // user just typed if the lookup fails (e.g. network blip after the
+    // login succeeded — we still want the user signed in).
+    Citizen citizen;
+    try {
+      final cz = await client.dio.get('/citizens/$citizenId');
+      final body = (cz.data as Map).cast<String, dynamic>();
+      citizen = Citizen.fromJson(body).copyWith(
+        // The /citizens endpoint sometimes returns the full record but
+        // omits the digital_id_number (that lives on digital_id_cards).
+        // Keep what the user typed as a sensible fallback so the home
+        // BIN card never goes blank after a successful login.
+        digitalIdNumber: (body['digital_id_number'] as String?) ??
+            submittedDigitalIdNumber,
+      );
+    } catch (_) {
+      citizen = Citizen(
+        id: citizenId,
+        firstNameAr: '',
+        familyNameAr: '',
+        digitalIdNumber: submittedDigitalIdNumber,
+      );
+    }
+
     await client.storage.write(
       key: _citizenStorageKey,
       value: jsonEncode({
@@ -153,5 +196,8 @@ class AuthController extends StateNotifier<AuthState> {
 
 final authControllerProvider =
     StateNotifierProvider<AuthController, AuthState>((ref) {
-  return AuthController(ref.watch(apiClientProvider));
+  return AuthController(
+    ref.watch(apiClientProvider),
+    ref.watch(authBusProvider),
+  );
 });

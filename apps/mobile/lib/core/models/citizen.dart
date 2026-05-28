@@ -42,4 +42,29 @@ class Citizen {
         digitalIdNumber: json['digital_id_number'] as String?,
         photoPath: json['photo_path'] as String?,
       );
+
+  Citizen copyWith({
+    String? id,
+    String? firstNameAr,
+    String? fatherNameAr,
+    String? grandfatherNameAr,
+    String? familyNameAr,
+    String? phone,
+    String? legacyNationalNo,
+    int? regionId,
+    String? digitalIdNumber,
+    String? photoPath,
+  }) =>
+      Citizen(
+        id: id ?? this.id,
+        firstNameAr: firstNameAr ?? this.firstNameAr,
+        fatherNameAr: fatherNameAr ?? this.fatherNameAr,
+        grandfatherNameAr: grandfatherNameAr ?? this.grandfatherNameAr,
+        familyNameAr: familyNameAr ?? this.familyNameAr,
+        phone: phone ?? this.phone,
+        legacyNationalNo: legacyNationalNo ?? this.legacyNationalNo,
+        regionId: regionId ?? this.regionId,
+        digitalIdNumber: digitalIdNumber ?? this.digitalIdNumber,
+        photoPath: photoPath ?? this.photoPath,
+      );
 }

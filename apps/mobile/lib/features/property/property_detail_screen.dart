@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 import '../../core/api/repositories.dart';
+import '../../core/models/api_error.dart';
 import '../../core/models/property.dart';
 import '../../core/theme/sarh_colors.dart';
 import '../home/widgets/status_chip.dart';
@@ -78,7 +79,39 @@ class PropertyDetailScreen extends ConsumerWidget {
         ),
         loading: () =>
             const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => _ErrorView(error: e),
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  final Object error;
+  const _ErrorView({required this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    // SarhApiError carries a translated Arabic message + an error code.
+    // Anything else (timeout, DNS, etc) falls back to a generic Arabic
+    // line so the user never sees a raw Dart toString().
+    final messageAr = error is SarhApiError
+        ? (error as SarhApiError).messageAr
+        : 'تعذّر تحميل تفاصيل العقار.';
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: SarhColors.warn),
+            const SizedBox(height: 12),
+            Text(
+              messageAr,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
       ),
     );
   }
