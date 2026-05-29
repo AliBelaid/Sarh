@@ -84,6 +84,7 @@ try {
       address_ar: 'اختبار E2E — حي الأندلس',
       boundary_polygon: { type: 'Polygon', coordinates: [RING] },
       area_sqm: area,
+      documented_area_sqm: +(area * 1.2).toFixed(2), // ~20% off → reviewer flag
       documents: [
         { document_type: 'site_photo', storage_path: photoPath, mime_type: 'image/png' },
         { document_type: 'koreky_certificate', storage_path: korekyPath, mime_type: 'image/png' },
@@ -120,6 +121,9 @@ try {
   const detail = await api(`/properties/${propId}`, { token: offToken });
   const ring = detail.data?.boundary_polygon?.coordinates?.[0];
   check(Array.isArray(ring) && ring.length >= 4, `GET property returns boundary_polygon (${ring?.length ?? 0} points)`);
+  const diffPct = detail.data?.documented_area_diff_pct;
+  check(detail.data?.documented_area_sqm != null && diffPct != null && diffPct > 10,
+    `documented area cross-check present (documented=${detail.data?.documented_area_sqm}, diff%=${diffPct})`);
   const docs = await api(`/properties/${propId}/documents`, { token: offToken });
   const docItems = docs.data?.items ?? [];
   const docTypes = docItems.map((d) => d.document_type).sort();

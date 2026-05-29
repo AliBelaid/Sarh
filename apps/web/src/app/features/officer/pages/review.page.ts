@@ -72,7 +72,18 @@ const DOC_LABELS: Record<string, string> = {
             </div>
             <dl>
               <dt>النوع</dt><dd>{{ typeLabel(p.property_type) }}</dd>
-              <dt>المساحة</dt><dd dir="ltr" class="mono">{{ areaLabel(p.area_sqm) }}</dd>
+              <dt>المساحة المقيسة</dt><dd dir="ltr" class="mono">{{ areaLabel(p.area_sqm) }}</dd>
+              @if (p.documented_area_sqm != null) {
+                <dt>المساحة حسب الأوراق</dt>
+                <dd dir="ltr" class="mono">
+                  {{ areaLabel(p.documented_area_sqm) }}
+                  @if (p.documented_area_diff_pct != null) {
+                    <span class="diff-chip" [class.warn]="(p.documented_area_diff_pct ?? 0) > 10">
+                      فرق {{ p.documented_area_diff_pct | number: '1.0-1' }}%
+                    </span>
+                  }
+                </dd>
+              }
               <dt>المنطقة</dt><dd>{{ regionLabel(p.region_id) }}</dd>
               <dt>العنوان</dt><dd>{{ p.address_ar ?? '—' }}</dd>
               <dt>تاريخ الإرسال</dt><dd dir="ltr" class="mono small">{{ dateLabel(p.submitted_at) }}</dd>
@@ -240,6 +251,8 @@ const DOC_LABELS: Record<string, string> = {
     dt { color: var(--muted); }
     dd { margin: 0; color: var(--ink); }
     .small { font-size: 12px; }
+    .diff-chip { display: inline-block; margin-inline-start: 8px; padding: 2px 8px; border-radius: 99px; font-size: 10.5px; font-weight: 700; background: rgba(8,145,178,0.12); color: var(--good); }
+    .diff-chip.warn { background: #fff2f3; color: var(--warn); }
 
     .map { width: 100%; height: 280px; border-radius: 10px; overflow: hidden; border: 1px solid var(--rule); margin-bottom: 8px; }
     .hint { font-size: 11.5px; color: var(--muted); margin: 0; }

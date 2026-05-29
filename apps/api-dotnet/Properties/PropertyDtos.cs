@@ -25,6 +25,9 @@ public sealed class CreatePropertyDto
     public decimal? LengthM { get; set; }
     public decimal? WidthM { get; set; }
     public decimal? DepthM { get; set; }
+    // Optional area stated on the paper deed; the reviewer is warned if it
+    // diverges from the polygon-measured AreaSqm beyond tolerance.
+    [Range(0.01, double.MaxValue)] public decimal? DocumentedAreaSqm { get; set; }
 
     // Evidence attached at submission. The registry requires at least one
     // site photo and one koreky (croquis) sketch — enforced in the service.
@@ -104,6 +107,10 @@ public sealed class PropertyView
     public decimal? LengthM { get; init; }
     public decimal? WidthM { get; init; }
     public decimal? DepthM { get; init; }
+    public decimal? DocumentedAreaSqm { get; init; }
+    // |documented − measured| / measured × 100, rounded to 2dp. Null when
+    // either area is missing. The clients flag a mismatch above their tolerance.
+    public decimal? DocumentedAreaDiffPct { get; init; }
     public string Status { get; init; } = "";
     public DateTimeOffset? SubmittedAt { get; init; }
     public DateTimeOffset? ReviewedAt { get; init; }
@@ -137,6 +144,10 @@ public sealed class PropertyView
         LengthM = p.LengthM,
         WidthM = p.WidthM,
         DepthM = p.DepthM,
+        DocumentedAreaSqm = p.DocumentedAreaSqm,
+        DocumentedAreaDiffPct = (p.DocumentedAreaSqm is decimal doc && doc > 0 && p.AreaSqm is decimal m && m > 0)
+            ? decimal.Round(Math.Abs(doc - m) / m * 100m, 2, MidpointRounding.AwayFromZero)
+            : null,
         Status = p.Status,
         SubmittedAt = p.SubmittedAt,
         ReviewedAt = p.ReviewedAt,

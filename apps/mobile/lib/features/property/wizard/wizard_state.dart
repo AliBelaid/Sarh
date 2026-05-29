@@ -29,6 +29,7 @@ class WizardState {
   final int? municipalityId;
   final String? addressAr;
   final String? parcelNumber;
+  final double? documentedAreaSqm; // area stated on the paper deed (optional)
   final List<PickedDocument> documents;
 
   const WizardState({
@@ -38,6 +39,7 @@ class WizardState {
     this.municipalityId,
     this.addressAr,
     this.parcelNumber,
+    this.documentedAreaSqm,
     this.documents = const [],
   });
 
@@ -58,6 +60,14 @@ class WizardState {
           (2 + math.sin(p1[1] * math.pi / 180) + math.sin(p2[1] * math.pi / 180));
     }
     return (area * r * r / 2).abs();
+  }
+
+  // |documented − measured| / measured × 100, or null if either is missing.
+  double? get documentedAreaDiffPct {
+    final m = polygonAreaSqm;
+    final d = documentedAreaSqm;
+    if (m == null || m <= 0 || d == null || d <= 0) return null;
+    return (d - m).abs() / m * 100;
   }
 
   // Registry policy: at least one site photo and one koreky sketch.
@@ -88,6 +98,7 @@ class WizardState {
     int? municipalityId,
     String? addressAr,
     String? parcelNumber,
+    double? documentedAreaSqm,
     List<PickedDocument>? documents,
   }) {
     return WizardState(
@@ -97,6 +108,7 @@ class WizardState {
       municipalityId: municipalityId ?? this.municipalityId,
       addressAr: addressAr ?? this.addressAr,
       parcelNumber: parcelNumber ?? this.parcelNumber,
+      documentedAreaSqm: documentedAreaSqm ?? this.documentedAreaSqm,
       documents: documents ?? this.documents,
     );
   }
@@ -117,6 +129,18 @@ class WizardController extends StateNotifier<WizardState> {
       addressAr: addressAr,
     );
   }
+
+  // Direct rebuild (not copyWith) so the value can be cleared back to null.
+  void setDocumentedArea(double? v) => state = WizardState(
+        type: state.type,
+        polygonRing: state.polygonRing,
+        regionId: state.regionId,
+        municipalityId: state.municipalityId,
+        addressAr: state.addressAr,
+        parcelNumber: state.parcelNumber,
+        documentedAreaSqm: v,
+        documents: state.documents,
+      );
 
   void addDocument(PickedDocument doc) =>
       state = state.copyWith(documents: [...state.documents, doc]);

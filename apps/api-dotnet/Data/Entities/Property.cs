@@ -19,6 +19,8 @@ public class Property
     [Column("length_m")] public decimal? LengthM { get; set; }
     [Column("width_m")] public decimal? WidthM { get; set; }
     [Column("depth_m")] public decimal? DepthM { get; set; }
+    // Area stated on the paper deed; cross-checked against AreaSqm (measured).
+    [Column("documented_area_sqm")] public decimal? DocumentedAreaSqm { get; set; }
     [Column("status")] public string Status { get; set; } = "draft";
     [Column("submitted_at")] public DateTimeOffset? SubmittedAt { get; set; }
     [Column("reviewed_at")] public DateTimeOffset? ReviewedAt { get; set; }

@@ -52,6 +52,15 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
 
         await InsertDocumentsAsync(propertyId, ownerCitizenId, documents, ct);
 
+        // Optional "area per the paper deed" — stored for the reviewer's
+        // cross-check (PropertyView computes the % divergence). Not part of
+        // insert_property_with_polygon's signature, so set it separately.
+        if (dto.DocumentedAreaSqm is decimal docArea && docArea > 0)
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($@"
+                UPDATE properties SET documented_area_sqm = {docArea} WHERE id = {propertyId};", ct);
+        }
+
         var requestNo = await NextRequestNoAsync(DateTime.UtcNow.Year, ct);
 
         var requestId = Guid.NewGuid();

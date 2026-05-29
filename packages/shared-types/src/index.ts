@@ -83,6 +83,9 @@ export interface Property {
   length_m: number | null;
   width_m: number | null;
   depth_m: number | null;
+  // Area stated on the paper deed + its % divergence from the measured area.
+  documented_area_sqm?: number | null;
+  documented_area_diff_pct?: number | null;
   status: PropertyStatus;
   submitted_at: string | null;
   reviewed_at: string | null;

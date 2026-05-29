@@ -85,6 +85,7 @@ class PropertiesRepository {
     String? parcelNumber,
     required Map<String, dynamic> boundaryPolygonGeoJson,
     required double areaSqm,
+    double? documentedAreaSqm,
     required List<Map<String, dynamic>> documents,
   }) async {
     try {
@@ -99,6 +100,7 @@ class PropertiesRepository {
           'boundary_polygon': boundaryPolygonGeoJson,
           // Authoritative area is the polygon's — never length × width.
           'area_sqm': areaSqm,
+          if (documentedAreaSqm != null) 'documented_area_sqm': documentedAreaSqm,
           'documents': documents,
         },
       );
