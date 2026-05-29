@@ -28,6 +28,9 @@ dependencies:
   # Maps + geometry
   mapbox_maps_flutter: ^2.3.0
   latlong2: ^0.9.1
+  # GPS "walk the boundary" tracing — streams device position into the
+  # property polygon as the citizen walks the parcel edge.
+  geolocator: ^13.0.1
 
   # Camera + files
   image_picker: ^1.1.2

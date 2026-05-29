@@ -173,7 +173,45 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
             actor.RegionId is not null && p.RegionId != actor.RegionId)
             throw SarhException.Forbidden("العقار خارج منطقتك.");
 
-        return PropertyView.From(p);
+        var view = PropertyView.From(p);
+        view.BoundaryPolygon = await GetBoundaryPolygonGeoJsonAsync(id, ct);
+        return view;
+    }
+
+    // Reads boundary_polygon as WKT and converts it to a GeoJSON Polygon so
+    // the web review/approval map can render the exact shape. SQL Server
+    // geography emits WKT in "longitude latitude" order, which is already the
+    // GeoJSON axis order — no swap needed.
+    private async Task<object?> GetBoundaryPolygonGeoJsonAsync(Guid id, CancellationToken ct)
+    {
+        var conn = (SqlConnection)db.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "SELECT boundary_polygon.STAsText() FROM properties WHERE id = @id AND boundary_polygon IS NOT NULL;";
+        cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.UniqueIdentifier) { Value = id });
+        var wkt = await cmd.ExecuteScalarAsync(ct) as string;
+        if (string.IsNullOrWhiteSpace(wkt)) return null;
+
+        // "POLYGON ((lng lat, lng lat, …))" — take the first (outer) ring.
+        var open = wkt.IndexOf("((", StringComparison.Ordinal);
+        var close = wkt.IndexOf("))", StringComparison.Ordinal);
+        if (open < 0 || close < 0 || close <= open) return null;
+        var ringText = wkt.Substring(open + 2, close - open - 2);
+
+        var ring = new List<double[]>();
+        foreach (var pair in ringText.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = pair.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2) continue;
+            if (double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lng) &&
+                double.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lat))
+            {
+                ring.Add(new[] { lng, lat });
+            }
+        }
+        if (ring.Count < 4) return null;
+        return new { type = "Polygon", coordinates = new[] { ring.ToArray() } };
     }
 
     // ----- Overlap check -----

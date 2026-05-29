@@ -1,23 +1,25 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/theme/sarh_colors.dart';
 import 'wizard_state.dart';
 
-// Placeholder polygon picker.
+// Two ways to capture the parcel boundary:
 //
-// The real implementation uses mapbox_maps_flutter to show a base layer
-// and let the citizen tap to drop polygon vertices. Mapbox needs a
-// public key (configured in platform native code) and works only on
-// device — not in flutter analyze. To keep the build green and let the
-// rest of the wizard be exercised, this screen offers a "demo" polygon
-// generator that drops a small triangle around a typed-in latlon.
+//   1. "ارسم بالمشي" (primary) — the citizen physically walks the edge of
+//      the land holding the phone; GPS positions stream into the ring as
+//      they move, then the polygon closes when they stop. This is the real
+//      field-survey flow the officer later reviews on the web map.
+//   2. Manual lat/lng + radius generator (fallback) — for desk testing or
+//      when GPS isn't available; drops a small square around a typed point.
 //
-// When the Mapbox layer ships, replace _DemoPolygonForm with the
-// MapboxMap widget; the wizard state interface stays the same.
+// Either way the result is the same polygonRing on the wizard state, and the
+// area is derived from it (never length × width).
 class WizardStepLocation extends ConsumerStatefulWidget {
   const WizardStepLocation({super.key});
   @override
@@ -25,27 +27,83 @@ class WizardStepLocation extends ConsumerStatefulWidget {
 }
 
 class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
-  final _lat = TextEditingController(text: '32.8872');  // Tripoli
+  final _lat = TextEditingController(text: '32.8872'); // Tripoli
   final _lng = TextEditingController(text: '13.1913');
   final _radius = TextEditingController(text: '20'); // metres
 
+  // Walk-tracing state.
+  bool _tracing = false;
+  String? _trackError;
+  final List<List<double>> _track = []; // [lng, lat]
+  StreamSubscription<Position>? _posSub;
+
   @override
   void dispose() {
+    _posSub?.cancel();
     _lat.dispose();
     _lng.dispose();
     _radius.dispose();
     super.dispose();
   }
 
+  // ----- Walk tracing -----
+  Future<void> _startTracing() async {
+    setState(() => _trackError = null);
+
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      setState(() => _trackError = 'خدمة الموقع (GPS) غير مفعّلة على الجهاز.');
+      return;
+    }
+    var perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) {
+      perm = await Geolocator.requestPermission();
+    }
+    if (perm == LocationPermission.denied ||
+        perm == LocationPermission.deniedForever) {
+      setState(() => _trackError = 'لم يُمنح إذن الوصول إلى الموقع.');
+      return;
+    }
+
+    _track.clear();
+    setState(() => _tracing = true);
+    // distanceFilter: only emit after moving ~4 m, so a walked edge becomes
+    // a clean sequence of vertices rather than thousands of jittery points.
+    _posSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 4,
+      ),
+    ).listen((pos) {
+      setState(() => _track.add([pos.longitude, pos.latitude]));
+    }, onError: (Object e) {
+      setState(() {
+        _trackError = 'تعذّر قراءة الموقع: $e';
+        _tracing = false;
+      });
+      _posSub?.cancel();
+    });
+  }
+
+  Future<void> _stopTracing() async {
+    await _posSub?.cancel();
+    _posSub = null;
+    setState(() => _tracing = false);
+    if (_track.length < 3) {
+      setState(() => _trackError =
+          'يلزم ٣ نقاط على الأقل. تحرّك حول حدود الأرض ثم أنهِ التتبع.');
+      return;
+    }
+    ref.read(wizardStateProvider.notifier).setPolygon(List.from(_track));
+    ref.read(wizardStateProvider.notifier).setRegion(regionId: 11); // default
+  }
+
+  // ----- Manual fallback -----
   void _generate() {
     final lat = double.tryParse(_lat.text);
     final lng = double.tryParse(_lng.text);
     final r = double.tryParse(_radius.text);
     if (lat == null || lng == null || r == null) return;
 
-    // ~111_320 m per degree of latitude near the equator; longitude
-    // shrinks by cos(lat). This is a coarse approximation but accurate
-    // enough for a 10-50 m parcel preview.
     const metresPerDegLat = 111320.0;
     final metresPerDegLng = metresPerDegLat * math.cos(lat * math.pi / 180.0);
     final dLat = r / metresPerDegLat;
@@ -58,7 +116,7 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
       [lng - dLng, lat + dLat],
     ];
     ref.read(wizardStateProvider.notifier).setPolygon(ring);
-    ref.read(wizardStateProvider.notifier).setRegion(regionId: 11); // Tripoli default
+    ref.read(wizardStateProvider.notifier).setRegion(regionId: 11);
   }
 
   @override
@@ -69,26 +127,87 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('2 / 4 — حدّد حدود العقار على الخريطة',
+          Text('2 / 4 — حدّد حدود العقار',
               style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 16),
+
+          // ── Walk-to-trace ───────────────────────────────
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'سيتم تفعيل خريطة Mapbox على الجهاز. يمكنك الآن اختيار '
-                    'مركز التقدير ونصف القطر لتوليد مضلّع تجريبي.',
+                  Row(
+                    children: const [
+                      Icon(Icons.directions_walk, color: SarhColors.accent),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text('ارسم الأرض بالمشي',
+                            style: TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'امسك الهاتف وامشِ حول حدود الأرض. تُسجَّل نقاط مسارك '
+                    'تلقائياً لتكوين المضلّع، وتُحسب المساحة منه.',
+                  ),
+                  const SizedBox(height: 12),
+                  if (_tracing) ...[
+                    Row(
+                      children: [
+                        const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 10),
+                        Text('جارٍ التتبّع… ${_track.length} نقطة',
+                            style: const TextStyle(color: SarhColors.primary)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.stop_circle_outlined),
+                      label: const Text('إنهاء التتبّع'),
+                      onPressed: _stopTracing,
+                    ),
+                  ] else
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.play_circle_outline),
+                      label: const Text('ابدأ الرسم بالمشي'),
+                      onPressed: _startTracing,
+                    ),
+                  if (_trackError != null) ...[
+                    const SizedBox(height: 10),
+                    Text(_trackError!,
+                        style: const TextStyle(
+                            color: SarhColors.warn, fontSize: 13)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // ── Manual fallback ─────────────────────────────
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('أو أدخل إحداثيات يدوياً (للاختبار)',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: _lat,
-                          decoration: const InputDecoration(labelText: 'خط العرض'),
+                          decoration:
+                              const InputDecoration(labelText: 'خط العرض'),
                           keyboardType: TextInputType.number,
                           textDirection: TextDirection.ltr,
                         ),
@@ -97,7 +216,8 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
                       Expanded(
                         child: TextField(
                           controller: _lng,
-                          decoration: const InputDecoration(labelText: 'خط الطول'),
+                          decoration:
+                              const InputDecoration(labelText: 'خط الطول'),
                           keyboardType: TextInputType.number,
                           textDirection: TextDirection.ltr,
                         ),
@@ -107,8 +227,8 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _radius,
-                    decoration:
-                        const InputDecoration(labelText: 'نصف القطر التقريبي (متر)'),
+                    decoration: const InputDecoration(
+                        labelText: 'نصف القطر التقريبي (متر)'),
                     keyboardType: TextInputType.number,
                     textDirection: TextDirection.ltr,
                   ),
@@ -123,14 +243,25 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
             ),
           ),
           const SizedBox(height: 12),
+
+          // ── Result ──────────────────────────────────────
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: state.hasPolygon
-                  ? Text(
-                      'تم تحديد مضلّع بـ ${state.polygonRing.length} نقاط — '
-                      'المساحة المحسوبة: ${state.polygonAreaSqm!.toStringAsFixed(0)} م².',
-                      style: const TextStyle(color: SarhColors.success),
+                  ? Row(
+                      children: [
+                        const Icon(Icons.check_circle,
+                            color: SarhColors.success),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'تم تحديد مضلّع بـ ${state.polygonRing.length} نقاط — '
+                            'المساحة: ${state.polygonAreaSqm!.toStringAsFixed(0)} م².',
+                            style: const TextStyle(color: SarhColors.success),
+                          ),
+                        ),
+                      ],
                     )
                   : const Text('لم يتم تحديد مضلّع بعد.'),
             ),

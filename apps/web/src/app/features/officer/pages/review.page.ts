@@ -65,9 +65,15 @@ import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-
 
           <!-- Map -->
           <article class="card map-card">
-            <h2>الموقع التقريبي</h2>
+            <h2>حدود الأرض</h2>
             <div #mapEl class="map"></div>
-            <p class="hint">تظهر علامة عند مركز المنطقة (الإحداثيات الفعلية للمضلع تأتي من API لاحقاً).</p>
+            <p class="hint">
+              @if (p.boundary_polygon) {
+                المضلّع المرسوم من قبل المواطن (المساحة المحسوبة منه: <span class="mono" dir="ltr">{{ areaLabel(p.area_sqm) }}</span>).
+              } @else {
+                لم تُرفق حدود مضلّع لهذا الطلب — تظهر علامة عند مركز المنطقة فقط.
+              }
+            </p>
           </article>
 
           <!-- Decision -->
@@ -336,6 +342,24 @@ export class OfficerReviewPage implements AfterViewInit, OnDestroy {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(this.map);
+
+    // Draw the real parcel boundary when the API returned it; otherwise fall
+    // back to a marker at the region centroid.
+    const ring = p.boundary_polygon?.coordinates?.[0];
+    if (ring && ring.length >= 3) {
+      const latlngs = ring.map((pt) => [pt[1], pt[0]] as [number, number]);
+      const poly = L.polygon(latlngs, {
+        color: '#0891B2', weight: 2, fillColor: '#0891B2', fillOpacity: 0.18,
+      }).addTo(this.map);
+      latlngs.forEach((ll, i) => {
+        L.circleMarker(ll, { radius: 5, color: '#0F172A', weight: 2, fillColor: '#F97316', fillOpacity: 1 })
+          .addTo(this.map!)
+          .bindTooltip(String(i + 1), { permanent: true, direction: 'center', className: 'pt-tip' });
+      });
+      this.map.fitBounds(poly.getBounds(), { padding: [24, 24], maxZoom: 18 });
+      return;
+    }
+
     const region = REGION_CENTROIDS[p.region_id ?? 10] ?? REGION_CENTROIDS[10];
     L.circleMarker([region.lat, region.lng], {
       radius: 10, color: '#0F172A', weight: 2, fillColor: '#F97316', fillOpacity: 1,

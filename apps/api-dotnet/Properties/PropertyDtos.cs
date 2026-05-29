@@ -116,6 +116,11 @@ public sealed class PropertyView
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 
+    // GeoJSON Polygon of the parcel boundary. Only populated by GetByIdAsync
+    // (a separate spatial read) so the review/approval map can draw the real
+    // shape the citizen walked — null in list responses to keep them cheap.
+    public object? BoundaryPolygon { get; set; }
+
     public static PropertyView From(Property p) => new()
     {
         Id = p.Id,
