@@ -20,7 +20,7 @@ class WizardStepType extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('1 / 5 — اختر نوع العقار',
+          Text('1 / 4 — اختر نوع العقار',
               style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 12),
           for (final t in const [

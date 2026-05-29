@@ -61,6 +61,22 @@ class PropertiesRepository {
     }
   }
 
+  // Attached evidence (site photos + koreky sketch) for a property.
+  Future<List<PropertyDocumentInfo>> documents(String propertyId) async {
+    try {
+      final res = await client.dio.get('/properties/$propertyId/documents');
+      return _items(res.data)
+          .map((m) => PropertyDocumentInfo.fromJson(m))
+          .toList();
+    } on DioException catch (e) {
+      throw _toSarhError(e);
+    }
+  }
+
+  // Documents are attached inline at create time (the API requires a site
+  // photo + koreky sketch and rejects the submit otherwise). Each entry is
+  // a map: { document_type, storage_path, mime_type?, file_size_bytes?,
+  // file_hash?, title_ar? } built from uploadFile() results.
   Future<Property> submit({
     required PropertyType type,
     required int regionId,
@@ -69,9 +85,7 @@ class PropertiesRepository {
     String? parcelNumber,
     required Map<String, dynamic> boundaryPolygonGeoJson,
     required double areaSqm,
-    double? lengthM,
-    double? widthM,
-    double? depthM,
+    required List<Map<String, dynamic>> documents,
   }) async {
     try {
       final res = await client.dio.post(
@@ -83,10 +97,9 @@ class PropertiesRepository {
           if (addressAr != null) 'address_ar': addressAr,
           if (parcelNumber != null) 'parcel_number': parcelNumber,
           'boundary_polygon': boundaryPolygonGeoJson,
+          // Authoritative area is the polygon's — never length × width.
           'area_sqm': areaSqm,
-          if (lengthM != null) 'length_m': lengthM,
-          if (widthM != null) 'width_m': widthM,
-          if (depthM != null) 'depth_m': depthM,
+          'documents': documents,
         },
       );
       // SubmitResult shape: { property: {...}, request: {...} }.
@@ -99,27 +112,65 @@ class PropertiesRepository {
     }
   }
 
-  Future<void> uploadDocument({
-    required String propertyId,
-    required String filePath,
-    required String documentType,
-    String? titleAr,
-  }) async {
+  // Stores a single file and returns its metadata. The `storage_path`
+  // ("<bucket>/<path>") feeds the documents[] array on submit().
+  Future<UploadedFile> uploadFile(String filePath) async {
     try {
       final formData = FormData.fromMap({
-        'property_id': propertyId,
-        'document_type': documentType,
-        if (titleAr != null) 'title_ar': titleAr,
         'file': await MultipartFile.fromFile(
           filePath,
           filename: filePath.split(Platform.pathSeparator).last,
         ),
       });
-      await client.dio.post('/uploads/property-document', data: formData);
+      final res = await client.dio.post('/uploads/property-document', data: formData);
+      final body = (res.data as Map).cast<String, dynamic>();
+      return UploadedFile(
+        storagePath: body['path'] as String,
+        mimeType: body['mime_type'] as String?,
+        sizeBytes: (body['size'] as num?)?.toInt(),
+        sha256: body['sha256'] as String?,
+      );
     } on DioException catch (e) {
       throw _toSarhError(e);
     }
   }
+}
+
+class UploadedFile {
+  final String storagePath;
+  final String? mimeType;
+  final int? sizeBytes;
+  final String? sha256;
+  UploadedFile({
+    required this.storagePath,
+    this.mimeType,
+    this.sizeBytes,
+    this.sha256,
+  });
+}
+
+class PropertyDocumentInfo {
+  final String id;
+  final String documentType;
+  final String? titleAr;
+  final String? mimeType;
+  final int? fileSizeBytes;
+  PropertyDocumentInfo({
+    required this.id,
+    required this.documentType,
+    this.titleAr,
+    this.mimeType,
+    this.fileSizeBytes,
+  });
+
+  factory PropertyDocumentInfo.fromJson(Map<String, dynamic> m) =>
+      PropertyDocumentInfo(
+        id: m['id'] as String,
+        documentType: (m['document_type'] as String?) ?? 'other',
+        titleAr: m['title_ar'] as String?,
+        mimeType: m['mime_type'] as String?,
+        fileSizeBytes: (m['file_size_bytes'] as num?)?.toInt(),
+      );
 }
 
 class NotificationsRepository {
@@ -182,6 +233,12 @@ final myPropertiesProvider =
 final propertyDetailProvider =
     FutureProvider.autoDispose.family<Property, String>((ref, id) async {
   return ref.watch(propertiesRepoProvider).get(id);
+});
+
+final propertyDocumentsProvider =
+    FutureProvider.autoDispose.family<List<PropertyDocumentInfo>, String>(
+        (ref, id) async {
+  return ref.watch(propertiesRepoProvider).documents(id);
 });
 
 final myNotificationsProvider =

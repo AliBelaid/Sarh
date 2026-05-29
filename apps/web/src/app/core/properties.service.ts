@@ -16,6 +16,16 @@ interface ListResponse {
   next_cursor: string | null;
 }
 
+export interface PropertyDocumentItem {
+  id: string;
+  property_id: string;
+  document_type: string;
+  title_ar: string | null;
+  mime_type: string | null;
+  file_size_bytes: number | null;
+  uploaded_at: string;
+}
+
 export interface ListPropertiesParams {
   q?: string;
   status?: PropertyStatus | '';
@@ -46,6 +56,21 @@ export class PropertiesService {
 
   get(id: string): Promise<Property> {
     return firstValueFrom(this.http.get<Property>(`${API_BASE}/properties/${id}`));
+  }
+
+  // Attached evidence (site photos + koreky sketch) for the review screen.
+  listDocuments(id: string): Promise<PropertyDocumentItem[]> {
+    return firstValueFrom(
+      this.http.get<{ items: PropertyDocumentItem[] }>(`${API_BASE}/properties/${id}/documents`),
+    ).then((r) => r.items ?? []);
+  }
+
+  // Streams a single document's bytes. The auth interceptor attaches the JWT,
+  // so the blob can be turned into an object URL for <img>/<a>.
+  documentBlob(id: string, docId: string): Promise<Blob> {
+    return firstValueFrom(
+      this.http.get(`${API_BASE}/properties/${id}/documents/${docId}/file`, { responseType: 'blob' }),
+    );
   }
 
   review(id: string, body: ReviewBody): Promise<ReviewResponse> {

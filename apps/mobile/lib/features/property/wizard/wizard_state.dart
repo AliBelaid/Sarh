@@ -1,8 +1,15 @@
+import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/property.dart';
 
 // Shared state for the property submission wizard. Each step screen
 // reads what it needs and writes back via copyWith. Cleared on submit.
+//
+// The area is NOT typed in: parcels are rarely clean rectangles, so we
+// derive it from the drawn boundary polygon (see polygonAreaSqm) — the
+// API re-computes it authoritatively via geography.STArea. The registry
+// instead requires real evidence: a site photo + a koreky (croquis)
+// sketch, both enforced before submit (see hasRequiredDocuments).
 
 class PickedDocument {
   final String path;
@@ -18,10 +25,6 @@ class PickedDocument {
 class WizardState {
   final PropertyType? type;
   final List<List<double>> polygonRing; // [lng, lat] points; closed ring on submit
-  final double? areaSqm;
-  final double? lengthM;
-  final double? widthM;
-  final double? depthM;
   final int? regionId;
   final int? municipalityId;
   final String? addressAr;
@@ -31,10 +34,6 @@ class WizardState {
   const WizardState({
     this.type,
     this.polygonRing = const [],
-    this.areaSqm,
-    this.lengthM,
-    this.widthM,
-    this.depthM,
     this.regionId,
     this.municipalityId,
     this.addressAr,
@@ -43,6 +42,30 @@ class WizardState {
   });
 
   bool get hasPolygon => polygonRing.length >= 3;
+
+  // Spherical-excess area in m² from the drawn ring. Mirrors the web
+  // wizard's geographicArea; the server recomputes via STArea on submit.
+  double? get polygonAreaSqm {
+    final pts = polygonRing;
+    if (pts.length < 3) return null;
+    const r = 6378137.0;
+    var area = 0.0;
+    final n = pts.length;
+    for (var i = 0; i < n; i++) {
+      final p1 = pts[i];
+      final p2 = pts[(i + 1) % n];
+      area += (p2[0] - p1[0]) * math.pi / 180 *
+          (2 + math.sin(p1[1] * math.pi / 180) + math.sin(p2[1] * math.pi / 180));
+    }
+    return (area * r * r / 2).abs();
+  }
+
+  // Registry policy: at least one site photo and one koreky sketch.
+  bool get hasRequiredDocuments {
+    final hasPhoto = documents.any((d) => d.documentType == 'site_photo');
+    final hasKoreky = documents.any((d) => d.documentType == 'koreky_certificate');
+    return hasPhoto && hasKoreky;
+  }
 
   Map<String, dynamic>? get boundaryPolygonGeoJson {
     if (!hasPolygon) return null;
@@ -61,10 +84,6 @@ class WizardState {
   WizardState copyWith({
     PropertyType? type,
     List<List<double>>? polygonRing,
-    double? areaSqm,
-    double? lengthM,
-    double? widthM,
-    double? depthM,
     int? regionId,
     int? municipalityId,
     String? addressAr,
@@ -74,10 +93,6 @@ class WizardState {
     return WizardState(
       type: type ?? this.type,
       polygonRing: polygonRing ?? this.polygonRing,
-      areaSqm: areaSqm ?? this.areaSqm,
-      lengthM: lengthM ?? this.lengthM,
-      widthM: widthM ?? this.widthM,
-      depthM: depthM ?? this.depthM,
       regionId: regionId ?? this.regionId,
       municipalityId: municipalityId ?? this.municipalityId,
       addressAr: addressAr ?? this.addressAr,
@@ -100,20 +115,6 @@ class WizardController extends StateNotifier<WizardState> {
       regionId: regionId,
       municipalityId: municipalityId,
       addressAr: addressAr,
-    );
-  }
-
-  void setDimensions({
-    required double areaSqm,
-    double? lengthM,
-    double? widthM,
-    double? depthM,
-  }) {
-    state = state.copyWith(
-      areaSqm: areaSqm,
-      lengthM: lengthM,
-      widthM: widthM,
-      depthM: depthM,
     );
   }
 

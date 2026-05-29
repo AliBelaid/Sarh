@@ -94,6 +94,14 @@ export interface Property {
   vc_credential_id: string | null;
   created_at: string;
   updated_at: string;
+  // GeoJSON Polygon of the parcel boundary. Present on GET /properties/{id}
+  // (the shape the citizen drew/walked); absent in list responses.
+  boundary_polygon?: GeoJsonPolygon | null;
+}
+
+export interface GeoJsonPolygon {
+  type: 'Polygon';
+  coordinates: number[][][]; // [ ring ][ point ][ lng, lat ]
 }
 
 export interface PropertyOverlap {

@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import * as L from 'leaflet';
 import { PropertiesService } from '@core/properties.service';
 import { CitizensService, type Citizen } from '@core/citizens.service';
 import type { LicenseResult, Property } from '@sarh/shared-types';
@@ -67,6 +68,16 @@ type StepKey = typeof STEPS[number]['key'];
                 <div class="rec-meta">جميع الفحوصات الفنية اكتملت — الطلب جاهز للاعتماد النهائي وسكّ الرخصة.</div>
               </div>
             </div>
+
+            <h3 class="panel-title map-title">حدود الأرض</h3>
+            <div #mapEl class="map"></div>
+            <p class="hint">
+              @if (p.boundary_polygon) {
+                المضلّع المرسوم من قبل المواطن — المساحة المحسوبة منه <span class="mono" dir="ltr">{{ areaLabel(p.area_sqm) }}</span>.
+              } @else {
+                لم تُرفق حدود مضلّع لهذا الطلب.
+              }
+            </p>
           </div>
 
           <!-- RIGHT: NFT preview + form -->
@@ -216,6 +227,8 @@ type StepKey = typeof STEPS[number]['key'];
     .rec-mark { width: 22px; height: 22px; border-radius: 50%; background: var(--good); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
     .rec-title { font-size: 12.5px; font-weight: 700; color: var(--good); }
     .rec-meta { font-size: 11.5px; color: rgba(15,23,42,0.65); margin-top: 2px; line-height: 1.5; }
+    .map-title { margin-top: 18px; }
+    .map { width: 100%; height: 220px; border-radius: 10px; overflow: hidden; border: 1px solid var(--rule); margin-bottom: 8px; }
 
     /* NFT preview card */
     .nft-card { position: relative; aspect-ratio: 1.586; border-radius: 18px; overflow: hidden; box-shadow: 0 14px 36px rgba(15, 23, 42, 0.18); color: #fff; margin-bottom: 14px; }
@@ -292,11 +305,14 @@ type StepKey = typeof STEPS[number]['key'];
     @keyframes spin { to { transform: rotate(360deg); } }
   `],
 })
-export class ManagerApprovePage implements OnInit {
+export class ManagerApprovePage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(PropertiesService);
   private readonly citizensApi = inject(CitizensService);
+
+  @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
+  private map?: L.Map;
 
   readonly property = signal<Property | null>(null);
   readonly owner = signal<Citizen | null>(null);
@@ -342,12 +358,36 @@ export class ManagerApprovePage implements OnInit {
     try {
       const p = await this.api.get(id);
       this.property.set(p);
+      // Let the @if-guarded map element render before initialising Leaflet.
+      setTimeout(() => this.initMap(), 0);
       const c = await this.citizensApi.get(p.owner_citizen_id).catch(() => null);
       this.owner.set(c);
     } catch {
       this.property.set(null);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  ngOnDestroy(): void { this.map?.remove(); }
+
+  private initMap(): void {
+    if (!this.mapEl || this.map) return;
+    const p = this.property();
+    if (!p) return;
+    this.map = L.map(this.mapEl.nativeElement, { center: [27.0, 17.0], zoom: 6, zoomControl: true });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(this.map);
+
+    const ring = p.boundary_polygon?.coordinates?.[0];
+    if (ring && ring.length >= 3) {
+      const latlngs = ring.map((pt) => [pt[1], pt[0]] as [number, number]);
+      const poly = L.polygon(latlngs, {
+        color: '#0891B2', weight: 2, fillColor: '#0891B2', fillOpacity: 0.18,
+      }).addTo(this.map);
+      this.map.fitBounds(poly.getBounds(), { padding: [20, 20], maxZoom: 18 });
     }
   }
 

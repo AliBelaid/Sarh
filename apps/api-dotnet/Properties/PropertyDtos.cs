@@ -17,15 +17,39 @@ public sealed class CreatePropertyDto
 
     [Required] public JsonElement BoundaryPolygon { get; set; }
 
+    // Authoritative extent comes from the boundary polygon (re-computed
+    // server-side via geography.STArea). length/width/depth are now optional
+    // metadata only — a property is rarely a clean rectangle, so we never
+    // derive the area from them.
     [Required, Range(0.01, double.MaxValue)] public decimal AreaSqm { get; set; }
     public decimal? LengthM { get; set; }
     public decimal? WidthM { get; set; }
     public decimal? DepthM { get; set; }
 
+    // Evidence attached at submission. The registry requires at least one
+    // site photo and one koreky (croquis) sketch — enforced in the service.
+    // Each entry references a file already stored via POST /uploads/property-document.
+    public List<PropertyDocumentDto>? Documents { get; set; }
+
     // Set by an officer registering a property on behalf of a citizen.
     // Citizens must omit it (or send their own id); the service rejects
     // any other value to stop proxy submits.
     public Guid? OwnerCitizenId { get; set; }
+}
+
+// Allowed document_type values mirror ck_docs_type in 007_documents.sql.
+public sealed class PropertyDocumentDto
+{
+    [Required, RegularExpression(
+        "^(koreky_certificate|survey_certificate|sale_contract|inheritance_deed|court_order|site_photo|boundary_map|other)$")]
+    public string DocumentType { get; set; } = "";
+    // "<bucket>/<path>" as returned by the upload endpoint, e.g.
+    // "property-documents/2026/05/ab12….jpg".
+    [Required, MaxLength(255)] public string StoragePath { get; set; } = "";
+    [MaxLength(64)] public string? MimeType { get; set; }
+    public long? FileSizeBytes { get; set; }
+    [MaxLength(64)] public string? FileHash { get; set; }
+    [MaxLength(192)] public string? TitleAr { get; set; }
 }
 
 public sealed class ListPropertiesQuery
@@ -92,6 +116,11 @@ public sealed class PropertyView
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 
+    // GeoJSON Polygon of the parcel boundary. Only populated by GetByIdAsync
+    // (a separate spatial read) so the review/approval map can draw the real
+    // shape the citizen walked — null in list responses to keep them cheap.
+    public object? BoundaryPolygon { get; set; }
+
     public static PropertyView From(Property p) => new()
     {
         Id = p.Id,
@@ -119,6 +148,28 @@ public sealed class PropertyView
         VcCredentialId = p.VcCredentialId,
         CreatedAt = p.CreatedAt,
         UpdatedAt = p.UpdatedAt,
+    };
+}
+
+public sealed class PropertyDocumentView
+{
+    public Guid Id { get; init; }
+    public Guid PropertyId { get; init; }
+    public string DocumentType { get; init; } = "";
+    public string? TitleAr { get; init; }
+    public string? MimeType { get; init; }
+    public long? FileSizeBytes { get; init; }
+    public DateTimeOffset UploadedAt { get; init; }
+
+    public static PropertyDocumentView From(Sarh.Api.Data.Entities.PropertyDocument d) => new()
+    {
+        Id = d.Id,
+        PropertyId = d.PropertyId,
+        DocumentType = d.DocumentType,
+        TitleAr = d.TitleAr,
+        MimeType = d.MimeType,
+        FileSizeBytes = d.FileSizeBytes,
+        UploadedAt = d.UploadedAt,
     };
 }
 

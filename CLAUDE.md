@@ -15,6 +15,8 @@
 5. **Tamper-evident documents**: every issued PDF deed must be PAdES-signed and contain a verifiable QR pointing to `verify.sarh.ly/{deed_id}`.
 6. **Audit log is append-only**. No UPDATE or DELETE allowed.
 7. **No free-text role checking in code** — always go through the JSON permission map on `officers.permissions`.
+8. **Property area is derived from the boundary polygon, never `length × width`**. Parcels are rarely clean rectangles. Clients compute the area from the drawn polygon and the server re-computes it authoritatively via `geography.STArea()` (validated within ±5%). `length_m`/`width_m`/`depth_m` remain nullable metadata only — never a source of area.
+9. **Every property submission must carry evidence**: at least one `site_photo` and one `koreky_certificate` (croquis) in `property_documents`. Files upload first via `POST /api/v1/uploads/property-document` (returns `"<bucket>/<path>"`), then their references are sent **inline** in the `documents[]` array on `POST /properties`; the API rejects a submit missing either type. Applies to all clients (web citizen + officer wizards, Flutter).
 
 ## Tech Stack (Pinned)
 - **Backend**: ASP.NET Core 8 (.NET 8), C# 12, EF Core 8 (`Microsoft.EntityFrameworkCore.SqlServer`) + `Microsoft.Data.SqlClient`. Lives at `apps/api-dotnet/`. The legacy NestJS service (`apps/api/`) was retired then deleted; `git checkout 949a57d -- apps/api/` resurrects it if needed

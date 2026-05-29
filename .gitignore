@@ -46,9 +46,11 @@ obj/
 # Local test scripts + screenshots (Playwright drives, API batteries, logs)
 /.testing/
 
-# Storage roots — IPFS stubs + signed deed PDFs generated at runtime
+# Storage roots — IPFS stubs + signed deed PDFs + uploaded docs (runtime)
 /storage/ipfs-stub/
 /storage/property_deeds/
+/storage/property-documents/
+/storage/citizen-photos/
 **/ios/Pods/
 **/ios/.symlinks/
 **/ios/Flutter/Flutter.framework

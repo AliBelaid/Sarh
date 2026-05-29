@@ -9,6 +9,7 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
     public DbSet<Officer> Officers => Set<Officer>();
     public DbSet<Citizen> Citizens => Set<Citizen>();
     public DbSet<Property> Properties => Set<Property>();
+    public DbSet<PropertyDocument> PropertyDocuments => Set<PropertyDocument>();
     public DbSet<Region> Regions => Set<Region>();
     public DbSet<DigitalIdCard> DigitalIdCards => Set<DigitalIdCard>();
     public DbSet<IdIssuanceHistory> IdIssuanceHistory => Set<IdIssuanceHistory>();
@@ -34,6 +35,8 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
             t.HasTrigger("tr_properties_set_centroid");
             t.HasTrigger("tr_properties_updated_at");
         });
+        b.Entity<PropertyDocument>().HasKey(x => x.Id);
+        b.Entity<PropertyDocument>().HasIndex(x => x.PropertyId);
         b.Entity<Region>().HasKey(x => x.Id);
         b.Entity<DigitalIdCard>().HasKey(x => x.Id);
         b.Entity<DigitalIdCard>().ToTable("digital_id_cards", t => t.HasTrigger("tr_digital_id_cards_updated_at"));

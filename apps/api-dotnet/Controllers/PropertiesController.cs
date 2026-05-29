@@ -4,6 +4,7 @@ using Sarh.Api.Audit;
 using Sarh.Api.Auth;
 using Sarh.Api.Common;
 using Sarh.Api.Properties;
+using Sarh.Api.Storage;
 using Sarh.Api.Workflow;
 
 namespace Sarh.Api.Controllers;
@@ -11,7 +12,8 @@ namespace Sarh.Api.Controllers;
 [ApiController]
 [Route("api/v1/properties")]
 [Authorize]
-public class PropertiesController(PropertiesService svc, ReviewService review, LicenseService license) : ControllerBase
+public class PropertiesController(
+    PropertiesService svc, ReviewService review, LicenseService license, StorageService storageReader) : ControllerBase
 {
     [HttpPost]
     [Audit(Action = AuditActions.Create, Entity = "properties", EntityIdFrom = "property.id")]
@@ -33,6 +35,20 @@ public class PropertiesController(PropertiesService svc, ReviewService review, L
     [HttpGet("{id:guid}")]
     public Task<PropertyView> Get(Guid id, CancellationToken ct)
         => svc.GetByIdAsync(id, User.RequireUser(), ct);
+
+    // Attached evidence (site photos + koreky sketch). Owner or in-region officer.
+    [HttpGet("{id:guid}/documents")]
+    public async Task<DocumentsResult> Documents(Guid id, CancellationToken ct)
+        => new DocumentsResult { Items = await svc.ListDocumentsAsync(id, User.RequireUser(), ct) };
+
+    [HttpGet("{id:guid}/documents/{docId:guid}/file")]
+    public async Task<IActionResult> DocumentFile(Guid id, Guid docId, CancellationToken ct)
+    {
+        var (bucket, path, mime) = await svc.ResolveDocumentFileAsync(id, docId, User.RequireUser(), ct);
+        var stream = storageReader.OpenRead(bucket, path);
+        Response.Headers.CacheControl = "private, max-age=300";
+        return File(stream, mime ?? "application/octet-stream");
+    }
 
     [HttpPost("{id:guid}/review")]
     [Audit(Action = AuditActions.Approve, Entity = "properties", EntityIdFrom = "property.id")]
@@ -96,6 +112,11 @@ public class PropertiesController(PropertiesService svc, ReviewService review, L
         }
         return new BulkResultResponse { Results = results };
     }
+}
+
+public sealed class DocumentsResult
+{
+    public required IReadOnlyList<PropertyDocumentView> Items { get; init; }
 }
 
 public sealed class BulkReviewRequest

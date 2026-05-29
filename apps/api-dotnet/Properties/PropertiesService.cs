@@ -13,10 +13,6 @@ namespace Sarh.Api.Properties;
 public sealed class PropertiesService(SarhDbContext db, NotificationsService notifications)
 {
     private const decimal AREA_TOLERANCE_PCT = 5m;
-    // Absolute tolerance for area-vs-(length×width) check. The mobile + web
-    // clients call `.toFixed(2)` before sending, so the worst legitimate
-    // rounding error is a few hundredths of a square metre.
-    private const decimal AREA_LXW_TOLERANCE_SQM = 0.05m;
 
     // ----- Submit -----
     public async Task<SubmitResult> SubmitAsync(CreatePropertyDto dto, CurrentUser actor, CancellationToken ct)
@@ -24,23 +20,13 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
         var ownerCitizenId = await ResolveOwnerAsync(dto, actor, ct);
         EnforceOfficerRegionScope(dto, actor);
 
-        var (wkt, geoJson) = GeoJsonPolygon.ValidateAndConvert(dto.BoundaryPolygon);
+        // Required evidence: real-world parcels are rarely clean rectangles,
+        // so the area is taken from the drawn polygon (below) — never from
+        // length × width — and the citizen must instead attach photos of the
+        // property and a koreky (croquis) sketch of its boundaries.
+        var documents = ValidateDocuments(dto.Documents);
 
-        // Defence-in-depth for the "no direct area entry" rule the clients
-        // enforce: when explicit length+width are provided, the area must
-        // equal length × width (within rounding). A non-UI caller cannot
-        // ship inconsistent dimensions even if it bypasses the form.
-        if (dto.LengthM is decimal l && dto.WidthM is decimal w && l > 0 && w > 0)
-        {
-            var expected = decimal.Round(l * w, 2, MidpointRounding.AwayFromZero);
-            if (Math.Abs(dto.AreaSqm - expected) > AREA_LXW_TOLERANCE_SQM)
-            {
-                throw SarhException.Validation(
-                    $"المساحة المُدخلة ({dto.AreaSqm} م²) لا تساوي حاصل ضرب الطول × العرض ({expected} م²).",
-                    $"area_sqm ({dto.AreaSqm}) does not equal length_m × width_m ({expected}).",
-                    new { expected_area_sqm = expected, submitted_area_sqm = dto.AreaSqm });
-            }
-        }
+        var (wkt, geoJson) = GeoJsonPolygon.ValidateAndConvert(dto.BoundaryPolygon);
 
         // Server-side area + centroid pre-check. SQL Server geography STArea
         // returns square metres directly on WGS84 (no UTM transform needed).
@@ -63,6 +49,8 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
 
         // insert_property_with_polygon already accepts WKT and parses GeoJSON.
         var propertyId = await CallInsertPropertyAsync(dto, wkt, ownerCitizenId, ct);
+
+        await InsertDocumentsAsync(propertyId, ownerCitizenId, documents, ct);
 
         var requestNo = await NextRequestNoAsync(DateTime.UtcNow.Year, ct);
 
@@ -185,7 +173,45 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
             actor.RegionId is not null && p.RegionId != actor.RegionId)
             throw SarhException.Forbidden("العقار خارج منطقتك.");
 
-        return PropertyView.From(p);
+        var view = PropertyView.From(p);
+        view.BoundaryPolygon = await GetBoundaryPolygonGeoJsonAsync(id, ct);
+        return view;
+    }
+
+    // Reads boundary_polygon as WKT and converts it to a GeoJSON Polygon so
+    // the web review/approval map can render the exact shape. SQL Server
+    // geography emits WKT in "longitude latitude" order, which is already the
+    // GeoJSON axis order — no swap needed.
+    private async Task<object?> GetBoundaryPolygonGeoJsonAsync(Guid id, CancellationToken ct)
+    {
+        var conn = (SqlConnection)db.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "SELECT boundary_polygon.STAsText() FROM properties WHERE id = @id AND boundary_polygon IS NOT NULL;";
+        cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.UniqueIdentifier) { Value = id });
+        var wkt = await cmd.ExecuteScalarAsync(ct) as string;
+        if (string.IsNullOrWhiteSpace(wkt)) return null;
+
+        // "POLYGON ((lng lat, lng lat, …))" — take the first (outer) ring.
+        var open = wkt.IndexOf("((", StringComparison.Ordinal);
+        var close = wkt.IndexOf("))", StringComparison.Ordinal);
+        if (open < 0 || close < 0 || close <= open) return null;
+        var ringText = wkt.Substring(open + 2, close - open - 2);
+
+        var ring = new List<double[]>();
+        foreach (var pair in ringText.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = pair.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2) continue;
+            if (double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lng) &&
+                double.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lat))
+            {
+                ring.Add(new[] { lng, lat });
+            }
+        }
+        if (ring.Count < 4) return null;
+        return new { type = "Polygon", coordinates = new[] { ring.ToArray() } };
     }
 
     // ----- Overlap check -----
@@ -259,6 +285,85 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
             });
         }
         return rows;
+    }
+
+    // ----- Documents -----
+
+    // Registry policy: every submission must carry at least one site photo
+    // and at least one koreky (croquis) sketch. Returns the normalised list
+    // ready for insertion. Throws SarhException.Validation on any gap.
+    private static List<PropertyDocumentDto> ValidateDocuments(List<PropertyDocumentDto>? docs)
+    {
+        var list = docs?.Where(d => !string.IsNullOrWhiteSpace(d.StoragePath)).ToList()
+                   ?? new List<PropertyDocumentDto>();
+
+        var hasPhoto = list.Any(d => d.DocumentType == "site_photo");
+        var hasKoreky = list.Any(d => d.DocumentType == "koreky_certificate");
+
+        if (!hasPhoto || !hasKoreky)
+        {
+            throw SarhException.Validation(
+                "يلزم إرفاق صورة واحدة للعقار على الأقل وكروكي واحد قبل الإرسال.",
+                "At least one site photo and one koreky (croquis) sketch are required.",
+                new { has_site_photo = hasPhoto, has_koreky = hasKoreky });
+        }
+        return list;
+    }
+
+    private async Task InsertDocumentsAsync(
+        Guid propertyId, Guid ownerCitizenId, List<PropertyDocumentDto> docs, CancellationToken ct)
+    {
+        if (docs.Count == 0) return;
+
+        foreach (var d in docs)
+        {
+            db.PropertyDocuments.Add(new PropertyDocument
+            {
+                Id = Guid.NewGuid(),
+                PropertyId = propertyId,
+                DocumentType = d.DocumentType,
+                TitleAr = d.TitleAr,
+                StoragePath = d.StoragePath,
+                MimeType = d.MimeType,
+                FileSizeBytes = d.FileSizeBytes,
+                FileHash = d.FileHash,
+                UploadedByCitizenId = ownerCitizenId,
+                // Set explicitly: EF would otherwise INSERT default(DateTimeOffset)
+                // and bypass the column's SYSDATETIMEOFFSET() default.
+                UploadedAt = DateTimeOffset.UtcNow,
+            });
+        }
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<PropertyDocumentView>> ListDocumentsAsync(
+        Guid propertyId, CurrentUser actor, CancellationToken ct)
+    {
+        // Reuse GetByIdAsync's access rules: it throws Forbidden/NotFound as
+        // appropriate for citizens (own only) and officers (own region).
+        await GetByIdAsync(propertyId, actor, ct);
+
+        var rows = await db.PropertyDocuments.AsNoTracking()
+            .Where(d => d.PropertyId == propertyId)
+            .OrderBy(d => d.UploadedAt)
+            .ToListAsync(ct);
+        return rows.Select(PropertyDocumentView.From).ToList();
+    }
+
+    // Resolves a single document for streaming, after enforcing the same
+    // access rules as GetByIdAsync. Returns the "<bucket>/<path>" location.
+    public async Task<(string Bucket, string Path, string? MimeType)> ResolveDocumentFileAsync(
+        Guid propertyId, Guid documentId, CurrentUser actor, CancellationToken ct)
+    {
+        await GetByIdAsync(propertyId, actor, ct);
+
+        var doc = await db.PropertyDocuments.AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == documentId && d.PropertyId == propertyId, ct)
+            ?? throw SarhException.NotFound("المستند", "Document");
+
+        var slash = doc.StoragePath.IndexOf('/');
+        if (slash <= 0) throw SarhException.NotFound("المستند", "Document");
+        return (doc.StoragePath[..slash], doc.StoragePath[(slash + 1)..], doc.MimeType);
     }
 
     // ----- helpers -----

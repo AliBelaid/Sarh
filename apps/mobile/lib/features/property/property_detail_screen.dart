@@ -53,6 +53,8 @@ class PropertyDetailScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               _Timeline(property: p),
+              const SizedBox(height: 12),
+              _Documents(propertyId: p.id),
               if (p.rejectionReason != null && p.rejectionReason!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
@@ -109,6 +111,82 @@ class _ErrorView extends StatelessWidget {
               messageAr,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+const _docTypeLabels = <String, String>{
+  'koreky_certificate': 'كروكي (شهادة كوريكي)',
+  'survey_certificate': 'شهادة مساحة',
+  'sale_contract': 'عقد بيع',
+  'inheritance_deed': 'إفادة وراثة',
+  'court_order': 'قرار محكمة',
+  'site_photo': 'صورة موقع',
+  'boundary_map': 'خريطة الحدود',
+  'other': 'أخرى',
+};
+
+// Attached evidence (site photos + koreky sketch). Lists what was filed;
+// tap-to-view streams through GET /properties/{id}/documents/{docId}/file,
+// which carries auth — left out here to keep the list lightweight.
+class _Documents extends ConsumerWidget {
+  final String propertyId;
+  const _Documents({required this.propertyId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(propertyDocumentsProvider(propertyId));
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('المرفقات', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            async.when(
+              data: (docs) => docs.isEmpty
+                  ? const Text('لا توجد مرفقات.',
+                      style: TextStyle(color: SarhColors.outline))
+                  : Column(
+                      children: [
+                        for (final d in docs)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  d.documentType == 'site_photo'
+                                      ? Icons.photo_outlined
+                                      : (d.mimeType == 'application/pdf'
+                                          ? Icons.picture_as_pdf_outlined
+                                          : Icons.map_outlined),
+                                  color: SarhColors.accent,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(_docTypeLabels[d.documentType] ??
+                                      d.documentType),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              error: (_, __) => const Text('تعذّر تحميل المرفقات.',
+                  style: TextStyle(color: SarhColors.outline)),
             ),
           ],
         ),
