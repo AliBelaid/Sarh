@@ -37,13 +37,18 @@ async function uploadDoc(token, name) {
   return r.data.path; // "<bucket>/<path>"
 }
 
-// A small quadrilateral inside Tripoli (region 11).
+// A small quadrilateral inside Tripoli (region 11). Offset by a random
+// amount each run so we never collide with a previously-approved parcel
+// (the centroid-uniqueness rule, constraint 3, would 409 otherwise).
+const ox = (Math.random() - 0.5) * 0.05; // ~±2.8 km in lng
+const oy = (Math.random() - 0.5) * 0.05;
+const bx = 13.19 + ox, by = 32.887 + oy;
 const RING = [
-  [13.1900, 32.8870],
-  [13.1906, 32.8870],
-  [13.1906, 32.8876],
-  [13.1900, 32.8876],
-  [13.1900, 32.8870],
+  [bx, by],
+  [bx + 0.0006, by],
+  [bx + 0.0006, by + 0.0006],
+  [bx, by + 0.0006],
+  [bx, by],
 ];
 
 function ringAreaSqm(ring) {
@@ -116,9 +121,20 @@ try {
   const ring = detail.data?.boundary_polygon?.coordinates?.[0];
   check(Array.isArray(ring) && ring.length >= 4, `GET property returns boundary_polygon (${ring?.length ?? 0} points)`);
   const docs = await api(`/properties/${propId}/documents`, { token: offToken });
-  const docTypes = (docs.data?.items ?? []).map((d) => d.document_type).sort();
+  const docItems = docs.data?.items ?? [];
+  const docTypes = docItems.map((d) => d.document_type).sort();
   check(docTypes.includes('site_photo') && docTypes.includes('koreky_certificate'),
     `documents listed: [${docTypes.join(', ')}]`);
+
+  // 6b) Officer streams a document file (what the web review viewer renders).
+  if (docItems[0]) {
+    const fileRes = await fetch(`${BASE}/properties/${propId}/documents/${docItems[0].id}/file`, {
+      headers: { Authorization: `Bearer ${offToken}` },
+    });
+    const buf = Buffer.from(await fileRes.arrayBuffer());
+    check(fileRes.status === 200 && buf.length > 0,
+      `document file streams (status ${fileRes.status}, ${buf.length} bytes, ${fileRes.headers.get('content-type')})`);
+  }
 
   // 7) Officer approves.
   const review = await api(`/properties/${propId}/review`, {

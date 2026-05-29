@@ -17,6 +17,25 @@ import { PropertiesService } from '@core/properties.service';
 import type { Property, ReviewDecision } from '@sarh/shared-types';
 import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-pills';
 
+interface DocVM {
+  id: string;
+  type: string;
+  label: string;
+  isImage: boolean;
+  url?: string;
+}
+
+const DOC_LABELS: Record<string, string> = {
+  site_photo: 'صورة الموقع',
+  koreky_certificate: 'كروكي',
+  survey_certificate: 'شهادة مساحة',
+  sale_contract: 'عقد بيع',
+  inheritance_deed: 'إفادة وراثة',
+  court_order: 'قرار محكمة',
+  boundary_map: 'خريطة الحدود',
+  other: 'مستند آخر',
+};
+
 @Component({
   selector: 'app-officer-review',
   standalone: true,
@@ -74,6 +93,34 @@ import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-
                 لم تُرفق حدود مضلّع لهذا الطلب — تظهر علامة عند مركز المنطقة فقط.
               }
             </p>
+          </article>
+
+          <!-- Documents -->
+          <article class="card docs-card">
+            <h2>المرفقات (صور العقار + الكروكي)</h2>
+            @if (docsLoading()) {
+              <div class="docs-loading"><span class="spin small"></span> جارٍ تحميل المرفقات…</div>
+            } @else if (docs().length === 0) {
+              <p class="hint">لا توجد مرفقات لهذا الطلب.</p>
+            } @else {
+              <div class="docs-grid">
+                @for (d of docs(); track d.id) {
+                  <figure class="doc">
+                    @if (d.isImage && d.url) {
+                      <a [href]="d.url" target="_blank" rel="noopener">
+                        <img [src]="d.url" [alt]="d.label" loading="lazy" />
+                      </a>
+                    } @else {
+                      <a class="doc-file" [href]="d.url" target="_blank" rel="noopener">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <span>فتح الملف</span>
+                      </a>
+                    }
+                    <figcaption [class.koreky]="d.type === 'koreky_certificate'">{{ d.label }}</figcaption>
+                  </figure>
+                }
+              </div>
+            }
           </article>
 
           <!-- Decision -->
@@ -162,13 +209,26 @@ import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-
     .grid {
       display: grid;
       grid-template-columns: 1.1fr 1fr;
-      grid-template-areas: "hero map" "hero decision";
+      grid-template-areas: "hero map" "hero decision" "docs docs";
       gap: 16px;
     }
-    @media (max-width: 1024px) { .grid { grid-template-columns: 1fr; grid-template-areas: "hero" "map" "decision"; } }
+    @media (max-width: 1024px) { .grid { grid-template-columns: 1fr; grid-template-areas: "hero" "map" "docs" "decision"; } }
     .hero-card { grid-area: hero; }
     .map-card { grid-area: map; }
     .decision-card { grid-area: decision; }
+    .docs-card { grid-area: docs; }
+
+    .docs-loading { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+    .docs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .doc { margin: 0; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; background: #fff; }
+    .doc img { display: block; width: 100%; height: 120px; object-fit: cover; cursor: zoom-in; }
+    .doc-file {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+      height: 120px; color: var(--muted); text-decoration: none; font-size: 12px;
+    }
+    .doc-file:hover { color: var(--accent); }
+    .doc figcaption { padding: 7px 10px; font-size: 11.5px; font-weight: 600; color: var(--ink); border-top: 1px solid var(--rule); }
+    .doc figcaption.koreky { color: var(--accent); }
 
     .card { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 22px; }
     .card h2 { font-size: 14px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); color: var(--ink); }
@@ -264,12 +324,17 @@ export class OfficerReviewPage implements AfterViewInit, OnDestroy {
   note = '';
   decreeNo = '';
 
+  readonly docs = signal<DocVM[]>([]);
+  readonly docsLoading = signal(false);
+  private objectUrls: string[] = [];
+
   private map?: L.Map;
 
   async ngOnInit(): Promise<void> {
     if (!this.id) { this.error.set('معرّف العقار غير صالح.'); this.loading.set(false); return; }
     try {
       this.property.set(await this.api.get(this.id));
+      void this.loadDocuments(this.id);
     } catch (e) {
       const err = e as { error?: { error?: { message_ar?: string } } };
       this.error.set(err.error?.error?.message_ar ?? 'تعذّر تحميل العقار.');
@@ -282,7 +347,41 @@ export class OfficerReviewPage implements AfterViewInit, OnDestroy {
     setTimeout(() => this.initMap(), 0);
   }
 
-  ngOnDestroy(): void { this.map?.remove(); }
+  ngOnDestroy(): void {
+    this.map?.remove();
+    this.objectUrls.forEach((u) => URL.revokeObjectURL(u));
+  }
+
+  // Fetch each attachment as a blob (the auth interceptor adds the JWT) and
+  // expose it as an object URL so <img>/<a> can render it inline.
+  private async loadDocuments(id: string): Promise<void> {
+    this.docsLoading.set(true);
+    try {
+      const items = await this.api.listDocuments(id);
+      const vms: DocVM[] = [];
+      for (const it of items) {
+        const isImage = (it.mime_type ?? '').startsWith('image/');
+        let url: string | undefined;
+        try {
+          const blob = await this.api.documentBlob(id, it.id);
+          url = URL.createObjectURL(blob);
+          this.objectUrls.push(url);
+        } catch { /* leave url undefined — still show the caption */ }
+        vms.push({
+          id: it.id,
+          type: it.document_type,
+          label: DOC_LABELS[it.document_type] ?? it.document_type,
+          isImage,
+          url,
+        });
+      }
+      this.docs.set(vms);
+    } catch {
+      this.docs.set([]);
+    } finally {
+      this.docsLoading.set(false);
+    }
+  }
 
   canSubmit(): boolean {
     if (this.decision() === 'approve') return true;
