@@ -63,14 +63,27 @@ class _WizardStepDocumentsState extends ConsumerState<WizardStepDocuments> {
 
   @override
   Widget build(BuildContext context) {
-    final docs = ref.watch(wizardStateProvider).documents;
+    final state = ref.watch(wizardStateProvider);
+    final docs = state.documents;
     return Scaffold(
       appBar: AppBar(title: const Text('المستندات')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('4 / 5 — أرفق المستندات الداعمة',
+          Text('3 / 4 — أرفق المستندات الداعمة',
               style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 8),
+          const Card(
+            color: Color(0xFFFFF7ED),
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'إلزامي: صورة واحدة للعقار على الأقل (صورة موقع) وكروكي واحد '
+                '(شهادة كوريكي). اختر النوع قبل الإرفاق.',
+                style: TextStyle(fontSize: 13),
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             value: _docType,
@@ -133,9 +146,19 @@ class _WizardStepDocumentsState extends ConsumerState<WizardStepDocuments> {
                 ),
               ),
             ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          if (!state.hasRequiredDocuments)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text(
+                'يلزم إرفاق صورة موقع وشهادة كوريكي قبل المتابعة.',
+                style: TextStyle(color: SarhColors.warn, fontSize: 13),
+              ),
+            ),
           ElevatedButton(
-            onPressed: () => context.push(AppRoutes.wizardReview),
+            onPressed: state.hasRequiredDocuments
+                ? () => context.push(AppRoutes.wizardReview)
+                : null,
             child: const Text('التالي'),
           ),
         ],

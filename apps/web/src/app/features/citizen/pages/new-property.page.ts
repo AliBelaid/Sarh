@@ -16,7 +16,17 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import * as L from 'leaflet';
 import { API_BASE } from '@core/api-config';
+import { UploadsService, UploadResult } from '@core/uploads.service';
 import { REGIONS } from '../../../shared/status-pills';
+
+// A file already uploaded to storage, ready to attach to the submission.
+interface UploadedDoc {
+  name: string;
+  storagePath: string;
+  mimeType: string;
+  size: number;
+  sha256: string;
+}
 
 type PropertyType =
   | 'residential' | 'agricultural' | 'commercial' | 'governmental' | 'industrial' | 'mixed';
@@ -93,37 +103,70 @@ interface SubmitResponse {
           </div>
 
           <div class="card">
-            <h2>الأبعاد</h2>
-            <p class="sub-hint">أدخل الطول والعرض ثم اضغط "احسب المساحة" لتوليدها تلقائياً. لا يمكن إدخال المساحة مباشرة.</p>
-            <div class="grid-2">
-              <div class="field">
-                <label for="length">الطول (م) <span class="req">*</span></label>
-                <input id="length" type="number" step="0.01" min="0.01" [(ngModel)]="lengthM" name="lengthM" required dir="ltr" [disabled]="busy()" (ngModelChange)="onDimensionChanged()" />
-              </div>
-              <div class="field">
-                <label for="width">العرض (م) <span class="req">*</span></label>
-                <input id="width" type="number" step="0.01" min="0.01" [(ngModel)]="widthM" name="widthM" required dir="ltr" [disabled]="busy()" (ngModelChange)="onDimensionChanged()" />
-              </div>
-              <div class="field">
-                <label for="depth">العمق (م) — اختياري</label>
-                <input id="depth" type="number" step="0.01" [(ngModel)]="depthM" name="depthM" dir="ltr" [disabled]="busy()" />
-              </div>
-            </div>
-            <button type="button" class="mini-btn compute-btn" (click)="computeArea()" [disabled]="!canCompute() || busy()">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>
-              احسب المساحة
-            </button>
-            <div class="area-result" [class.ok]="areaSqm != null">
-              @if (areaSqm != null) {
+            <h2>المساحة</h2>
+            <p class="sub-hint">تُحسب المساحة تلقائياً من حدود العقار التي ترسمها على الخريطة — لا حاجة لإدخال طول أو عرض، فالعقارات نادراً ما تكون مستطيلة منتظمة.</p>
+            <div class="area-result" [class.ok]="computedArea() != null">
+              @if (computedArea() != null) {
                 <span class="ok-mark">✓</span>
-                المساحة المحسوبة: <span class="mono">{{ areaSqm | number: '1.2-2' }} م²</span>
-                <span class="muted">({{ lengthM | number: '1.2-2' }} × {{ widthM | number: '1.2-2' }})</span>
+                المساحة المحسوبة من الحدود: <span class="mono">{{ computedArea() | number: '1.0-2' }} م²</span>
               } @else {
-                <span class="muted">لم يتم احتساب المساحة بعد.</span>
+                <span class="muted">ارسم ٣ نقاط على الأقل على الخريطة لحساب المساحة.</span>
               }
             </div>
-            @if (computedArea() != null && areaSqm != null) {
-              <p class="hint">المساحة المحسوبة من الخريطة (مرجعية): <span class="mono">{{ computedArea() | number: '1.0-2' }} م²</span></p>
+          </div>
+
+          <div class="card">
+            <h2>المرفقات</h2>
+            <p class="sub-hint">صور العقار والكروكي إلزامية. الكروكي رسم تخطيطي لحدود الأرض (صورة أو PDF).</p>
+
+            <!-- Property photos -->
+            <div class="field">
+              <label>صور العقار <span class="req">*</span> <span class="muted">(صورة واحدة على الأقل)</span></label>
+              <label class="drop" [class.disabled]="busy()">
+                <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
+                       (change)="onPhotosSelected($event)" [disabled]="busy()" />
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                اختر صوراً للعقار
+              </label>
+              @if (photos().length > 0) {
+                <ul class="file-list">
+                  @for (p of photos(); track p.storagePath) {
+                    <li>
+                      <span class="fl-name">{{ p.name }}</span>
+                      <span class="fl-size">{{ p.size / 1024 | number: '1.0-0' }} ك.ب</span>
+                      <button type="button" class="fl-del" (click)="removePhoto(p)" [disabled]="busy()" aria-label="حذف">✕</button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+
+            <!-- Koreky / croquis -->
+            <div class="field">
+              <label>الكروكي <span class="req">*</span> <span class="muted">(صورة أو PDF)</span></label>
+              @if (croquis() == null) {
+                <label class="drop" [class.disabled]="busy()">
+                  <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" hidden
+                         (change)="onCroquisSelected($event)" [disabled]="busy()" />
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                  ارفع الكروكي
+                </label>
+              } @else {
+                <ul class="file-list">
+                  <li>
+                    <span class="fl-name">{{ croquis()!.name }}</span>
+                    <span class="fl-size">{{ croquis()!.size / 1024 | number: '1.0-0' }} ك.ب</span>
+                    <button type="button" class="fl-del" (click)="removeCroquis()" [disabled]="busy()" aria-label="حذف">✕</button>
+                  </li>
+                </ul>
+              }
+            </div>
+
+            @if (uploading()) {
+              <div class="area-result"><span class="spin"></span> جارٍ رفع الملف…</div>
+            }
+            @if (uploadError()) {
+              <div class="banner err"><span class="banner-mark">!</span>{{ uploadError() }}</div>
             }
           </div>
 
@@ -219,7 +262,42 @@ interface SubmitResponse {
     .field input:disabled, .field select:disabled, .field textarea:disabled { background: #f4f1e8; cursor: not-allowed; }
     .hint { font-size: 11.5px; color: var(--muted); margin: 0; }
     .sub-hint { font-size: 12px; color: var(--muted); margin: -8px 0 14px; line-height: 1.55; }
-    .compute-btn { margin: 8px 0 12px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; }
+    /* Uploads ─────────────────────────────────────── */
+    .drop {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 16px;
+      background: #fff;
+      border: 1.5px dashed var(--rule);
+      border-radius: 8px;
+      font-size: 12.5px; font-weight: 600;
+      color: var(--ink);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      align-self: flex-start;
+    }
+    .drop:hover:not(.disabled) { border-color: var(--accent); background: var(--paper); }
+    .drop.disabled { opacity: 0.5; cursor: not-allowed; }
+    .drop svg { color: var(--accent); }
+    .file-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .file-list li {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 12px;
+      background: #f4f1e8;
+      border: 1px solid var(--rule);
+      border-radius: 7px;
+      font-size: 12px;
+    }
+    .fl-name { flex: 1; color: var(--ink); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fl-size { color: var(--muted); font-family: 'Courier New', monospace; flex-shrink: 0; }
+    .fl-del {
+      flex-shrink: 0; width: 22px; height: 22px; display: grid; place-items: center;
+      border: 0; border-radius: 5px; background: transparent; color: var(--muted);
+      cursor: pointer; font-size: 13px; font-weight: 700;
+    }
+    .fl-del:hover:not(:disabled) { background: #fff2f3; color: var(--warn); }
+    .fl-del:disabled { opacity: 0.4; cursor: not-allowed; }
+    .field label .muted { color: var(--muted); font-weight: 500; }
+
     .area-result {
       padding: 10px 14px; border-radius: 8px;
       background: #f4f1e8; border: 1px dashed var(--rule);
@@ -314,6 +392,7 @@ interface SubmitResponse {
 export class NewPropertyPage implements AfterViewInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly uploads = inject(UploadsService);
 
   @ViewChild('mapEl', { static: true }) mapEl!: ElementRef<HTMLDivElement>;
 
@@ -324,51 +403,93 @@ export class NewPropertyPage implements AfterViewInit, OnDestroy {
   parcelNumber = '';
   planNumber = '';
   blockNumber = '';
-  areaSqm: number | null = null;
-  lengthM: number | null = null;
-  widthM: number | null = null;
-  depthM: number | null = null;
 
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
   readonly points = signal<L.LatLng[]>([]);
 
+  // Attachments — both mandatory before submit.
+  readonly photos = signal<UploadedDoc[]>([]);
+  readonly croquis = signal<UploadedDoc | null>(null);
+  readonly uploading = signal(false);
+  readonly uploadError = signal<string | null>(null);
+
   readonly regionEntries = Object.entries(REGIONS)
     .map(([k, v]) => [Number(k), v] as [number, string])
     .sort((a, b) => a[0] - b[0]);
 
-  // Plain method, NOT a computed() signal. propertyType/regionId/areaSqm
-  // are non-signal class fields (bound via [(ngModel)]), and `computed`
-  // only tracks signals it actually reads. The first call short-circuits
-  // at `!!this.regionId` (null on load) before reaching `this.points()`,
-  // so the computed records zero dependencies and stays frozen at false
-  // — leaving submit permanently disabled even after the user fills
-  // every field. A plain method re-evaluates on every change-detection
-  // tick, which is what we want here.
+  // Plain method, NOT a computed() signal. propertyType/regionId are
+  // non-signal class fields (bound via [(ngModel)]), and `computed` only
+  // tracks signals it actually reads. The first call short-circuits at
+  // `!!this.regionId` (null on load) before reaching `this.points()`, so the
+  // computed records zero dependencies and stays frozen at false — leaving
+  // submit permanently disabled even after the user fills every field. A
+  // plain method re-evaluates on every change-detection tick.
   canSubmit(): boolean {
-    return !!this.propertyType && !!this.regionId && !!this.areaSqm && this.points().length >= 3;
+    return !!this.propertyType
+      && !!this.regionId
+      && this.points().length >= 3
+      && this.computedArea() != null
+      && this.photos().length >= 1
+      && this.croquis() != null
+      && !this.uploading();
   }
 
+  // Authoritative area is derived from the drawn polygon (the API re-computes
+  // it server-side via geography.STArea). No length × width entry.
   readonly computedArea = computed(() => {
     const pts = this.points();
     if (pts.length < 3) return null;
     return this.geographicArea(pts);
   });
 
-  canCompute(): boolean {
-    return (this.lengthM ?? 0) > 0 && (this.widthM ?? 0) > 0;
+  // ----- Uploads -----
+  async onPhotosSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = ''; // allow re-selecting the same file later
+    for (const file of files) {
+      const doc = await this.uploadOne(file);
+      if (doc) this.photos.update((list) => [...list, doc]);
+    }
   }
 
-  computeArea(): void {
-    if (!this.canCompute()) return;
-    this.areaSqm = +(this.lengthM! * this.widthM!).toFixed(2);
+  async onCroquisSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    const doc = await this.uploadOne(file);
+    if (doc) this.croquis.set(doc);
   }
 
-  // Any change to length/width invalidates a previously computed area —
-  // mirrors the mobile dimensions step. Citizen must press "احسب المساحة"
-  // again so the value the API receives matches the dimensions they typed.
-  onDimensionChanged(): void {
-    this.areaSqm = null;
+  removePhoto(doc: UploadedDoc): void {
+    this.photos.update((list) => list.filter((p) => p !== doc));
+  }
+
+  removeCroquis(): void {
+    this.croquis.set(null);
+  }
+
+  private async uploadOne(file: File): Promise<UploadedDoc | null> {
+    this.uploadError.set(null);
+    this.uploading.set(true);
+    try {
+      const r: UploadResult = await this.uploads.uploadPropertyDocument(file);
+      return {
+        name: file.name,
+        storagePath: r.path,
+        mimeType: r.mime_type,
+        size: r.size,
+        sha256: r.sha256,
+      };
+    } catch (e: unknown) {
+      const err = e as { error?: { error?: { message_ar?: string } } };
+      this.uploadError.set(err.error?.error?.message_ar ?? `تعذّر رفع "${file.name}".`);
+      return null;
+    } finally {
+      this.uploading.set(false);
+    }
   }
 
   private map?: L.Map;
@@ -412,7 +533,7 @@ export class NewPropertyPage implements AfterViewInit, OnDestroy {
   async submit(): Promise<void> {
     this.errorMsg.set(null);
     if (!this.canSubmit()) {
-      this.errorMsg.set('املأ الحقول المطلوبة وارسم ٣ نقاط على الأقل.');
+      this.errorMsg.set('املأ الحقول المطلوبة، ارسم ٣ نقاط على الأقل، وأرفق صور العقار والكروكي.');
       return;
     }
     this.busy.set(true);
@@ -420,6 +541,10 @@ export class NewPropertyPage implements AfterViewInit, OnDestroy {
       const ring = [...this.points(), this.points()[0]]
         .map((p) => [p.lng, p.lat]);
       const polygon = { type: 'Polygon', coordinates: [ring] };
+      const documents = [
+        ...this.photos().map((p) => this.toDocBody('site_photo', p)),
+        this.toDocBody('koreky_certificate', this.croquis()!),
+      ];
       const body = {
         property_type: this.propertyType,
         region_id: this.regionId,
@@ -428,10 +553,9 @@ export class NewPropertyPage implements AfterViewInit, OnDestroy {
         plan_number: this.planNumber || undefined,
         block_number: this.blockNumber || undefined,
         boundary_polygon: polygon,
-        area_sqm: this.areaSqm,
-        length_m: this.lengthM ?? undefined,
-        width_m: this.widthM ?? undefined,
-        depth_m: this.depthM ?? undefined,
+        // Area is the polygon's true area — never length × width.
+        area_sqm: this.computedArea(),
+        documents,
       };
       await firstValueFrom(this.http.post<SubmitResponse>(`${API_BASE}/properties`, body));
       this.router.navigateByUrl('/app/my/properties');
@@ -441,6 +565,16 @@ export class NewPropertyPage implements AfterViewInit, OnDestroy {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  private toDocBody(documentType: 'site_photo' | 'koreky_certificate', doc: UploadedDoc) {
+    return {
+      document_type: documentType,
+      storage_path: doc.storagePath,
+      mime_type: doc.mimeType,
+      file_size_bytes: doc.size,
+      file_hash: doc.sha256,
+    };
   }
 
   private redraw(): void {

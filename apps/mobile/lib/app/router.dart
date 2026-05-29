@@ -10,7 +10,6 @@ import '../features/home/home_screen.dart';
 import '../features/property/property_detail_screen.dart';
 import '../features/property/wizard/step_type.dart';
 import '../features/property/wizard/step_location.dart';
-import '../features/property/wizard/step_dimensions.dart';
 import '../features/property/wizard/step_documents.dart';
 import '../features/property/wizard/step_review.dart';
 import '../features/wallet/wallet_screen.dart';
@@ -25,7 +24,6 @@ class AppRoutes {
   static const home = '/home';
   static const wizard = '/property/new';
   static const wizardLocation = '/property/new/location';
-  static const wizardDimensions = '/property/new/dimensions';
   static const wizardDocuments = '/property/new/documents';
   static const wizardReview = '/property/new/review';
   static const wallet = '/wallet';
@@ -70,10 +68,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.wizardLocation,
         builder: (_, __) => const WizardStepLocation(),
-      ),
-      GoRoute(
-        path: AppRoutes.wizardDimensions,
-        builder: (_, __) => const WizardStepDimensions(),
       ),
       GoRoute(
         path: AppRoutes.wizardDocuments,

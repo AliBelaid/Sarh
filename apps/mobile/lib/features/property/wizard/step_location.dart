@@ -69,7 +69,7 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('2 / 5 — حدّد حدود العقار على الخريطة',
+          Text('2 / 4 — حدّد حدود العقار على الخريطة',
               style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 16),
           Card(
@@ -128,7 +128,8 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
               padding: const EdgeInsets.all(16),
               child: state.hasPolygon
                   ? Text(
-                      'تم تحديد مضلّع بـ ${state.polygonRing.length} نقاط.',
+                      'تم تحديد مضلّع بـ ${state.polygonRing.length} نقاط — '
+                      'المساحة المحسوبة: ${state.polygonAreaSqm!.toStringAsFixed(0)} م².',
                       style: const TextStyle(color: SarhColors.success),
                     )
                   : const Text('لم يتم تحديد مضلّع بعد.'),
@@ -137,7 +138,7 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: state.hasPolygon
-                ? () => context.push(AppRoutes.wizardDimensions)
+                ? () => context.push(AppRoutes.wizardDocuments)
                 : null,
             child: const Text('التالي'),
           ),

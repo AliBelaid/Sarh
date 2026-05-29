@@ -54,37 +54,32 @@ await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/03-my-digital-id.png`
 const bin = await page.locator('.card-bottom .val.mono.small').first().textContent().catch(() => null);
 findings.push(`BIN on page: ${bin ?? '(not found)'}`);
 
-// ─── new-property wizard: area = length × width regression net ──────
-// Asserts the UI invariant the API now enforces: area_sqm must be the
-// product of length_m and width_m. Catches accidental reversions to
-// the old "type area directly" flow on either the citizen or officer
-// page (citizen is exercised here; officer requires a citizen picker).
+// ─── new-property wizard: polygon area + mandatory attachments ──────
+// The area is no longer length × width (parcels are rarely rectangles):
+// it is computed from the drawn boundary polygon, and the registry now
+// requires site photos + a koreky (croquis) sketch before submit. This
+// net catches reversions to the old dimensions flow on the citizen page.
 await page.goto(`${BASE}/app/my/properties/new`, { waitUntil: 'domcontentloaded' });
 await page.waitForSelector('.map', { state: 'visible' });
 await page.waitForTimeout(500); // let Leaflet finish tile load
 await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/70-wizard-empty.png`, fullPage: true });
 
-// Direct area input is gone — only its label as a column header. Make
-// sure no <input name="areaSqm"> can be found; if one shows up again
-// the change has been reverted.
+// The old dimensions flow must be gone: no direct area input, no
+// length/width inputs, no "احسب المساحة" button.
 const directAreaInputs = await page.locator('input[name="areaSqm"]').count();
-findings.push(`wizard: direct area inputs = ${directAreaInputs} (expected 0)`);
+const lengthInputs = await page.locator('input[name="lengthM"]').count();
+const computeBtns = await page.locator('button:has-text("احسب المساحة")').count();
+findings.push(`wizard: areaSqm inputs=${directAreaInputs}, lengthM inputs=${lengthInputs}, compute buttons=${computeBtns} (all expected 0)`);
 
-const compute = page.locator('button:has-text("احسب المساحة")');
 const submit = page.locator('button[type="submit"]:has-text("إرسال للمراجعة")');
-const areaResult = page.locator('.area-result');
+const areaResult = page.locator('.area-result').first();
 
-// State 0: empty form. Compute should be disabled, area-result not .ok.
-const cmpEmpty = await compute.isDisabled();
+// State 0: empty form — no polygon yet, so area-result is not .ok and
+// submit is disabled.
 const okEmpty = await areaResult.evaluate((el) => el.classList.contains('ok'));
-findings.push(`wizard: empty → compute disabled=${cmpEmpty} (expected true), area .ok=${okEmpty} (expected false)`);
+findings.push(`wizard: empty → area .ok=${okEmpty} (expected false)`);
 
-// Pick a region. Angular's SelectControlValueAccessor reads
-// $event.target.value on 'change' and maps the synthetic option value
-// ("1: 11") back to the real value (11) through its _optionMap. The
-// selectOption call sets DOM state + fires change, but the model
-// stays null unless we also fire 'input' — some signal-form variants
-// listen on input, not change. Fire both for safety.
+// Pick a region. Fire both input + change for the signal-form CVA.
 const regionSel = page.locator('select[name="regionId"]');
 await regionSel.selectOption({ label: 'طرابلس' });
 await regionSel.evaluate((el) => {
@@ -92,33 +87,9 @@ await regionSel.evaluate((el) => {
   el.dispatchEvent(new Event('change', { bubbles: true }));
 });
 await page.waitForTimeout(150);
-const selectedIdx = await regionSel.evaluate((el) => el.selectedIndex);
-findings.push(`wizard: regionId selectedIndex=${selectedIdx} (expected >=1)`);
 
-// Type dimensions. ngModelChange invalidates area on every keystroke,
-// so once we type the compute button should become enabled.
-await page.locator('input[name="lengthM"]').fill('15');
-await page.locator('input[name="widthM"]').fill('12');
-await page.locator('input[name="depthM"]').fill('3');
-const cmpTyped = await compute.isDisabled();
-findings.push(`wizard: dims typed → compute disabled=${cmpTyped} (expected false)`);
-
-await compute.click();
-await page.waitForTimeout(100); // signal flush
-const okComputed = await areaResult.evaluate((el) => el.classList.contains('ok'));
-const areaText = await areaResult.textContent();
-findings.push(`wizard: computed → area .ok=${okComputed} (expected true), text contains "180.00"=${areaText.includes('180.00')}`);
-await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/71-wizard-computed.png`, fullPage: true });
-
-// Invalidate: editing length must wipe the area. Submit gates on
-// areaSqm being non-null via canSubmit, so this is the real guard.
-await page.locator('input[name="lengthM"]').fill('20');
-await page.waitForTimeout(50);
-const okInvalidated = await areaResult.evaluate((el) => el.classList.contains('ok'));
-findings.push(`wizard: edit length → area .ok=${okInvalidated} (expected false)`);
-
-await compute.click();
-await page.waitForTimeout(1000); // let Leaflet finish tile load
+// Draw a 4-point polygon — area must compute from the map automatically.
+await page.waitForTimeout(800); // let Leaflet finish tile load
 const mapBox = await page.locator('.map').boundingBox();
 if (mapBox) {
   const cx = mapBox.x + mapBox.width / 2;
@@ -128,9 +99,30 @@ if (mapBox) {
     await page.waitForTimeout(100);
   }
 }
-const pointsCount = await page.locator('.counter').textContent();
+const okPolygon = await areaResult.evaluate((el) => el.classList.contains('ok'));
+const areaText = (await areaResult.textContent())?.trim();
+findings.push(`wizard: polygon drawn → area .ok=${okPolygon} (expected true), text="${areaText}"`);
+await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/71-wizard-area.png`, fullPage: true });
+
+// Attachments still missing → submit must stay disabled.
+const submitNoFiles = await submit.isEnabled();
+findings.push(`wizard: no attachments → submit enabled=${submitNoFiles} (expected false)`);
+
+// Upload one photo + one koreky via in-memory PNG buffers (hits the real
+// /uploads/property-document endpoint, so the API must be up).
+const png = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
+const photoInput = page.locator('input[type="file"][multiple]');
+await photoInput.setInputFiles({ name: 'site.png', mimeType: 'image/png', buffer: png });
+const korekyInput = page.locator('input[type="file"]:not([multiple])');
+await korekyInput.setInputFiles({ name: 'koreky.png', mimeType: 'image/png', buffer: png });
+await page.waitForTimeout(1200); // let both uploads resolve
+
+const fileRows = await page.locator('.file-list li').count();
 const submitEnabled = await submit.isEnabled();
-findings.push(`wizard: polygon counter="${pointsCount?.trim()}", submit enabled=${submitEnabled} (expected true)`);
+findings.push(`wizard: attachments uploaded rows=${fileRows} (expected 2), submit enabled=${submitEnabled} (expected true)`);
 await page.screenshot({ timeout: 60_000, path: `${OUT_DIR}/72-wizard-ready.png`, fullPage: true });
 
 await browser.close();

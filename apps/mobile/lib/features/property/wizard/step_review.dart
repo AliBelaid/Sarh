@@ -22,9 +22,13 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
     final state = ref.read(wizardStateProvider);
     if (state.type == null ||
         state.regionId == null ||
-        state.areaSqm == null ||
+        state.polygonAreaSqm == null ||
         state.boundaryPolygonGeoJson == null) {
       setState(() => _error = 'بعض البيانات ناقصة. ارجع للخلف وأكملها.');
+      return;
+    }
+    if (!state.hasRequiredDocuments) {
+      setState(() => _error = 'يلزم إرفاق صورة موقع وشهادة كوريكي.');
       return;
     }
     setState(() {
@@ -33,6 +37,20 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
     });
     try {
       final repo = ref.read(propertiesRepoProvider);
+      // Upload every picked file first, then send their paths inline with
+      // the submit — the API validates the documents as part of create.
+      final documents = <Map<String, dynamic>>[];
+      for (final d in state.documents) {
+        final up = await repo.uploadFile(d.path);
+        documents.add({
+          'document_type': d.documentType,
+          'storage_path': up.storagePath,
+          if (up.mimeType != null) 'mime_type': up.mimeType,
+          if (up.sizeBytes != null) 'file_size_bytes': up.sizeBytes,
+          if (up.sha256 != null) 'file_hash': up.sha256,
+          if (d.titleAr != null) 'title_ar': d.titleAr,
+        });
+      }
       final created = await repo.submit(
         type: state.type!,
         regionId: state.regionId!,
@@ -40,29 +58,9 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
         addressAr: state.addressAr,
         parcelNumber: state.parcelNumber,
         boundaryPolygonGeoJson: state.boundaryPolygonGeoJson!,
-        areaSqm: state.areaSqm!,
-        lengthM: state.lengthM,
-        widthM: state.widthM,
-        depthM: state.depthM,
+        areaSqm: state.polygonAreaSqm!,
+        documents: documents,
       );
-      // Best-effort: upload the docs after create. Failures here surface
-      // as a snack but do not block navigation.
-      for (final d in state.documents) {
-        try {
-          await repo.uploadDocument(
-            propertyId: created.id,
-            filePath: d.path,
-            documentType: d.documentType,
-            titleAr: d.titleAr,
-          );
-        } on SarhApiError catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('تعذّر رفع مستند: ${e.messageAr}')),
-            );
-          }
-        }
-      }
       ref.read(wizardStateProvider.notifier).reset();
       ref.invalidate(myPropertiesProvider);
       if (mounted) {
@@ -85,7 +83,7 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('5 / 5 — تأكّد من البيانات قبل الإرسال',
+          Text('4 / 4 — تأكّد من البيانات قبل الإرسال',
               style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 12),
           Card(
@@ -99,10 +97,8 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
                     'الإحداثيات',
                     s.hasPolygon ? '${s.polygonRing.length} نقاط' : '—',
                   ),
-                  _row('المساحة (م²)', s.areaSqm?.toStringAsFixed(2) ?? '—'),
-                  _row('الطول (م)', s.lengthM?.toStringAsFixed(2) ?? '—'),
-                  _row('العرض (م)', s.widthM?.toStringAsFixed(2) ?? '—'),
-                  _row('العمق (م)', s.depthM?.toStringAsFixed(2) ?? '—'),
+                  _row('المساحة (م²)',
+                      s.polygonAreaSqm?.toStringAsFixed(2) ?? '—'),
                   _row('المستندات', '${s.documents.length}'),
                 ],
               ),

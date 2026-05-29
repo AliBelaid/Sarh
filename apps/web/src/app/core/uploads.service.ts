@@ -22,4 +22,15 @@ export class UploadsService {
       this.http.post<UploadResult>(`${API_BASE}/uploads/citizen-photo`, fd),
     );
   }
+
+  // Site photo or koreky (croquis) sketch for a property submission.
+  // `path` comes back as "<bucket>/<path>" — store it verbatim in the
+  // submit body's documents[].storage_path.
+  uploadPropertyDocument(file: File): Promise<UploadResult> {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    return firstValueFrom(
+      this.http.post<UploadResult>(`${API_BASE}/uploads/property-document`, fd),
+    );
+  }
 }
