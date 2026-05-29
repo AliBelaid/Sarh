@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { PropertiesService } from '@core/properties.service';
+import { API_BASE } from '@core/api-config';
 import type { Property } from '@sarh/shared-types';
 import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-pills';
 
@@ -64,11 +65,13 @@ import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-
               }
               <footer class="card-foot">
                 <span class="ts mono">{{ dateLabel(p.submitted_at ?? p.created_at) }}</span>
-                @if (p.deed_pdf_path) {
-                  <span class="deed-flag">
+                @if (p.deed_pdf_path && p.property_code) {
+                  <a class="deed-flag deed-link" [href]="deedUrl(p.property_code)" target="_blank" rel="noopener">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    سند رقمي
-                  </span>
+                    استعراض الوثيقة
+                  </a>
+                } @else if (p.deed_pdf_path) {
+                  <span class="deed-flag">سند رقمي</span>
                 }
               </footer>
               @if (p.status === 'approved') {
@@ -161,6 +164,8 @@ import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-
     }
     .ts { color: var(--muted); }
     .deed-flag { display: inline-flex; align-items: center; gap: 4px; color: var(--good); font-weight: 600; }
+    .deed-link { text-decoration: none; cursor: pointer; }
+    .deed-link:hover { text-decoration: underline; }
 
     .empty {
       padding: 60px 24px;
@@ -251,6 +256,10 @@ export class CitizenPropertiesPage implements OnInit {
       this.minting.set(null);
     }
   }
+
+  // Public, tamper-checked deed PDF by property code (same route the verify
+  // site uses) — the deed is designed to be publicly verifiable.
+  deedUrl(code: string): string { return `${API_BASE}/verify/${code}/deed.pdf`; }
 
   status(s: string) { return PROPERTY_STATUS[s] ?? { ar: s, color: '#94a3b8' }; }
   typeLabel(t: string) { return PROPERTY_TYPE[t] ?? t; }

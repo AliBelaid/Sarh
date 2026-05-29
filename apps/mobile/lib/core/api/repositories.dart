@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'sarh_api_client.dart';
@@ -68,6 +69,20 @@ class PropertiesRepository {
       return _items(res.data)
           .map((m) => PropertyDocumentInfo.fromJson(m))
           .toList();
+    } on DioException catch (e) {
+      throw _toSarhError(e);
+    }
+  }
+
+  // Raw bytes of a single attachment, for in-app preview (the dio interceptor
+  // attaches the JWT). Used by the property detail document viewer.
+  Future<Uint8List> documentBytes(String propertyId, String docId) async {
+    try {
+      final res = await client.dio.get<List<int>>(
+        '/properties/$propertyId/documents/$docId/file',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return Uint8List.fromList(res.data ?? const []);
     } on DioException catch (e) {
       throw _toSarhError(e);
     }
@@ -241,6 +256,11 @@ final propertyDocumentsProvider =
     FutureProvider.autoDispose.family<List<PropertyDocumentInfo>, String>(
         (ref, id) async {
   return ref.watch(propertiesRepoProvider).documents(id);
+});
+
+final propertyDocumentBytesProvider = FutureProvider.autoDispose
+    .family<Uint8List, ({String propertyId, String docId})>((ref, k) async {
+  return ref.watch(propertiesRepoProvider).documentBytes(k.propertyId, k.docId);
 });
 
 final myNotificationsProvider =

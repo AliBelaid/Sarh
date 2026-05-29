@@ -182,15 +182,18 @@ class _ErrorInterceptor extends Interceptor {
   }
 }
 
+// The API base URL (…/api/v1). Single source of truth so screens can build
+// public links (e.g. the verify deed PDF) off the same value the dio client
+// uses. Overridden via --dart-define=SARH_API_URL=http://<host>:3001/api/v1.
+const sarhApiBaseUrl = String.fromEnvironment(
+  'SARH_API_URL',
+  defaultValue: 'http://10.0.2.2:3001/api/v1',
+);
+
 // Exposed in the provider tree by the widget bootstrap so screens can
 // depend on `apiClientProvider` without each one constructing a dio.
 final apiClientProvider = Provider<SarhApiClient>((ref) {
-  // The actual baseUrl comes from --dart-define=SARH_API_URL=...
-  // Fallback is the .NET API on Android-emulator loopback (10.0.2.2:3001 →
-  // host's localhost:3001). For iOS sim / desktop / a real device, override
-  // with --dart-define=SARH_API_URL=http://<host>:3001/api/v1.
-  const fallback = 'http://10.0.2.2:3001/api/v1';
-  const baseUrl = String.fromEnvironment('SARH_API_URL', defaultValue: fallback);
+  const baseUrl = sarhApiBaseUrl;
   return SarhApiClient.build(
     baseUrl: baseUrl,
     // On a 401 from any non-auth endpoint, flip the auth controller to
