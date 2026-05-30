@@ -1,25 +1,21 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../app/router.dart';
 import '../../../core/theme/sarh_colors.dart';
 import 'wizard_state.dart';
 
-// Two ways to capture the parcel boundary:
-//
-//   1. "ارسم بالمشي" (primary) — the citizen physically walks the edge of
-//      the land holding the phone; GPS positions stream into the ring as
-//      they move, then the polygon closes when they stop. This is the real
-//      field-survey flow the officer later reviews on the web map.
-//   2. Manual lat/lng + radius generator (fallback) — for desk testing or
-//      when GPS isn't available; drops a small square around a typed point.
-//
-// Either way the result is the same polygonRing on the wizard state, and the
-// area is derived from it (never length × width).
+// The parcel boundary is captured on a real OSM map, two ways:
+//   1. Tap the map to drop vertices (mirrors the web officer/citizen draw).
+//   2. "ارسم بالمشي" — walk the edge holding the phone; GPS positions drop
+//      vertices automatically and the polygon previews live.
+// Either way the ring is stored as [lng, lat] points on the wizard state and
+// uploaded verbatim, so the web map renders the exact same shape.
 class WizardStepLocation extends ConsumerStatefulWidget {
   const WizardStepLocation({super.key});
   @override
@@ -27,29 +23,50 @@ class WizardStepLocation extends ConsumerStatefulWidget {
 }
 
 class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
-  final _lat = TextEditingController(text: '32.8872'); // Tripoli
-  final _lng = TextEditingController(text: '13.1913');
-  final _radius = TextEditingController(text: '20'); // metres
+  final _map = MapController();
+  static const _tripoli = LatLng(32.8872, 13.1913);
 
-  // Walk-tracing state.
   bool _tracing = false;
   String? _trackError;
-  final List<List<double>> _track = []; // [lng, lat]
   StreamSubscription<Position>? _posSub;
 
   @override
   void dispose() {
     _posSub?.cancel();
-    _lat.dispose();
-    _lng.dispose();
-    _radius.dispose();
     super.dispose();
   }
+
+  WizardController get _ctrl => ref.read(wizardStateProvider.notifier);
+
+  // [lng,lat] → LatLng for the map layers.
+  List<LatLng> get _latlngs => ref
+      .read(wizardStateProvider)
+      .polygonRing
+      .map((p) => LatLng(p[1], p[0]))
+      .toList();
+
+  void _addLatLng(LatLng p) {
+    final ring = [
+      ...ref.read(wizardStateProvider).polygonRing,
+      [p.longitude, p.latitude],
+    ];
+    _ctrl.setPolygon(ring);
+    if (ref.read(wizardStateProvider).regionId == null) {
+      _ctrl.setRegion(regionId: 11); // Tripoli default
+    }
+  }
+
+  void _undo() {
+    final ring = ref.read(wizardStateProvider).polygonRing;
+    if (ring.isEmpty) return;
+    _ctrl.setPolygon(ring.sublist(0, ring.length - 1));
+  }
+
+  void _clear() => _ctrl.setPolygon(const []);
 
   // ----- Walk tracing -----
   Future<void> _startTracing() async {
     setState(() => _trackError = null);
-
     if (!await Geolocator.isLocationServiceEnabled()) {
       setState(() => _trackError = 'خدمة الموقع (GPS) غير مفعّلة على الجهاز.');
       return;
@@ -63,18 +80,21 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
       setState(() => _trackError = 'لم يُمنح إذن الوصول إلى الموقع.');
       return;
     }
-
-    _track.clear();
+    _clear();
     setState(() => _tracing = true);
-    // distanceFilter: only emit after moving ~4 m, so a walked edge becomes
-    // a clean sequence of vertices rather than thousands of jittery points.
+    // Recenter on the citizen's first fix.
+    try {
+      final pos = await Geolocator.getCurrentPosition();
+      _map.move(LatLng(pos.latitude, pos.longitude), 18);
+    } catch (_) {/* keep default center */}
     _posSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 4,
       ),
     ).listen((pos) {
-      setState(() => _track.add([pos.longitude, pos.latitude]));
+      _addLatLng(LatLng(pos.latitude, pos.longitude));
+      setState(() {}); // refresh the live polygon
     }, onError: (Object e) {
       setState(() {
         _trackError = 'تعذّر قراءة الموقع: $e';
@@ -88,190 +108,182 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
     await _posSub?.cancel();
     _posSub = null;
     setState(() => _tracing = false);
-    if (_track.length < 3) {
+    if (ref.read(wizardStateProvider).polygonRing.length < 3) {
       setState(() => _trackError =
           'يلزم ٣ نقاط على الأقل. تحرّك حول حدود الأرض ثم أنهِ التتبع.');
-      return;
     }
-    ref.read(wizardStateProvider.notifier).setPolygon(List.from(_track));
-    ref.read(wizardStateProvider.notifier).setRegion(regionId: 11); // default
-  }
-
-  // ----- Manual fallback -----
-  void _generate() {
-    final lat = double.tryParse(_lat.text);
-    final lng = double.tryParse(_lng.text);
-    final r = double.tryParse(_radius.text);
-    if (lat == null || lng == null || r == null) return;
-
-    const metresPerDegLat = 111320.0;
-    final metresPerDegLng = metresPerDegLat * math.cos(lat * math.pi / 180.0);
-    final dLat = r / metresPerDegLat;
-    final dLng = r / metresPerDegLng;
-
-    final ring = <List<double>>[
-      [lng - dLng, lat - dLat],
-      [lng + dLng, lat - dLat],
-      [lng + dLng, lat + dLat],
-      [lng - dLng, lat + dLat],
-    ];
-    ref.read(wizardStateProvider.notifier).setPolygon(ring);
-    ref.read(wizardStateProvider.notifier).setRegion(regionId: 11);
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(wizardStateProvider);
+    final pts = _latlngs;
     return Scaffold(
-      appBar: AppBar(title: const Text('موقع العقار')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      appBar: AppBar(
+        title: const Text('موقع العقار'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_outlined),
+            tooltip: 'الرئيسية',
+            onPressed: () => context.go(AppRoutes.home),
+          ),
+        ],
+      ),
+      body: Column(
         children: [
-          Text('2 / 4 — حدّد حدود العقار',
-              style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 16),
-
-          // ── Walk-to-trace ───────────────────────────────
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: const [
-                      Icon(Icons.directions_walk, color: SarhColors.accent),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text('ارسم الأرض بالمشي',
-                            style: TextStyle(fontWeight: FontWeight.w700)),
-                      ),
-                    ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+            child: Text(
+              _tracing
+                  ? '2 / 4 — جارٍ التتبّع… امشِ حول حدود الأرض (${pts.length} نقطة)'
+                  : '2 / 4 — اضغط على الخريطة لإضافة نقاط الحدود، أو ارسم بالمشي.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                FlutterMap(
+                  mapController: _map,
+                  options: MapOptions(
+                    initialCenter: pts.isNotEmpty ? pts.first : _tripoli,
+                    initialZoom: 16,
+                    onTap: _tracing ? null : (_, latlng) => _addLatLng(latlng),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'امسك الهاتف وامشِ حول حدود الأرض. تُسجَّل نقاط مسارك '
-                    'تلقائياً لتكوين المضلّع، وتُحسب المساحة منه.',
-                  ),
-                  const SizedBox(height: 12),
-                  if (_tracing) ...[
-                    Row(
-                      children: [
-                        const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'ly.sarh.sarh_mobile',
+                      maxZoom: 19,
+                    ),
+                    if (pts.length >= 3)
+                      PolygonLayer(polygons: [
+                        Polygon(
+                          points: pts,
+                          color: SarhColors.success.withValues(alpha: 0.18),
+                          borderColor: SarhColors.success,
+                          borderStrokeWidth: 2,
                         ),
-                        const SizedBox(width: 10),
-                        Text('جارٍ التتبّع… ${_track.length} نقطة',
-                            style: const TextStyle(color: SarhColors.primary)),
+                      ]),
+                    if (pts.length == 2)
+                      PolylineLayer(polylines: [
+                        Polyline(
+                            points: pts,
+                            color: SarhColors.accent,
+                            strokeWidth: 2),
+                      ]),
+                    MarkerLayer(
+                      markers: [
+                        for (var i = 0; i < pts.length; i++)
+                          Marker(
+                            point: pts[i],
+                            width: 22,
+                            height: 22,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: SarhColors.accent,
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: Center(
+                                child: Text('${i + 1}',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.stop_circle_outlined),
-                      label: const Text('إنهاء التتبّع'),
-                      onPressed: _stopTracing,
-                    ),
-                  ] else
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.play_circle_outline),
-                      label: const Text('ابدأ الرسم بالمشي'),
-                      onPressed: _startTracing,
-                    ),
-                  if (_trackError != null) ...[
-                    const SizedBox(height: 10),
-                    Text(_trackError!,
-                        style: const TextStyle(
-                            color: SarhColors.warn, fontSize: 13)),
                   ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // ── Manual fallback ─────────────────────────────
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('أو أدخل إحداثيات يدوياً (للاختبار)',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 12),
-                  Row(
+                ),
+                // Undo / clear controls.
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _lat,
-                          decoration:
-                              const InputDecoration(labelText: 'خط العرض'),
-                          keyboardType: TextInputType.number,
-                          textDirection: TextDirection.ltr,
-                        ),
+                      FloatingActionButton.small(
+                        heroTag: 'undo',
+                        onPressed: pts.isEmpty ? null : _undo,
+                        backgroundColor: Colors.white,
+                        foregroundColor: SarhColors.primary,
+                        child: const Icon(Icons.undo),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _lng,
-                          decoration:
-                              const InputDecoration(labelText: 'خط الطول'),
-                          keyboardType: TextInputType.number,
-                          textDirection: TextDirection.ltr,
-                        ),
+                      const SizedBox(height: 8),
+                      FloatingActionButton.small(
+                        heroTag: 'clear',
+                        onPressed: pts.isEmpty ? null : _clear,
+                        backgroundColor: Colors.white,
+                        foregroundColor: SarhColors.warn,
+                        child: const Icon(Icons.delete_outline),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _radius,
-                    decoration: const InputDecoration(
-                        labelText: 'نصف القطر التقريبي (متر)'),
-                    keyboardType: TextInputType.number,
-                    textDirection: TextDirection.ltr,
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.auto_awesome_outlined),
-                    label: const Text('توليد مضلّع'),
-                    onPressed: _generate,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-
-          // ── Result ──────────────────────────────────────
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: state.hasPolygon
-                  ? Row(
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                if (state.hasPolygon)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
                       children: [
                         const Icon(Icons.check_circle,
-                            color: SarhColors.success),
-                        const SizedBox(width: 8),
+                            color: SarhColors.success, size: 18),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            'تم تحديد مضلّع بـ ${state.polygonRing.length} نقاط — '
-                            'المساحة: ${state.polygonAreaSqm!.toStringAsFixed(0)} م².',
+                            'مضلّع بـ ${pts.length} نقاط — المساحة '
+                            '${state.polygonAreaSqm!.toStringAsFixed(0)} م².',
                             style: const TextStyle(color: SarhColors.success),
                           ),
                         ),
                       ],
-                    )
-                  : const Text('لم يتم تحديد مضلّع بعد.'),
+                    ),
+                  ),
+                if (_trackError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Text(_trackError!,
+                        style: const TextStyle(
+                            color: SarhColors.warn, fontSize: 13)),
+                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _tracing
+                          ? ElevatedButton.icon(
+                              icon: const Icon(Icons.stop_circle_outlined),
+                              label: const Text('إنهاء التتبّع'),
+                              onPressed: _stopTracing,
+                            )
+                          : OutlinedButton.icon(
+                              icon: const Icon(Icons.directions_walk),
+                              label: const Text('ارسم بالمشي'),
+                              onPressed: _startTracing,
+                            ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: state.hasPolygon && !_tracing
+                            ? () => context.push(AppRoutes.wizardDocuments)
+                            : null,
+                        child: const Text('التالي'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: state.hasPolygon
-                ? () => context.push(AppRoutes.wizardDocuments)
-                : null,
-            child: const Text('التالي'),
           ),
         ],
       ),

@@ -4,6 +4,8 @@
     <!-- GPS "walk the boundary" tracing in the property wizard. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- API calls + OSM map tiles. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="صرح"
         android:name="${applicationName}"
