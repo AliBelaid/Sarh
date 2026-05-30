@@ -62,6 +62,14 @@ public class PropertiesController(
         return File(stream, mime ?? "application/octet-stream");
     }
 
+    // Redraw a parcel's boundary polygon. Area + centroid are recomputed
+    // server-side. Officer (own region) / super_admin, or the owning citizen
+    // while the parcel is still in the workflow — enforced in the service.
+    [HttpPatch("{id:guid}/boundary")]
+    [Audit(Action = AuditActions.Update, Entity = "properties", EntityIdFrom = "id")]
+    public Task<PropertyView> UpdateBoundary(Guid id, [FromBody] UpdateBoundaryDto dto, CancellationToken ct)
+        => svc.UpdateBoundaryAsync(id, dto, User.RequireUser(), ct);
+
     [HttpPost("{id:guid}/review")]
     [Audit(Action = AuditActions.Approve, Entity = "properties", EntityIdFrom = "property.id")]
     public Task<ReviewResult> Review(Guid id, [FromBody] ReviewDecisionDto dto, CancellationToken ct)

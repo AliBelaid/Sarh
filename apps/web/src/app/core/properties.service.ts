@@ -79,6 +79,18 @@ export class PropertiesService {
     );
   }
 
+  // Redraw a parcel's boundary. `polygon` is a GeoJSON Polygon
+  // ({ type:'Polygon', coordinates:[[[lng,lat],…]] }). Area + centroid are
+  // recomputed server-side; the updated Property (incl. boundary_polygon) is
+  // returned.
+  updateBoundary(id: string, polygon: unknown): Promise<Property> {
+    return firstValueFrom(
+      this.http.patch<Property>(`${API_BASE}/properties/${id}/boundary`, {
+        boundary_polygon: polygon,
+      }),
+    );
+  }
+
   // Department-manager final approval. Mints the NFT licence on chain.
   // Backend: LicenseService.FinalApproveAsync (Workflow/LicenseService.cs).
   finalApprove(id: string, body: FinalApproveRequest = {}): Promise<LicenseResult> {

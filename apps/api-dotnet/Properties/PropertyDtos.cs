@@ -73,6 +73,14 @@ public sealed class OverlapCheckDto
     [Required] public JsonElement Polygon { get; set; }
 }
 
+// Redraw an existing parcel's boundary. The area is ALWAYS recomputed
+// server-side from the new polygon (CLAUDE.md rule #8) — the client never
+// dictates it. AreaSqm here is advisory only (ignored by the service).
+public sealed class UpdateBoundaryDto
+{
+    [Required] public JsonElement BoundaryPolygon { get; set; }
+}
+
 public sealed class NearbyQuery
 {
     [Required, Range(-180, 180)] public double Lng { get; set; }
