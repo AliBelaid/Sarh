@@ -170,6 +170,15 @@ interface SubmitResponse {
                 <span class="muted">ارسم ٣ نقاط على الأقل على الخريطة لحساب المساحة.</span>
               }
             </div>
+
+            <div class="field" style="margin-top: 14px;">
+              <label for="docArea">المساحة حسب الأوراق (م²) <span class="muted">— اختياري</span></label>
+              <input id="docArea" type="number" step="0.01" min="0.01" [(ngModel)]="documentedAreaSqm" name="documentedAreaSqm"
+                     dir="ltr" [disabled]="busy() || !selected()" placeholder="مثال: ٣٦٠" />
+              @if (areaMismatch()) {
+                <p class="hint warn-hint">⚠ المساحة حسب الأوراق تختلف عن المحسوبة بنسبة {{ areaDiffPct() | number: '1.0-1' }}% — ستُراجَع.</p>
+              }
+            </div>
           </div>
 
           <div class="card">
@@ -332,6 +341,7 @@ interface SubmitResponse {
     }
     .field input:disabled, .field select:disabled, .field textarea:disabled { background: #f4f1e8; cursor: not-allowed; }
     .hint { font-size: 11.5px; color: var(--muted); margin: 0; }
+    .warn-hint { color: var(--warn); font-weight: 600; margin-top: 6px; }
     .sub-hint { font-size: 12px; color: var(--muted); margin: -8px 0 14px; line-height: 1.55; }
     .drop {
       display: inline-flex; align-items: center; gap: 8px;
@@ -441,6 +451,7 @@ export class OfficerNewPropertyPage implements AfterViewInit, OnDestroy {
   parcelNumber = '';
   planNumber = '';
   blockNumber = '';
+  documentedAreaSqm: number | null = null;
 
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
@@ -478,6 +489,19 @@ export class OfficerNewPropertyPage implements AfterViewInit, OnDestroy {
     if (pts.length < 3) return null;
     return this.geographicArea(pts);
   });
+
+  // Paper-deed area vs polygon-measured area (soft ≥10% reviewer warning).
+  areaDiffPct(): number | null {
+    const measured = this.computedArea();
+    const doc = this.documentedAreaSqm;
+    if (measured == null || measured <= 0 || doc == null || doc <= 0) return null;
+    return (Math.abs(doc - measured) / measured) * 100;
+  }
+
+  areaMismatch(): boolean {
+    const d = this.areaDiffPct();
+    return d != null && d > 10;
+  }
 
   // ----- Uploads -----
   async onPhotosSelected(event: Event): Promise<void> {
@@ -635,6 +659,7 @@ export class OfficerNewPropertyPage implements AfterViewInit, OnDestroy {
         boundary_polygon: polygon,
         // Area is the polygon's true area — never length × width.
         area_sqm: this.computedArea(),
+        documented_area_sqm: this.documentedAreaSqm ?? undefined,
         documents,
       };
       await firstValueFrom(this.http.post<SubmitResponse>(`${API_BASE}/properties`, body));

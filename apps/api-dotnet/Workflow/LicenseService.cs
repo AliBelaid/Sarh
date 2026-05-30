@@ -27,6 +27,7 @@ public sealed class LicenseService(
     IBlockchainService chain,
     IIpfsService ipfs,
     NotificationsService notifications,
+    Sarh.Api.Disputes.DisputesService disputes,
     IConfiguration config,
     ILogger<LicenseService> log)
 {
@@ -82,6 +83,10 @@ public sealed class LicenseService(
                 $"لا يمكن سكّ الرخصة قبل اعتماد موظف السجل (الحالة الحالية: \"{property.Status}\").",
                 $"Property must be in 'approved' state before final approval (current: \"{property.Status}\").");
         }
+
+        // Security gate: never mint a licence for an encumbered parcel (court
+        // seizure, mortgage, waqf, …). Blocks until the encumbrance is lifted.
+        await disputes.AssertNoActiveDisputeAsync(property.Id, ct);
 
         var owner = await db.Citizens.AsNoTracking().FirstOrDefaultAsync(c => c.Id == property.OwnerCitizenId, ct)
             ?? throw SarhException.NotFound("المالك", "Owner");

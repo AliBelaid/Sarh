@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'sarh_api_client.dart';
@@ -73,6 +74,20 @@ class PropertiesRepository {
     }
   }
 
+  // Raw bytes of a single attachment, for in-app preview (the dio interceptor
+  // attaches the JWT). Used by the property detail document viewer.
+  Future<Uint8List> documentBytes(String propertyId, String docId) async {
+    try {
+      final res = await client.dio.get<List<int>>(
+        '/properties/$propertyId/documents/$docId/file',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return Uint8List.fromList(res.data ?? const []);
+    } on DioException catch (e) {
+      throw _toSarhError(e);
+    }
+  }
+
   // Documents are attached inline at create time (the API requires a site
   // photo + koreky sketch and rejects the submit otherwise). Each entry is
   // a map: { document_type, storage_path, mime_type?, file_size_bytes?,
@@ -85,6 +100,7 @@ class PropertiesRepository {
     String? parcelNumber,
     required Map<String, dynamic> boundaryPolygonGeoJson,
     required double areaSqm,
+    double? documentedAreaSqm,
     required List<Map<String, dynamic>> documents,
   }) async {
     try {
@@ -99,6 +115,7 @@ class PropertiesRepository {
           'boundary_polygon': boundaryPolygonGeoJson,
           // Authoritative area is the polygon's — never length × width.
           'area_sqm': areaSqm,
+          if (documentedAreaSqm != null) 'documented_area_sqm': documentedAreaSqm,
           'documents': documents,
         },
       );
@@ -239,6 +256,11 @@ final propertyDocumentsProvider =
     FutureProvider.autoDispose.family<List<PropertyDocumentInfo>, String>(
         (ref, id) async {
   return ref.watch(propertiesRepoProvider).documents(id);
+});
+
+final propertyDocumentBytesProvider = FutureProvider.autoDispose
+    .family<Uint8List, ({String propertyId, String docId})>((ref, k) async {
+  return ref.watch(propertiesRepoProvider).documentBytes(k.propertyId, k.docId);
 });
 
 final myNotificationsProvider =

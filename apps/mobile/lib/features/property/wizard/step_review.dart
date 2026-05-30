@@ -17,6 +17,13 @@ class WizardStepReview extends ConsumerStatefulWidget {
 class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
   bool _busy = false;
   String? _error;
+  final _docAreaC = TextEditingController();
+
+  @override
+  void dispose() {
+    _docAreaC.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     final state = ref.read(wizardStateProvider);
@@ -59,6 +66,7 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
         parcelNumber: state.parcelNumber,
         boundaryPolygonGeoJson: state.boundaryPolygonGeoJson!,
         areaSqm: state.polygonAreaSqm!,
+        documentedAreaSqm: state.documentedAreaSqm,
         documents: documents,
       );
       ref.read(wizardStateProvider.notifier).reset();
@@ -100,6 +108,38 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
                   _row('المساحة (م²)',
                       s.polygonAreaSqm?.toStringAsFixed(2) ?? '—'),
                   _row('المستندات', '${s.documents.length}'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('المساحة حسب الأوراق (م²) — اختياري',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _docAreaC,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(hintText: 'مثال: 360'),
+                    onChanged: (v) => ref
+                        .read(wizardStateProvider.notifier)
+                        .setDocumentedArea(double.tryParse(v.trim())),
+                  ),
+                  if ((s.documentedAreaDiffPct ?? 0) > 10) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '⚠ تختلف عن المساحة المقيسة بنسبة '
+                      '${s.documentedAreaDiffPct!.toStringAsFixed(1)}% — سيراجعها الموظف.',
+                      style: const TextStyle(color: SarhColors.warn, fontSize: 13),
+                    ),
+                  ],
                 ],
               ),
             ),

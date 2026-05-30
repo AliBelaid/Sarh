@@ -8,6 +8,9 @@ public class AuthUser
     [Column("id")] public Guid Id { get; set; }
     [Column("email")] public string Email { get; set; } = "";
     [Column("encrypted_password")] public string EncryptedPassword { get; set; } = "";
+    // Reverse link to the officer who owns this account (officers.auth_user_id
+    // points the other way). NULL for citizen accounts. See migration 042.
+    [Column("officer_id")] public Guid? OfficerId { get; set; }
     [Column("email_confirmed_at")] public DateTimeOffset? EmailConfirmedAt { get; set; }
     [Column("last_sign_in_at")] public DateTimeOffset? LastSignInAt { get; set; }
     [Column("raw_app_meta_data")] public string? RawAppMetaData { get; set; }

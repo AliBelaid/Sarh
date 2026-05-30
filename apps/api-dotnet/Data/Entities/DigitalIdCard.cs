@@ -18,6 +18,8 @@ public class DigitalIdCard
     [Column("wallet_endpoint")] public string? WalletEndpoint { get; set; }
     [Column("issued_at")] public DateTimeOffset IssuedAt { get; set; }
     [Column("issued_by_officer_id")] public Guid? IssuedByOfficerId { get; set; }
+    // Which branch (offices, migration 040/042) printed this card.
+    [Column("issued_at_office_id")] public int? IssuedAtOfficeId { get; set; }
     [Column("expires_at")] public DateTimeOffset ExpiresAt { get; set; }
     [Column("status")] public string Status { get; set; } = "active";
     [Column("revoked_at")] public DateTimeOffset? RevokedAt { get; set; }

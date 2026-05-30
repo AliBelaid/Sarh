@@ -28,6 +28,10 @@ dependencies:
   # Maps + geometry
   mapbox_maps_flutter: ^2.3.0
   latlong2: ^0.9.1
+  # Lightweight OSM map (no API key) used by the property location step to
+  # draw/walk the boundary polygon and preview it live — same shape the web
+  # officer map renders.
+  flutter_map: ^7.0.2
   # GPS "walk the boundary" tracing — streams device position into the
   # property polygon as the citizen walks the parcel edge.
   geolocator: ^13.0.1

@@ -17,6 +17,8 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<PropertyNft> PropertyNfts => Set<PropertyNft>();
     public DbSet<OwnershipHistory> OwnershipHistory => Set<OwnershipHistory>();
+    public DbSet<PropertyDispute> PropertyDisputes => Set<PropertyDispute>();
+    public DbSet<Office> Offices => Set<Office>();
     public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -65,6 +67,20 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
             t.HasTrigger("tr_ownership_history_no_update");
             t.HasTrigger("tr_ownership_history_no_delete");
         });
+
+        b.Entity<PropertyDispute>().HasKey(x => x.Id);
+        b.Entity<PropertyDispute>().HasIndex(x => x.PropertyId);
+        b.Entity<PropertyDispute>().ToTable("property_disputes",
+            t => t.HasTrigger("tr_property_disputes_updated_at"));
+        // created_at/updated_at are stamped by the SQL DEFAULT + AFTER UPDATE
+        // trigger — let EF read them back instead of inserting 0001-01-01.
+        b.Entity<PropertyDispute>().Property(x => x.CreatedAt).ValueGeneratedOnAdd();
+        b.Entity<PropertyDispute>().Property(x => x.UpdatedAt).ValueGeneratedOnAddOrUpdate();
+
+        b.Entity<Office>().HasKey(x => x.Id);
+        b.Entity<Office>().ToTable("offices", t => t.HasTrigger("tr_offices_updated_at"));
+        b.Entity<Office>().Property(x => x.CreatedAt).ValueGeneratedOnAdd();
+        b.Entity<Office>().Property(x => x.UpdatedAt).ValueGeneratedOnAddOrUpdate();
 
         b.Entity<AuditLogEntry>().HasKey(x => x.Id);
         b.Entity<AuditLogEntry>().ToTable("audit_log", t =>

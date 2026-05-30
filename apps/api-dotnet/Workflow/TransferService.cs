@@ -45,6 +45,7 @@ public sealed class TransferService(
     SarhDbContext db,
     IBlockchainService chain,
     NotificationsService notifications,
+    Sarh.Api.Disputes.DisputesService disputes,
     ILogger<TransferService> log)
 {
     private static readonly HashSet<string> ManagerRoles = ["super_admin", "department_manager", "registry_officer"];
@@ -85,6 +86,10 @@ public sealed class TransferService(
         {
             throw SarhException.Forbidden("العقار خارج منطقتك.");
         }
+
+        // Security gate: never sell an encumbered parcel (court seizure,
+        // mortgage, waqf, …). Blocks until the encumbrance is lifted.
+        await disputes.AssertNoActiveDisputeAsync(property.Id, ct);
 
         var toCitizen = await db.Citizens.FirstOrDefaultAsync(c => c.Id == dto.ToCitizenId, ct)
             ?? throw SarhException.NotFound("المالك الجديد", "Recipient citizen");

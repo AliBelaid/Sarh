@@ -10,6 +10,10 @@ public class Property
     [Column("parcel_number")] public string? ParcelNumber { get; set; }
     [Column("plan_number")] public string? PlanNumber { get; set; }
     [Column("block_number")] public string? BlockNumber { get; set; }
+    // Old paper real-estate register coordinates (volume + page) this parcel
+    // was migrated from. Nullable — only set for legacy-archive records.
+    [Column("volume_number")] public string? VolumeNumber { get; set; }
+    [Column("page_number")] public string? PageNumber { get; set; }
     [Column("owner_citizen_id")] public Guid OwnerCitizenId { get; set; }
     [Column("property_type")] public string PropertyType { get; set; } = "";
     [Column("region_id")] public int? RegionId { get; set; }
@@ -19,6 +23,8 @@ public class Property
     [Column("length_m")] public decimal? LengthM { get; set; }
     [Column("width_m")] public decimal? WidthM { get; set; }
     [Column("depth_m")] public decimal? DepthM { get; set; }
+    // Area stated on the paper deed; cross-checked against AreaSqm (measured).
+    [Column("documented_area_sqm")] public decimal? DocumentedAreaSqm { get; set; }
     [Column("status")] public string Status { get; set; } = "draft";
     [Column("submitted_at")] public DateTimeOffset? SubmittedAt { get; set; }
     [Column("reviewed_at")] public DateTimeOffset? ReviewedAt { get; set; }
