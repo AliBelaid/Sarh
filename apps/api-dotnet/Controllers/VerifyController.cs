@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sarh.Api.Common.Errors;
+using Sarh.Api.Map;
 using Sarh.Api.Storage;
 using Sarh.Api.Verify;
 
@@ -12,8 +13,15 @@ namespace Sarh.Api.Controllers;
 [ApiController]
 [Route("api/v1/verify")]
 [AllowAnonymous]
-public class VerifyController(VerifyService verify, StorageService storage, ILogger<VerifyController> log) : ControllerBase
+public class VerifyController(VerifyService verify, MapService map, StorageService storage, ILogger<VerifyController> log) : ControllerBase
 {
+    // Public "الخريطة العقارية" feed — deed-issued parcels only, as a GeoJSON
+    // FeatureCollection. PUBLIC attributes only (no owner / national number).
+    // Optional ?region_id= narrows to one shabiyah.
+    [HttpGet("map")]
+    public Task<MapFeatureCollection> Map([FromQuery(Name = "region_id")] int? regionId, CancellationToken ct)
+        => map.PublicMapAsync(regionId, ct);
+
     [HttpGet("{code}")]
     public Task<PublicDeedView> ByCode(string code, CancellationToken ct)
         => verify.ByPropertyCodeAsync(code, ct);

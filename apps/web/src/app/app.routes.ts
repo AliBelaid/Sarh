@@ -27,6 +27,12 @@ export const APP_ROUTES: Routes = [
     path: 'verify',
     loadChildren: () => import('./features/verify/routes').then((m) => m.VERIFY_ROUTES),
   },
+  {
+    // Public cadastral map — "الخريطة العقارية". Approved parcels only,
+    // public attributes only. No auth.
+    path: 'map',
+    loadComponent: () => import('./features/map/public-map.page').then((m) => m.PublicMapPage),
+  },
 
   // ---- Single authenticated shell — all roles, role-gated per route. ---
   {
@@ -95,6 +101,14 @@ export const APP_ROUTES: Routes = [
         canActivate: [roleGuard([...OFFICER_ROLES])],
         loadComponent: () =>
           import('./features/officer/pages/queue.page').then((m) => m.OfficerQueuePage),
+      },
+      {
+        // Officer cadastral map — all in-region parcels coloured by legal
+        // status. Backend opens the feed to every office-side role.
+        path: 'map',
+        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES, ...ADMIN_ROLES, 'id_issuer'])],
+        loadComponent: () =>
+          import('./features/officer/pages/map.page').then((m) => m.OfficerMapPage),
       },
       {
         path: 'approvals',

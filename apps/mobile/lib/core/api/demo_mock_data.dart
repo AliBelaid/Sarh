@@ -168,3 +168,61 @@ Map<String, dynamic> mockSubmittedProperty(Map<String, dynamic> req) {
     },
   };
 }
+
+/// GET /verify/map — public cadastral map. A few demo parcels around Tripoli,
+/// one per colour bucket, so the offline demo renders the full legend. PUBLIC
+/// attributes only (no owner / national number) — same shape the real
+/// /verify/map FeatureCollection returns.
+Map<String, dynamic> mockCadastralMap() {
+  Map<String, dynamic> feature({
+    required String code,
+    required String type,
+    required String status,
+    required String mapStatus,
+    required double area,
+    required double lng,
+    required double lat,
+    bool dispute = false,
+  }) {
+    const d = 0.0016;
+    return {
+      'type': 'Feature',
+      'geometry': {
+        'type': 'Polygon',
+        'coordinates': [
+          [
+            [lng - d, lat - d],
+            [lng + d, lat - d],
+            [lng + d, lat + d],
+            [lng - d, lat + d],
+            [lng - d, lat - d],
+          ],
+        ],
+      },
+      'properties': {
+        'id': 'demo-$code',
+        'property_code': code,
+        'parcel_number': '$code/2026',
+        'property_type': type,
+        'status': status,
+        'map_status': mapStatus,
+        'region_id': 11,
+        'area_sqm': area,
+        'updated_at': _isoDaysAgo(12),
+        'has_active_dispute': dispute,
+        'lng': lng,
+        'lat': lat,
+      },
+    };
+  }
+
+  return {
+    'type': 'FeatureCollection',
+    'features': [
+      feature(code: 'PRP-2026-0101', type: 'residential', status: 'approved', mapStatus: 'clear', area: 420, lng: 13.1850, lat: 32.8880),
+      feature(code: 'PRP-2026-0102', type: 'commercial', status: 'approved', mapStatus: 'disputed', area: 610, lng: 13.1900, lat: 32.8905, dispute: true),
+      feature(code: 'PRP-2026-0103', type: 'governmental', status: 'approved', mapStatus: 'public', area: 1500, lng: 13.1820, lat: 32.8850),
+      feature(code: 'PRP-2026-0104', type: 'agricultural', status: 'approved', mapStatus: 'clear', area: 980, lng: 13.1950, lat: 32.8860),
+    ],
+  };
+}

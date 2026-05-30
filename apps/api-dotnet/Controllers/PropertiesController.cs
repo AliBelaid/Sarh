@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Sarh.Api.Audit;
 using Sarh.Api.Auth;
 using Sarh.Api.Common;
+using Sarh.Api.Map;
 using Sarh.Api.Properties;
 using Sarh.Api.Storage;
 using Sarh.Api.Workflow;
@@ -13,8 +14,19 @@ namespace Sarh.Api.Controllers;
 [Route("api/v1/properties")]
 [Authorize]
 public class PropertiesController(
-    PropertiesService svc, ReviewService review, LicenseService license, StorageService storageReader) : ControllerBase
+    PropertiesService svc, ReviewService review, LicenseService license,
+    MapService map, StorageService storageReader) : ControllerBase
 {
+    // Officer map feed — every live parcel in the actor's region scope
+    // (region-scoped roles see only their own region; admins/managers may
+    // pass ?region_id=). Includes parcels still in the workflow so an officer
+    // sees pending requests (yellow) alongside issued deeds. PUBLIC attributes
+    // only — no owner / national number leaves here either.
+    [HttpGet("map")]
+    [OfficerOnly("registry_officer", "reviewer", "department_manager", "super_admin", "auditor", "id_issuer")]
+    public Task<MapFeatureCollection> Map([FromQuery(Name = "region_id")] int? regionId, CancellationToken ct)
+        => map.OfficerMapAsync(User.RequireUser(), regionId, ct);
+
     [HttpPost]
     [Audit(Action = AuditActions.Create, Entity = "properties", EntityIdFrom = "property.id")]
     public Task<SubmitResult> Submit([FromBody] CreatePropertyDto dto, CancellationToken ct)
