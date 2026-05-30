@@ -82,6 +82,7 @@ class _DemoInterceptor extends Interceptor {
         return mockProperty(id);
       }
       if (path == '/notifications') return mockNotifications();
+      if (path == '/verify/map') return mockCadastralMap();
       if (path == '/ssi/credentials') return mockCredentials();
       if (path == '/auth/me') {
         return {

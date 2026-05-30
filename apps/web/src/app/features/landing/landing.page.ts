@@ -27,6 +27,7 @@ import { RouterLink } from '@angular/router';
             <a href="#how">كيف يعمل</a>
             <a href="#features">المزايا</a>
             <a href="#trust">الأمان</a>
+            <a href="/map">الخريطة العقارية</a>
             <a href="/verify">التحقّق</a>
           </nav>
 
@@ -275,6 +276,7 @@ import { RouterLink } from '@angular/router';
           <p>سجّل دخولك للوصول إلى لوحة التحكّم، أو ابحث عن سند للتحقّق من صحّته.</p>
           <div class="cta-actions">
             <a class="btn-primary big" routerLink="/login">تسجيل الدخول</a>
+            <a class="btn-ghost-light big" href="/map">الخريطة العقارية</a>
             <a class="btn-ghost-light big" href="/verify">التحقّق من سند</a>
           </div>
         </div>

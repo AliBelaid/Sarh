@@ -68,6 +68,7 @@ builder.Services.Configure<Sarh.Api.Blockchain.IpfsOptions>(
 builder.Services.AddSingleton<Sarh.Api.Blockchain.IBlockchainService, Sarh.Api.Blockchain.StubBlockchainService>();
 builder.Services.AddSingleton<Sarh.Api.Blockchain.IIpfsService, Sarh.Api.Blockchain.StubIpfsService>();
 
+builder.Services.AddScoped<Sarh.Api.Map.MapService>();
 builder.Services.AddScoped<Sarh.Api.Verify.VerifyService>();
 builder.Services.AddScoped<Sarh.Api.Audit.AuditService>();
 builder.Services.AddScoped<Sarh.Api.Audit.AuditActionFilter>();

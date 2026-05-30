@@ -16,6 +16,7 @@ import '../features/wallet/wallet_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/nfc/nfc_verify_screen.dart';
+import '../features/map/cadastral_map_screen.dart';
 
 class AppRoutes {
   static const splash = '/';
@@ -30,6 +31,7 @@ class AppRoutes {
   static const notifications = '/notifications';
   static const profile = '/profile';
   static const nfcVerify = '/nfc-verify';
+  static const cadastralMap = '/cadastral-map';
   static String propertyDetail(String id) => '/property/$id';
 }
 
@@ -88,6 +90,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: AppRoutes.profile, builder: (_, __) => const ProfileScreen()),
       GoRoute(path: AppRoutes.nfcVerify, builder: (_, __) => const NfcVerifyScreen()),
+      GoRoute(
+        path: AppRoutes.cadastralMap,
+        builder: (_, __) => const CadastralMapScreen(),
+      ),
     ],
     errorBuilder: (_, st) => Scaffold(
       appBar: AppBar(),

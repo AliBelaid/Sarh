@@ -70,6 +70,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'الخريطة العقارية',
+            icon: const Icon(Icons.map_outlined),
+            onPressed: () => context.push(AppRoutes.cadastralMap),
+          ),
+          IconButton(
             tooltip: 'الإشعارات',
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () => context.push(AppRoutes.notifications),
