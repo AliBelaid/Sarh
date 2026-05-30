@@ -108,6 +108,13 @@ export const APP_ROUTES: Routes = [
         loadComponent: () =>
           import('./features/officer/pages/review.page').then((m) => m.OfficerReviewPage),
       },
+      {
+        // Legal encumbrances (court seizures, mortgages, waqf) on a parcel.
+        path: 'disputes/:propertyId',
+        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES])],
+        loadComponent: () =>
+          import('./features/officer/pages/disputes.page').then((m) => m.OfficerDisputesPage),
+      },
 
       // ---- Final-approval (NFT licence mint) -------------------------
       // Originally manager-only; backend now accepts any authenticated role

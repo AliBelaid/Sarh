@@ -10,6 +10,10 @@ public class Property
     [Column("parcel_number")] public string? ParcelNumber { get; set; }
     [Column("plan_number")] public string? PlanNumber { get; set; }
     [Column("block_number")] public string? BlockNumber { get; set; }
+    // Old paper real-estate register coordinates (volume + page) this parcel
+    // was migrated from. Nullable — only set for legacy-archive records.
+    [Column("volume_number")] public string? VolumeNumber { get; set; }
+    [Column("page_number")] public string? PageNumber { get; set; }
     [Column("owner_citizen_id")] public Guid OwnerCitizenId { get; set; }
     [Column("property_type")] public string PropertyType { get; set; } = "";
     [Column("region_id")] public int? RegionId { get; set; }

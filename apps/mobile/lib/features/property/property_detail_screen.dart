@@ -64,6 +64,10 @@ class PropertyDetailScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (p.hasActiveDispute) ...[
+                const SizedBox(height: 12),
+                const _DisputeBanner(),
+              ],
               const SizedBox(height: 12),
               if (p.status == PropertyStatus.approved && p.propertyCode != null)
                 _DeedCard(propertyCode: p.propertyCode!),
@@ -144,6 +148,50 @@ const _docTypeLabels = <String, String>{
   'boundary_map': 'خريطة الحدود',
   'other': 'أخرى',
 };
+
+// Read-only notice shown when the parcel carries an active legal encumbrance
+// (court seizure, mortgage, waqf, …). The registry blocks selling or minting
+// such a parcel server-side; this just tells the citizen why.
+class _DisputeBanner extends StatelessWidget {
+  const _DisputeBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: SarhColors.warn.withValues(alpha: 0.07),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: SarhColors.warn.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.gavel_outlined, color: SarhColors.warn),
+            SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('هذا العقار عليه حجز/نزاع قانوني قائم',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: SarhColors.warn)),
+                  SizedBox(height: 4),
+                  Text(
+                    'لا يمكن بيع هذا العقار أو نقل ملكيته أو إصدار رخصته حتى '
+                    'يُرفع الحجز. لمزيد من التفاصيل راجع مكتب السجل العقاري.',
+                    style: TextStyle(fontSize: 13, color: SarhColors.primary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 // Official property deed — viewable/printable once approved (mirrors the
 // digital-ID card flow). Opens the public, tamper-checked verify PDF by code.

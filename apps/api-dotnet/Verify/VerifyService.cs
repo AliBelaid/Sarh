@@ -107,6 +107,21 @@ public sealed class VerifyService(
             };
         }
 
+        // Active encumbrances — surfaced publicly so a verifier never treats a
+        // signed deed as "free to buy" while the parcel is under seizure.
+        var disputeRows = await db.PropertyDisputes.AsNoTracking()
+            .Where(d => d.PropertyId == p.Id && d.Status == "active")
+            .OrderBy(d => d.StartDate)
+            .ToListAsync(ct);
+        var activeDisputes = disputeRows.Select(d => new PublicDisputeView
+        {
+            DisputeType = d.DisputeType,
+            DisputeTypeAr = Disputes.DisputeLabels.TypeAr(d.DisputeType),
+            CaseNumber = d.CaseNumber,
+            IssuingAuthority = d.IssuingAuthority,
+            StartDate = d.StartDate,
+        }).ToList();
+
         return new PublicDeedView
         {
             PropertyCode = p.PropertyCode!,
@@ -122,6 +137,8 @@ public sealed class VerifyService(
             DeedPdfSignedUrl = deedSignedUrl,
             DeedSignedHash = p.DeedSignedHash,
             Nft = nftView,
+            HasActiveDispute = activeDisputes.Count > 0,
+            ActiveDisputes = activeDisputes,
         };
     }
 

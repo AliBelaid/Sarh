@@ -6,6 +6,7 @@ import {
   Input,
   OnDestroy,
   ViewChild,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -16,6 +17,7 @@ import * as L from 'leaflet';
 import { PropertiesService } from '@core/properties.service';
 import type { Property, ReviewDecision } from '@sarh/shared-types';
 import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-pills';
+import { Dispute, DisputesService } from '../disputes.service';
 
 interface DocVM {
   id: string;
@@ -61,6 +63,23 @@ const DOC_LABELS: Record<string, string> = {
           {{ error() }}
         </div>
       } @else if (property(); as p) {
+        <div class="dispute-bar">
+          @if (activeDisputes().length) {
+            <div class="dispute-banner">
+              <span class="dispute-mark">⚠</span>
+              <div class="dispute-text">
+                <strong>هذا العقار عليه حجز/نزاع قانوني قائم — لا يجوز بيعه أو سكّ رخصته.</strong>
+                @for (x of activeDisputes(); track x.id) {
+                  <p>• {{ x.dispute_type_ar }} — {{ x.issuing_authority }}{{ x.case_number ? ' (قضية ' + x.case_number + ')' : '' }}</p>
+                }
+              </div>
+            </div>
+          }
+          <a class="manage-link" [routerLink]="['/app/disputes', p.id]">
+            إدارة الحجوزات والنزاعات ←
+          </a>
+        </div>
+
         <div class="grid">
           <!-- Hero / details -->
           <article class="card hero-card">
@@ -254,6 +273,14 @@ const DOC_LABELS: Record<string, string> = {
     .diff-chip { display: inline-block; margin-inline-start: 8px; padding: 2px 8px; border-radius: 99px; font-size: 10.5px; font-weight: 700; background: rgba(8,145,178,0.12); color: var(--good); }
     .diff-chip.warn { background: #fff2f3; color: var(--warn); }
 
+    .dispute-bar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .dispute-banner { display: flex; gap: 12px; align-items: flex-start; flex: 1; min-width: 280px; padding: 12px 16px; background: rgba(220,38,38,0.07); border: 1.5px solid rgba(220,38,38,0.35); border-radius: 10px; }
+    .dispute-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--warn); color: #fff; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+    .dispute-text strong { display: block; font-size: 12.5px; color: var(--warn); margin-bottom: 4px; }
+    .dispute-text p { margin: 2px 0; font-size: 11.5px; color: var(--ink); }
+    .manage-link { align-self: center; padding: 8px 14px; border: 1px solid var(--rule); border-radius: 99px; background: var(--paper); color: var(--ink); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: all .15s; }
+    .manage-link:hover { border-color: var(--accent); color: var(--accent); }
+
     .map { width: 100%; height: 280px; border-radius: 10px; overflow: hidden; border: 1px solid var(--rule); margin-bottom: 8px; }
     .hint { font-size: 11.5px; color: var(--muted); margin: 0; }
 
@@ -322,6 +349,7 @@ export class OfficerReviewPage implements AfterViewInit, OnDestroy {
   @Input() id?: string;
 
   private readonly api = inject(PropertiesService);
+  private readonly disputesApi = inject(DisputesService);
   private readonly router = inject(Router);
 
   @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
@@ -337,6 +365,9 @@ export class OfficerReviewPage implements AfterViewInit, OnDestroy {
   note = '';
   decreeNo = '';
 
+  readonly disputes = signal<Dispute[]>([]);
+  readonly activeDisputes = computed(() => this.disputes().filter((d) => d.status === 'active'));
+
   readonly docs = signal<DocVM[]>([]);
   readonly docsLoading = signal(false);
   private objectUrls: string[] = [];
@@ -348,6 +379,7 @@ export class OfficerReviewPage implements AfterViewInit, OnDestroy {
     try {
       this.property.set(await this.api.get(this.id));
       void this.loadDocuments(this.id);
+      this.disputesApi.list(this.id).then((d) => this.disputes.set(d)).catch(() => { /* non-fatal */ });
     } catch (e) {
       const err = e as { error?: { error?: { message_ar?: string } } };
       this.error.set(err.error?.error?.message_ar ?? 'تعذّر تحميل العقار.');

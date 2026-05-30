@@ -106,6 +106,9 @@ class Property {
   final String? rejectionReason;
   final String? deedPdfPath;
   final String? vcCredentialId;
+  // True when the parcel has an active legal encumbrance (court seizure,
+  // mortgage, waqf, …). Populated on the detail read; blocks sale + mint.
+  final bool hasActiveDispute;
 
   Property({
     required this.id,
@@ -124,6 +127,7 @@ class Property {
     this.rejectionReason,
     this.deedPdfPath,
     this.vcCredentialId,
+    this.hasActiveDispute = false,
   });
 
   factory Property.fromJson(Map<String, dynamic> json) => Property(
@@ -144,6 +148,7 @@ class Property {
         rejectionReason: json['rejection_reason'] as String?,
         deedPdfPath: json['deed_pdf_path'] as String?,
         vcCredentialId: json['vc_credential_id'] as String?,
+        hasActiveDispute: json['has_active_dispute'] as bool? ?? false,
       );
 
   static DateTime? _parseDate(Object? raw) =>

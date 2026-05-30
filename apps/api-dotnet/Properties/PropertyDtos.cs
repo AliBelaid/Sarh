@@ -128,6 +128,11 @@ public sealed class PropertyView
     // shape the citizen walked — null in list responses to keep them cheap.
     public object? BoundaryPolygon { get; set; }
 
+    // True when the parcel has an active legal encumbrance (court seizure,
+    // mortgage, waqf, …). Populated only on the detail read (GetByIdAsync);
+    // false in list responses. An active encumbrance blocks sale + mint.
+    public bool HasActiveDispute { get; set; }
+
     public static PropertyView From(Property p) => new()
     {
         Id = p.Id,

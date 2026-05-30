@@ -184,6 +184,8 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
 
         var view = PropertyView.From(p);
         view.BoundaryPolygon = await GetBoundaryPolygonGeoJsonAsync(id, ct);
+        view.HasActiveDispute = await db.PropertyDisputes.AsNoTracking()
+            .AnyAsync(d => d.PropertyId == id && d.Status == "active", ct);
         return view;
     }
 

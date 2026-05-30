@@ -23,6 +23,14 @@ interface NftView {
   on_chain_owner_address: string | null;
 }
 
+interface DisputeView {
+  dispute_type: string;
+  dispute_type_ar: string;
+  case_number: string | null;
+  issuing_authority: string;
+  start_date: string;
+}
+
 interface DeedView {
   property_code: string;
   parcel_number: string | null;
@@ -37,6 +45,8 @@ interface DeedView {
   deed_pdf_signed_url: string | null;
   deed_signed_hash: string | null;
   nft: NftView | null;
+  has_active_dispute: boolean;
+  active_disputes: DisputeView[];
 }
 
 @Component({
@@ -79,6 +89,19 @@ interface DeedView {
               <p class="hero-sub">تم التحقّق من صحّة الوثيقة من قاعدة بيانات سجل العقارات الليبي.</p>
             </div>
           </div>
+
+          @if (d.has_active_dispute) {
+            <div class="banner lien fade-in">
+              <span class="banner-mark big">⚠</span>
+              <div>
+                <strong>تنبيه: هذا العقار عليه حجز/نزاع قانوني قائم</strong>
+                <p>الوثيقة صحيحة وموقَّعة، لكن لا يجوز التصرّف في العقار (بيع أو نقل ملكية) حتى يُرفع الحجز.</p>
+                @for (x of d.active_disputes; track x.issuing_authority) {
+                  <p class="lien-row">• {{ x.dispute_type_ar }} — {{ x.issuing_authority }}{{ x.case_number ? ' (قضية رقم ' + x.case_number + ')' : '' }}</p>
+                }
+              </div>
+            </div>
+          }
 
           <div class="banner ok">
             <span class="banner-mark big">✓</span>
@@ -282,6 +305,10 @@ interface DeedView {
       flex-shrink: 0;
     }
     .banner.ok .banner-mark { background: var(--good); }
+    .banner.lien { background: rgba(220, 38, 38, 0.07); border: 1.5px solid rgba(220, 38, 38, 0.35); }
+    .banner.lien strong { color: var(--warn); }
+    .banner.lien .banner-mark { background: var(--warn); }
+    .banner.lien .lien-row { font-size: 11.5px; color: var(--ink); margin-top: 4px; }
     .banner-mark.big { width: 36px; height: 36px; font-size: 18px; }
     .banner .hash, .banner .date { direction: ltr; font-size: 10.5px; color: var(--muted); margin: 0; word-break: break-all; }
 

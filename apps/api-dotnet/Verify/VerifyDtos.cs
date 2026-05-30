@@ -21,6 +21,23 @@ public sealed class PublicDeedView
     // Null when the deed exists but no licence has been minted yet (older
     // approvals, or the manager hasn't run final-approve).
     public PublicNftView? Nft { get; init; }
+
+    // Active legal encumbrances (court seizure, mortgage, waqf, …). A
+    // verifier MUST see these: a deed can be valid and signed yet the parcel
+    // still be unsellable. Empty list = clear title at the registry's record.
+    public bool HasActiveDispute { get; init; }
+    public IReadOnlyList<PublicDisputeView> ActiveDisputes { get; init; } = [];
+}
+
+// Sanitised encumbrance view for the public verify page. No officer ids or
+// internal notes — only what a verifier needs to know the parcel is locked.
+public sealed class PublicDisputeView
+{
+    public required string DisputeType { get; init; }
+    public required string DisputeTypeAr { get; init; }
+    public string? CaseNumber { get; init; }
+    public required string IssuingAuthority { get; init; }
+    public DateOnly StartDate { get; init; }
 }
 
 public sealed class PublicNftView
