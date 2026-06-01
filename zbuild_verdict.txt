@@ -1,6 +1,0 @@
-=== VERDICT ===
-Build succeeded.
-    0 Error(s)
-EXIT=0
-=== ERRCOUNT ===
-0

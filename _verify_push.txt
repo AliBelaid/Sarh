@@ -1,8 +1,0 @@
-BRANCH=feature/map-landing-and-boundary-edit
-LOCAL=8ff78c55fb9be4b1b95f46f3145a22e8799c0f50
-REMOTE=8ff78c55fb9be4b1b95f46f3145a22e8799c0f50
-STATUS_VS_REMOTE=## feature/map-landing-and-boundary-edit...origin/feature/map-landing-and-boundary-edit
-LAST3:
-8ff78c5 EF Core migration bootstrap: provision DB via embedded T-SQL replay
-4e2f6a9 Landing map section + public-map promo + officer boundary (polygon) editing
-e070710 Merge pull request #3 from AliBelaid/feature/cadastral-map-by-legal-status

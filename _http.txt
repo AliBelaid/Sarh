@@ -1,5 +1,0 @@
-BASE=http://0.0.0.0:3001
-SARH_API_PROCS=1
-/swagger/v1/swagger.json -> ERR:Unable to connect to the remote server
-/api/v1/regions -> ERR:Unable to connect to the remote server
-/api/v1/map/parcels -> ERR:Unable to connect to the remote server

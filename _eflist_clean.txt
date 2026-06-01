@@ -1,5 +1,0 @@
-   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationsIdGenerator.GetName(String id)
-   at Microsoft.EntityFrameworkCore.Design.Internal.MigrationsOperations.<>c__DisplayClass10_0.<GetMigrations>b__0(String id)
-   at Microsoft.EntityFrameworkCore.Design.OperationExecutor.GetMigrationsImpl(String contextType, String connectionString, Boolean noConnect)
-   at Microsoft.EntityFrameworkCore.Design.OperationExecutor.GetMigrations.<>c__DisplayClass0_0.<.ctor>b__0()
-EFEXIT=1

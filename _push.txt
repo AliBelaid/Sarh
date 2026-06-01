@@ -1,6 +1,0 @@
-=== LAST COMMIT ===
-8ff78c5 EF Core migration bootstrap: provision DB via embedded T-SQL replay
-=== PUSH ===
-To https://github.com/AliBelaid/Sarh.git
-   4e2f6a9..8ff78c5  HEAD -> feature/map-landing-and-boundary-edit
-PUSH_EXIT=0

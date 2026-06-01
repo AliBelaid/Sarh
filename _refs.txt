@@ -1,2 +1,0 @@
-### SqlServerMigrator refs ###
-### InitialSchema refs ###

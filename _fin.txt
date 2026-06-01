@@ -1,5 +1,0 @@
-sarh_tables=23
-sarh_history=45
-citizens=11
-stray_dotnet=8
-leftover_test_dbs=0

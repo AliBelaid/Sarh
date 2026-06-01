@@ -1,4 +1,0 @@
-10.0.203
----EF---
-Entity Framework Core .NET Command-line Tools
-10.0.5
