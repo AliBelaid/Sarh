@@ -1,0 +1,37 @@
+#!/bin/sh
+# Block committing text files that carry a UTF-16/UTF-32 byte-order mark (BOM).
+#
+# Why: on Windows PowerShell 5.1, `>` redirection and Out-File/Set-Content
+# default to UTF-16 LE (0xFF 0xFE). A UTF-16 BOM makes JSON unparseable —
+# it broke the Angular build (`Unexpected "\xff" in JSON` on package.json)
+# and every fresh checkout on other machines. This hook stops it at commit
+# time. To write text files from PowerShell, use the Write/Edit tools or
+# [System.Text.UTF8Encoding]::new($false); never bare `>` / Out-File.
+
+fail=0
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+  # Only inspect text-like files; real binaries (images, fonts) are exempt.
+  case "$f" in
+    *.json|*.ts|*.js|*.mjs|*.cjs|*.html|*.htm|*.css|*.scss|*.sass|*.md|\
+*.yml|*.yaml|*.xml|*.config|*.sh|*.ps1|*.psm1|*.cs|*.csproj|*.sln|*.txt|*.svg|*.sql) ;;
+    *) continue ;;
+  esac
+
+  # Inspect the STAGED blob (what's actually being committed), not the worktree.
+  bom=$(git show ":$f" 2>/dev/null | head -c 4 | od -An -tx1 | tr -d ' \n')
+  case "$bom" in
+    fffe*|feff*|0000feff)
+      echo "ERROR: $f has a UTF-16/UTF-32 BOM — re-save as UTF-8 (no BOM)." 1>&2
+      fail=1
+      ;;
+  esac
+done
+
+if [ "$fail" -ne 0 ]; then
+  echo "" 1>&2
+  echo "Commit blocked: UTF-16/UTF-32 file(s) detected." 1>&2
+  echo "On Windows PowerShell, avoid '>' and Out-File (they write UTF-16 LE)." 1>&2
+  echo "Fix one file:  \$t=[IO.File]::ReadAllText(\$p,[Text.Encoding]::Unicode); [IO.File]::WriteAllText(\$p,\$t,[Text.UTF8Encoding]::new(\$false))" 1>&2
+  exit 1
+fi
+exit 0
