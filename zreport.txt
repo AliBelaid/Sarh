@@ -1,0 +1,38 @@
+===== 1. BUILD =====
+build_exit=0
+Build succeeded.
+
+===== 2. EF MIGRATIONS LIST (--no-connect) =====
+list_exit=0
+list_count=45
+Pending status not shown. Unable to determine which migrations have been applied. This can happen when your project uses a version of Entity Framework Core lower than 5.0.0 or when an error occurs while accessing the database.
+
+===== 3. FRESH-DB END TO END (dotnet run -- --migrate) =====
+run_exit=127
+applied_count=0
+      Ensured server login 'sarh_app'.
+      Ensured database 'sarh_eftest' exists.
+      Applying 45 pending migration(s) to 'sarh_eftest': 20240101000000_000_database, 20240101000001_001_extensions, 20240101000002_002_lookup, 20240101000003_003_citizens, 20240101000004_004_digital_id, 20240101000005_005_officers, 20240101000006_006_properties, 20240101000007_007_documents, 20240101000008_008_workflow, 20240101000009_009_ssi, 20240101000010_010_notifications, 20240101000011_011_audit, 20240101000012_012_views, 20240101000013_013_functions, 20240101000014_014_triggers, 20240101000015_015_rls, 20240101000016_016_seed_regions, 20240101000017_017_auth_helpers, 20240101000018_018_nfc_card_secrets, 20240101000019_019_properties_helpers, 20240101000020_020_workflow_helpers, 20240101000021_021_workflow_review_view, 20240101000022_022_ssi_extras, 20240101000023_023_verify_helpers, 20240101000024_024_seed_demo, 20240101000025_025_demo_open_rls, 20240101000026_026_seed_demo_officer, 20240101000027_027_fix_property_triggers, 20240101000028_028_property_nfts_ownership_history, 20240101000029_029_seed_mock_data, 20240101000030_030_app_user_grant, 20240101000031_031_digital_id_pin, 20240101000032_032_drop_did_cards_rls, 20240101000033_033_seed_card_pins, 20240101000034_034_seed_expanded_demo, 20240101000035_035_properties_fulltext, 20240101000036_036_citizens_filtered_unique, 20240101000037_037_more_filtered_unique, 20240101000038_038_property_nfts_minter_nullable, 20240101000039_039_documented_area, 20240101000040_040_offices, 20240101000041_041_property_disputes, 20240101000042_042_registry_links, 20240101000043_043_property_map, 20240101000044_044_seed_map_demo
+fail: Sarh.Migrations[0]
+      Database migration failed.
+      Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid object name '__EFMigrationsHistory'.
+         at Microsoft.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+         at Microsoft.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+         at Microsoft.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+Unhandled exception. Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid object name '__EFMigrationsHistory'.
+   at Microsoft.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at Microsoft.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at Microsoft.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+
+===== 4. VERIFY sarh_eftest CONTENTS =====
+verify_exit=0
+efhistory=0
+auth_users=0
+citizens=0
+properties=0
+claims_proc=0
+db_collation=Arabic_CI_AS
+
+===== 5. CLEANUP test db =====
+drop_exit=0
+===== DONE =====

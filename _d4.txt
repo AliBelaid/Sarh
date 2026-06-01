@@ -1,0 +1,17 @@
+=last infra files=
+037_more_filtered_unique.sql
+038_property_nfts_minter_nullable.sql
+039_documented_area.sql
+040_offices.sql
+041_property_disputes.sql
+042_registry_links.sql
+043_property_map.sql
+044_seed_map_demo.sql
+=scripts/db=
+fix-arabic-encoding.py
+run-migrations.ps1
+=dotnet=
+10.0.203
+=ef=
+Entity Framework Core .NET Command-line Tools 10.0.5 
+=end=

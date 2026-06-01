@@ -1,0 +1,21 @@
+=== STAGED FILES ===
+CLAUDE.md
+apps/api-dotnet/Data/EfDatabaseBootstrapper.cs
+apps/api-dotnet/Data/MigrationConnection.cs
+apps/api-dotnet/Data/SarhDbContextFactory.cs
+apps/api-dotnet/Migrations/SarhSchemaMigrations.cs
+apps/api-dotnet/Migrations/SqlMigrationRunner.cs
+apps/api-dotnet/Program.cs
+apps/api-dotnet/Sarh.Api.csproj
+package.json
+scripts/db/migrate-ef.ps1
+=== COMMIT ===
+[feature/map-landing-and-boundary-edit 8ff78c5] EF Core migration bootstrap: provision DB via embedded T-SQL replay
+ 10 files changed, 1003 insertions(+), 1 deletion(-)
+ create mode 100644 apps/api-dotnet/Data/EfDatabaseBootstrapper.cs
+ create mode 100644 apps/api-dotnet/Data/MigrationConnection.cs
+ create mode 100644 apps/api-dotnet/Data/SarhDbContextFactory.cs
+ create mode 100644 apps/api-dotnet/Migrations/SarhSchemaMigrations.cs
+ create mode 100644 apps/api-dotnet/Migrations/SqlMigrationRunner.cs
+ create mode 100644 scripts/db/migrate-ef.ps1
+COMMIT_EXIT=0

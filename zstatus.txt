@@ -1,0 +1,32 @@
+?? .tmp_gs.txt
+?? .tmp_gs2.txt
+?? _build.txt
+?? _build_clean.txt
+?? _build_verdict.txt
+?? _bv2.txt
+?? _d4.txt
+?? _del.txt
+?? _diag.txt
+?? _diag2.txt
+?? _diag2_meta.txt
+?? _diag3.txt
+?? _dotnet.txt
+?? _dotnet_clean.txt
+?? _eflist.txt
+?? _eflist_clean.txt
+?? _efv.txt
+?? _mig.txt
+?? _refs.txt
+?? apps/api-dotnet/Data/SarhDbContextFactory.cs
+?? apps/api-dotnet/Migrations/
+?? zstatus.txt
+----MIGDIR----
+SarhDbContextModelSnapshot.cs
+SarhSchemaMigrations.cs
+SqlMigrationRunner.cs
+----FACTORY----
+DbSeeder.cs
+Entities
+SarhDbContext.cs
+SarhDbContextFactory.cs
+----DONE----

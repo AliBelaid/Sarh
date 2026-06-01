@@ -1,0 +1,16 @@
+snapshot removed; remaining Migrations:
+SarhSchemaMigrations.cs
+SqlMigrationRunner.cs
+--- SqlMigrationRunner head ---
+using System.Reflection;
+using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+namespace Sarh.Api.Migrations;
+
+/// <summary>
+/// Shared executor for the SQL-backed EF Core migrations. Each migration class calls
+/// <see cref="Apply"/> with the name of one embedded <c>infra/mssql/migrations/*.sql</c>
+/// file (see the <c>&lt;EmbeddedResource&gt;</c> items in <c>Sarh.Api.csproj</c>).
+///
+/// The T-SQL is the single source of truth: it is compiled into the assembly so a published

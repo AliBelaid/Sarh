@@ -1,0 +1,6 @@
+SarhDbContextModelSnapshot.cs
+SarhSchemaMigrations.cs
+SqlMigrationRunner.cs
+===EXISTS CHECK===
+STUB_GONE
+MIGRATOR_GONE

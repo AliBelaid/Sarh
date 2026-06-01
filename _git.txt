@@ -1,0 +1,20 @@
+=== BRANCH ===
+feature/map-landing-and-boundary-edit
+=== ADD ===
+warning: in the working copy of 'apps/api-dotnet/Data/EfDatabaseBootstrapper.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/api-dotnet/Data/MigrationConnection.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/api-dotnet/Data/SarhDbContextFactory.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/api-dotnet/Migrations/SarhSchemaMigrations.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/api-dotnet/Migrations/SqlMigrationRunner.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/db/migrate-ef.ps1', LF will be replaced by CRLF the next time Git touches it
+=== STAGED ===
+CLAUDE.md
+apps/api-dotnet/Data/EfDatabaseBootstrapper.cs
+apps/api-dotnet/Data/MigrationConnection.cs
+apps/api-dotnet/Data/SarhDbContextFactory.cs
+apps/api-dotnet/Migrations/SarhSchemaMigrations.cs
+apps/api-dotnet/Migrations/SqlMigrationRunner.cs
+apps/api-dotnet/Program.cs
+apps/api-dotnet/Sarh.Api.csproj
+package.json
+scripts/db/migrate-ef.ps1

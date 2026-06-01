@@ -1,0 +1,56 @@
+### infra/mssql/migrations files (ordered) ###
+000_database.sql
+001_extensions.sql
+002_lookup.sql
+003_citizens.sql
+004_digital_id.sql
+005_officers.sql
+006_properties.sql
+007_documents.sql
+008_workflow.sql
+009_ssi.sql
+010_notifications.sql
+011_audit.sql
+012_views.sql
+013_functions.sql
+014_triggers.sql
+015_rls.sql
+016_seed_regions.sql
+017_auth_helpers.sql
+018_nfc_card_secrets.sql
+019_properties_helpers.sql
+020_workflow_helpers.sql
+021_workflow_review_view.sql
+022_ssi_extras.sql
+023_verify_helpers.sql
+024_seed_demo.sql
+025_demo_open_rls.sql
+026_seed_demo_officer.sql
+027_fix_property_triggers.sql
+028_property_nfts_ownership_history.sql
+029_seed_mock_data.sql
+030_app_user_grant.sql
+031_digital_id_pin.sql
+032_drop_did_cards_rls.sql
+033_seed_card_pins.sql
+034_seed_expanded_demo.sql
+035_properties_fulltext.sql
+036_citizens_filtered_unique.sql
+037_more_filtered_unique.sql
+038_property_nfts_minter_nullable.sql
+039_documented_area.sql
+040_offices.sql
+041_property_disputes.sql
+042_registry_links.sql
+043_property_map.sql
+044_seed_map_demo.sql
+
+### scripts/db files ###
+fix-arabic-encoding.py
+run-migrations.ps1
+
+### dotnet version ###
+10.0.203
+### dotnet ef installed? ###
+Entity Framework Core .NET Command-line Tools
+10.0.5

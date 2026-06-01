@@ -1,0 +1,17 @@
+LISTEN_URL=http://0.0.0.0:3001
+SARH_API_PROCS=1
+--- LOG TAIL ---
+      SELECT COUNT(*)
+      FROM [citizens] AS [c]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [properties] AS [p]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [auth_users] AS [a]
+info: Sarh.Api.Data.DbSeeder[0]
+      DbSeeder: ready. citizens=11, properties=10, auth_users=16.
+--- ERR TAIL ---
+

@@ -1,0 +1,4 @@
+deleted-ok
+SarhDbContextModelSnapshot.cs
+SarhSchemaMigrations.cs
+SqlMigrationRunner.cs
