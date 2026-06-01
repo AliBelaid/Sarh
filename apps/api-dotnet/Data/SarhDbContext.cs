@@ -29,9 +29,19 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
         b.Entity<Officer>().HasIndex(x => x.AuthUserId);
         b.Entity<Officer>().ToTable("officers", t => t.HasTrigger("tr_officers_updated_at"));
         b.Entity<Citizen>().HasKey(x => x.Id);
-        b.Entity<Citizen>().Property(x => x.FullNameAr).HasComputedColumnSql();
+        // PERSISTED computed column — mirrors 003_citizens.sql so the model is complete
+        // (EF needs the SQL to describe the column; the raw migration still owns it).
+        b.Entity<Citizen>().Property(x => x.FullNameAr).HasComputedColumnSql(
+            "[first_name_ar] + N' ' + [father_name_ar] + N' ' + [grandfather_name_ar] + N' ' + [family_name_ar]",
+            stored: true);
         b.Entity<Citizen>().ToTable("citizens", t => t.HasTrigger("tr_citizens_updated_at"));
         b.Entity<Property>().HasKey(x => x.Id);
+        // Decimal precision/scale mirrors 006_properties.sql + 039_documented_area.sql.
+        b.Entity<Property>().Property(x => x.AreaSqm).HasPrecision(14, 2);
+        b.Entity<Property>().Property(x => x.DocumentedAreaSqm).HasPrecision(14, 2);
+        b.Entity<Property>().Property(x => x.LengthM).HasPrecision(10, 2);
+        b.Entity<Property>().Property(x => x.WidthM).HasPrecision(10, 2);
+        b.Entity<Property>().Property(x => x.DepthM).HasPrecision(10, 2);
         b.Entity<Property>().ToTable("properties", t =>
         {
             t.HasTrigger("tr_properties_set_centroid");

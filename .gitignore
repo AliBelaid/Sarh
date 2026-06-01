@@ -99,3 +99,9 @@ docs/.tmp-classic/
 # to regenerate.
 docs/runtime-checks/*.png
 .tmp/
+
+# Session debug scratch files (root-level temp logs) — not part of the project
+/_*.txt
+/z*.txt
+/.tmp_*.txt
+/_app.err

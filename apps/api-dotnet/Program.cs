@@ -136,6 +136,47 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// ---- Database provisioning (EF Core migrations) ----
+// Builds/updates the schema through the framework so a fresh PC needs no manual .sql/.ps1
+// step. Runs on the privileged migration connection (Windows auth by default — the runtime
+// sarh_app login cannot run DDL). Turn off with "Sarh:AutoMigrate": false (recommended in
+// production, where you instead run `dotnet run -- --migrate` or `dotnet ef database update`
+// during deploy with a privileged account).
+{
+    var migrateOnly = args.Contains("--migrate");
+    var autoMigrate = app.Configuration.GetValue("Sarh:AutoMigrate", true);
+    if (migrateOnly || autoMigrate)
+    {
+        var migrationLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Sarh.Migrations");
+        try
+        {
+            var migrationConn = Sarh.Api.Data.MigrationConnection.Resolve(app.Configuration);
+            await Sarh.Api.Data.EfDatabaseBootstrapper.RunAsync(migrationConn, migrationLogger);
+        }
+        catch (Exception ex)
+        {
+            migrationLogger.LogError(ex,
+                "Database provisioning failed — the schema was NOT created. " +
+                "The migration runs DDL (CREATE DATABASE/LOGIN) which the low-privilege runtime " +
+                "login 'sarh_app' cannot do, so it uses a privileged connection. On this machine " +
+                "that connection has no rights. Fix it one of two ways: (1) set " +
+                "'Sarh:MigrationConnectionString' (appsettings) or SARH_MIGRATION_CONNECTION (env) " +
+                "to a privileged SQL login, e.g. \"Server=localhost,1433;Database=sarh;User Id=sa;" +
+                "Password=<sa-pwd>;TrustServerCertificate=True;Encrypt=True;\"; or (2) make your " +
+                "Windows account a SQL sysadmin. Then re-run `dotnet run -- --migrate`.");
+            if (migrateOnly)
+            {
+                throw; // surface the failure to CI / the operator
+            }
+        }
+
+        if (migrateOnly)
+        {
+            return; // provisioning command — don't start the web host
+        }
+    }
+}
+
 app.UseMiddleware<SarhExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())

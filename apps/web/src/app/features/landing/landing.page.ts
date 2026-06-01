@@ -231,6 +231,52 @@ import { RouterLink } from '@angular/router';
         </div>
       </section>
 
+      <section id="map" class="section map-promo">
+        <div class="section-inner map-grid">
+          <div class="map-copy">
+            <span class="section-eyebrow">للعموم · بدون تسجيل دخول</span>
+            <h2>الخريطة العقارية — تصفّح العقارات المعتمدة على الخريطة</h2>
+            <p class="map-lead">
+              بمجرّد أن يعتمد مدير التسجيل طلب المواطن ويصدر صكّ الملكية، تُضاف الأرض تلقائياً
+              إلى <strong>الخريطة العقارية العامة</strong>. تُرسم كل قطعة معتمدة على شكل مُضلّع
+              (Polygon) فوق خريطة حقيقية، ويكون لونها دليلاً فورياً على حالتها القانونية.
+            </p>
+            <p class="map-lead">
+              عند الضغط على أي قطعة تظهر <strong>معلومات عامة فقط</strong>: رقم العقار، المساحة،
+              نوع العقار، حالته، وتاريخ آخر تحديث. أمّا اسم المالك والرقم الوطني فلا يظهران
+              إطلاقاً في الخريطة العامة — حمايةً لخصوصيّة المُلّاك.
+            </p>
+
+            <ul class="map-legend">
+              <li><span class="lg-dot" style="background:#16A34A"></span><strong>أخضر</strong> — سليم وقابل للتصرّف.</li>
+              <li><span class="lg-dot" style="background:#DC2626"></span><strong>أحمر</strong> — عليه نزاع قضائي أو حجز أو منع تصرّف.</li>
+              <li><span class="lg-dot" style="background:#F59E0B"></span><strong>أصفر</strong> — قيد المراجعة أو لم يكتمل التحقّق.</li>
+              <li><span class="lg-dot" style="background:#2563EB"></span><strong>أزرق</strong> — ملكية حكومية أو مرفق عام.</li>
+            </ul>
+
+            <a class="btn-primary big" href="/map">افتح الخريطة العقارية ←</a>
+          </div>
+
+          <div class="map-visual">
+            <svg viewBox="0 0 320 300" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+              <rect width="320" height="300" rx="16" fill="#EEF2F3"/>
+              <line x1="0" y1="80" x2="320" y2="64" stroke="#fff" stroke-width="7"/>
+              <line x1="0" y1="200" x2="320" y2="214" stroke="#fff" stroke-width="7"/>
+              <line x1="110" y1="0" x2="124" y2="300" stroke="#fff" stroke-width="7"/>
+              <line x1="230" y1="0" x2="240" y2="300" stroke="#fff" stroke-width="7"/>
+              <polygon points="30,30 96,26 100,72 34,78" fill="rgba(22,163,74,.30)" stroke="#16A34A" stroke-width="2.5"/>
+              <polygon points="150,40 214,38 218,96 152,100" fill="rgba(37,99,235,.30)" stroke="#2563EB" stroke-width="2.5"/>
+              <polygon points="140,150 210,150 214,210 138,214" fill="rgba(220,38,38,.30)" stroke="#DC2626" stroke-width="2.5"/>
+              <polygon points="40,170 100,166 104,228 36,232" fill="rgba(245,158,11,.30)" stroke="#F59E0B" stroke-width="2.5"/>
+              <circle cx="65" cy="54" r="5" fill="#16A34A"/>
+              <circle cx="184" cy="68" r="5" fill="#2563EB"/>
+              <circle cx="176" cy="182" r="5" fill="#DC2626"/>
+              <circle cx="70" cy="199" r="5" fill="#F59E0B"/>
+            </svg>
+          </div>
+        </div>
+      </section>
+
       <section id="trust" class="section">
         <div class="section-inner trust-section">
           <div class="trust-text">
@@ -432,6 +478,18 @@ import { RouterLink } from '@angular/router';
     .feat h3 { font-size: 14.5px; color: var(--primary); margin: 0 0 6px; }
     .feat p  { font-size: 12.5px; color: var(--muted); line-height: 1.75; margin: 0; }
     .feat code { background: rgba(15, 23, 42, 0.06); padding: 1px 5px; border-radius: 3px; font-size: 11px; font-family: 'JetBrains Mono', monospace; direction: ltr; unicode-bidi: bidi-override; }
+
+    .map-promo { background: var(--paper); }
+    .map-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
+    @media (max-width: 880px) { .map-grid { grid-template-columns: 1fr; gap: 32px; } }
+    .map-lead { font-size: 14.5px; line-height: 1.9; color: var(--muted); margin: 0 0 14px; max-width: 560px; }
+    .map-lead strong { color: var(--ink); }
+    .map-legend { list-style: none; padding: 0; margin: 18px 0 26px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+    @media (max-width: 540px) { .map-legend { grid-template-columns: 1fr; } }
+    .map-legend li { font-size: 13px; color: var(--ink); display: flex; align-items: center; gap: 9px; }
+    .map-legend strong { font-weight: 700; }
+    .lg-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+    .map-visual { border: 1px solid var(--rule); border-radius: 18px; overflow: hidden; box-shadow: 0 20px 50px -22px rgba(15,23,42,.2); background: #fff; }
 
     .trust-section { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: start; }
     @media (max-width: 880px) { .trust-section { grid-template-columns: 1fr; gap: 36px; } }

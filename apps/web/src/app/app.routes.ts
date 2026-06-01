@@ -111,6 +111,14 @@ export const APP_ROUTES: Routes = [
           import('./features/officer/pages/map.page').then((m) => m.OfficerMapPage),
       },
       {
+        // Redraw a parcel's boundary polygon. Backend recomputes area+centroid
+        // and enforces region scope (citizens edit only their in-workflow ones).
+        path: 'properties/:id/boundary',
+        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES])],
+        loadComponent: () =>
+          import('./features/officer/pages/boundary-edit.page').then((m) => m.OfficerBoundaryEditPage),
+      },
+      {
         path: 'approvals',
         canActivate: [roleGuard([...OFFICER_ROLES])],
         loadComponent: () =>

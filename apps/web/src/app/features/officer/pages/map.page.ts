@@ -110,8 +110,9 @@ import { ParcelMapComponent } from '../../../shared/parcel-map.component';
             }
             <div class="actions">
               <a class="act" [routerLink]="['/app/review', f.properties.id]">فتح المراجعة</a>
-              <a class="act ghost" [routerLink]="['/app/disputes', f.properties.id]">النزاعات القانونية</a>
+              <a class="act ghost" [routerLink]="['/app/properties', f.properties.id, 'boundary']">تعديل الحدود</a>
             </div>
+            <a class="dispute-link" [routerLink]="['/app/disputes', f.properties.id]">إدارة النزاعات القانونية ←</a>
           </div>
         }
       </div>
@@ -179,7 +180,9 @@ import { ParcelMapComponent } from '../../../shared/parcel-map.component';
     .act { flex: 1; text-align: center; padding: 8px 10px; background: var(--primary); color: var(--accent); border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; }
     .act:hover { background: var(--accent); color: var(--primary); }
     .act.ghost { background: transparent; border: 1px solid var(--rule); color: var(--ink); }
-    .act.ghost:hover { border-color: var(--warn); color: var(--warn); }
+    .act.ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .dispute-link { display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--warn); text-decoration: none; }
+    .dispute-link:hover { text-decoration: underline; }
 
     .banner { position: absolute; bottom: 16px; inset-inline-start: 16px; padding: 8px 14px; border-radius: 8px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 6px 16px rgba(0,0,0,.1); z-index: 600; }
     .banner.err { background: #fff5f5; color: var(--warn); border: 1px solid #fecaca; }

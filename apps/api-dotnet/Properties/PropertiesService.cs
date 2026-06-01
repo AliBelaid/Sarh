@@ -225,6 +225,115 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
         return new { type = "Polygon", coordinates = new[] { ring.ToArray() } };
     }
 
+    // ----- Update boundary (redraw polygon) -----
+    // Lets an officer (or the owning citizen, while the parcel is still in the
+    // workflow) correct the drawn boundary. The area + centroid are recomputed
+    // authoritatively from the new polygon; the WKT centroid copy is refreshed
+    // by tr_properties_set_centroid so the anti-duplicate index stays correct.
+    public async Task<PropertyView> UpdateBoundaryAsync(
+        Guid id, UpdateBoundaryDto dto, CurrentUser actor, CancellationToken ct)
+    {
+        var p = await db.Properties.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw SarhException.NotFound("العقار", "Property");
+
+        AuthorizeBoundaryEdit(p, actor);
+
+        var (wkt, _) = GeoJsonPolygon.ValidateAndConvert(dto.BoundaryPolygon);
+
+        // An approved parcel may not be moved onto another approved parcel's
+        // exact centroid (the hard uniqueness guard). Pre-check so we return a
+        // clean 409 instead of a raw unique-index violation.
+        if (p.Status == "approved")
+        {
+            var clashCode = await ApprovedCentroidClashAsync(id, wkt, ct);
+            if (clashCode is not null)
+                throw SarhException.Conflict(
+                    $"يوجد عقار معتمد آخر بنفس الإحداثيات (الرمز {clashCode}).",
+                    $"Another approved property shares the same centroid (code {clashCode}).");
+        }
+
+        await ExecUpdateBoundaryAsync(id, wkt, ct);
+
+        var updated = await db.Properties.AsNoTracking().FirstAsync(x => x.Id == id, ct);
+        var view = PropertyView.From(updated);
+        view.BoundaryPolygon = await GetBoundaryPolygonGeoJsonAsync(id, ct);
+        view.HasActiveDispute = await db.PropertyDisputes.AsNoTracking()
+            .AnyAsync(d => d.PropertyId == id && d.Status == "active", ct);
+        return view;
+    }
+
+    // Who may redraw a parcel:
+    //   • super_admin — any parcel.
+    //   • registry_officer / reviewer / department_manager — own region only.
+    //   • the owning citizen — only while the parcel is still in the workflow
+    //     (a signed/approved deed's geometry is officer-territory).
+    //   • auditor / id_issuer — never.
+    private static void AuthorizeBoundaryEdit(Data.Entities.Property p, CurrentUser actor)
+    {
+        switch (actor.Role)
+        {
+            case "super_admin":
+                return;
+            case "registry_officer":
+            case "reviewer":
+            case "department_manager":
+                if (actor.RegionId is int rid && p.RegionId != rid)
+                    throw SarhException.Forbidden("العقار خارج منطقتك.");
+                return;
+            case "citizen":
+                if (actor.CitizenId is null || p.OwnerCitizenId != actor.CitizenId)
+                    throw SarhException.Forbidden();
+                if (p.Status is "approved" or "minted" or "transferred")
+                    throw SarhException.Forbidden(
+                        "لا يمكن تعديل حدود عقار صدر سنده. تواصل مع مكتب التسجيل.");
+                return;
+            default:
+                throw SarhException.Forbidden();
+        }
+    }
+
+    private async Task<string?> ApprovedCentroidClashAsync(Guid id, string wkt, CancellationToken ct)
+    {
+        var conn = (SqlConnection)db.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            DECLARE @poly geography = geography::STGeomFromText(@wkt, 4326);
+            DECLARE @c geography = @poly.EnvelopeCenter();
+            SELECT TOP (1) p.property_code
+            FROM properties p
+            WHERE p.id <> @id
+              AND p.status = N'approved'
+              AND p.location_point IS NOT NULL
+              AND p.location_point.STEquals(@c) = 1;";
+        cmd.Parameters.Add(new SqlParameter("@wkt", SqlDbType.NVarChar, -1) { Value = wkt });
+        cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.UniqueIdentifier) { Value = id });
+        return await cmd.ExecuteScalarAsync(ct) as string;
+    }
+
+    private async Task ExecUpdateBoundaryAsync(Guid id, string wkt, CancellationToken ct)
+    {
+        var conn = (SqlConnection)db.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        // QUOTED_IDENTIFIER/ANSI_NULLS ON are required for the spatial-index
+        // update triggered by writing boundary_polygon. Area is the polygon's
+        // STArea (m²); location_point is the new envelope centre. The
+        // AFTER UPDATE trigger refreshes location_point_wkt to match.
+        cmd.CommandText =
+            "SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON; " +
+            "DECLARE @poly geography = geography::STGeomFromText(@wkt, 4326); " +
+            "UPDATE properties SET " +
+            "  boundary_polygon = @poly, " +
+            "  location_point   = @poly.EnvelopeCenter(), " +
+            "  area_sqm         = CAST(@poly.STArea() AS DECIMAL(14,2)), " +
+            "  updated_at       = SYSDATETIMEOFFSET() " +
+            "WHERE id = @id;";
+        cmd.Parameters.Add(new SqlParameter("@wkt", SqlDbType.NVarChar, -1) { Value = wkt });
+        cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.UniqueIdentifier) { Value = id });
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
+
     // ----- Overlap check -----
     public async Task<IReadOnlyList<PropertyOverlap>> OverlapCheckAsync(OverlapCheckDto dto, CancellationToken ct)
     {
