@@ -97,7 +97,7 @@ const DOC_LABELS: Record<string, string> = {
                 <dd dir="ltr" class="mono">
                   {{ areaLabel(p.documented_area_sqm) }}
                   @if (p.documented_area_diff_pct != null) {
-                    <span class="diff-chip" [class.warn]="(p.documented_area_diff_pct ?? 0) > 10">
+                    <span class="diff-chip" [class.warn]="p.documented_area_diff_pct > 10">
                       فرق {{ p.documented_area_diff_pct | number: '1.0-1' }}%
                     </span>
                   }
