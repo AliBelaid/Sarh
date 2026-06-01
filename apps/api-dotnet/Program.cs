@@ -155,7 +155,15 @@ var app = builder.Build();
         }
         catch (Exception ex)
         {
-            migrationLogger.LogError(ex, "Database migration failed.");
+            migrationLogger.LogError(ex,
+                "Database provisioning failed — the schema was NOT created. " +
+                "The migration runs DDL (CREATE DATABASE/LOGIN) which the low-privilege runtime " +
+                "login 'sarh_app' cannot do, so it uses a privileged connection. On this machine " +
+                "that connection has no rights. Fix it one of two ways: (1) set " +
+                "'Sarh:MigrationConnectionString' (appsettings) or SARH_MIGRATION_CONNECTION (env) " +
+                "to a privileged SQL login, e.g. \"Server=localhost,1433;Database=sarh;User Id=sa;" +
+                "Password=<sa-pwd>;TrustServerCertificate=True;Encrypt=True;\"; or (2) make your " +
+                "Windows account a SQL sysadmin. Then re-run `dotnet run -- --migrate`.");
             if (migrateOnly)
             {
                 throw; // surface the failure to CI / the operator
