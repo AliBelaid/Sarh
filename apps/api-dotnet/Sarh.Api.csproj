@@ -19,4 +19,21 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <!--
+    Embed the authoritative T-SQL (the numbered migrations + the login bootstrap) into the
+    assembly so EF Core migrations replay them on any machine — and in a published build —
+    without the infra/ folder being present on disk. The "SarhSql." logical-name prefix is
+    what SqlMigrationRunner and EfDatabaseBootstrapper look up.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\infra\mssql\migrations\*.sql">
+      <LogicalName>SarhSql.%(Filename)%(Extension)</LogicalName>
+      <Visible>false</Visible>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\infra\mssql\bootstrap-login.sql">
+      <LogicalName>SarhSql.bootstrap-login.sql</LogicalName>
+      <Visible>false</Visible>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>
