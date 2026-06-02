@@ -14,6 +14,7 @@ public sealed class ReviewService(
     NotificationsService notifications,
     DeedPdfBuilder deedBuilder,
     StorageService storage,
+    Sarh.Api.Ssi.ISsiService ssi,
     IConfiguration config,
     ILogger<ReviewService> log)
 {
@@ -95,9 +96,6 @@ public sealed class ReviewService(
         var deedPath = $"property_deeds/{written.Path}";
         var deedHash = written.Sha256;
 
-        // SSI VC issuance still placeholder-fallback — see SSI module migration backlog.
-        var vcId = $"urn:placeholder:vc:property_deed:{Guid.NewGuid()}";
-
         property.Status = "approved";
         property.PropertyCode = propertyCode;
         property.ReviewedAt = approvedAt;
@@ -106,9 +104,15 @@ public sealed class ReviewService(
         property.RejectionReason = null;
         property.DeedPdfPath = deedPath;
         property.DeedSignedHash = deedHash;
-        property.VcCredentialId = vcId;
 
         await db.SaveChangesAsync(ct);
+
+        // Issue the PropertyDeed VC into the owner's SSI wallet. Needs the
+        // property persisted as 'approved' with its code first; best-effort so
+        // an SSI outage still leaves the property approved with a placeholder VC.
+        var vc = await IssuePropertyDeedVcAsync(property, ct);
+        await db.SaveChangesAsync(ct);
+
         await UpdateRegistrationRequestAsync(property.Id, "approved", ct);
         if (!string.IsNullOrWhiteSpace(dto.Note)) await RecordCommentAsync(property.Id, actor.OfficerId!.Value, dto.Note!, false, ct);
 
@@ -123,8 +127,32 @@ public sealed class ReviewService(
         {
             Property = PropertyView.From(property),
             Deed = new ReviewDeed { Path = deedPath, Sha256 = deedHash, VerifyUrl = verifyUrl },
-            Vc = new ReviewVc { CredentialId = vcId, Did = "did:placeholder:LY:demo", IsPlaceholder = true },
+            Vc = vc,
         };
+    }
+
+    // Issues the PropertyDeed VC and stamps property.vc_credential_id. Returns
+    // a ReviewVc for the API response. Any SSI failure degrades to a
+    // placeholder credential id so approval itself never fails.
+    private async Task<ReviewVc> IssuePropertyDeedVcAsync(Property property, CancellationToken ct)
+    {
+        try
+        {
+            var vc = await ssi.IssuePropertyDeedVcAsync(property.Id, ct);
+            if (vc is not null)
+            {
+                property.VcCredentialId = vc.CredentialId;
+                return new ReviewVc { CredentialId = vc.CredentialId, Did = vc.Did, IsPlaceholder = vc.IsPlaceholder };
+            }
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "SSI PropertyDeed VC issuance failed for property {PropertyId}; using placeholder.", property.Id);
+        }
+
+        var fallback = $"urn:placeholder:vc:property_deed:{Guid.NewGuid()}";
+        property.VcCredentialId = fallback;
+        return new ReviewVc { CredentialId = fallback, Did = "did:placeholder:LY:demo", IsPlaceholder = true };
     }
 
     private async Task<ReviewResult> RejectAsync(Property property, ReviewDecisionDto dto, CurrentUser actor, CancellationToken ct)

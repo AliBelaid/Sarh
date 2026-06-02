@@ -221,10 +221,19 @@ class WalletRepository {
   final SarhApiClient client;
   WalletRepository(this.client);
 
-  // The .NET API does not yet expose /api/v1/me/credentials — return
-  // an empty list so the wallet screen renders cleanly. Wire this up
-  // when the SSI credentials endpoint lands.
-  Future<List<VerifiableCredential>> myCredentials() async => const [];
+  // SSI verifiable credentials in the citizen's wallet. The .NET API returns
+  // a bare JSON array of credential views (DigitalId + PropertyDeed); a 401/404
+  // or transport error degrades to an empty wallet rather than an error screen.
+  Future<List<VerifiableCredential>> myCredentials() async {
+    try {
+      final res = await client.dio.get('/me/credentials');
+      return _items(res.data)
+          .map((m) => VerifiableCredential.fromJson(m))
+          .toList();
+    } on DioException catch (_) {
+      return const [];
+    }
+  }
 }
 
 SarhApiError _toSarhError(DioException e) {

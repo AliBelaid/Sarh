@@ -15,11 +15,20 @@ namespace Sarh.Api.Controllers;
 [ApiController]
 [Route("api/v1/me")]
 [Authorize]
-public class MeController(NftsService nfts, NotificationsService notifications) : ControllerBase
+public class MeController(
+    NftsService nfts,
+    NotificationsService notifications,
+    Sarh.Api.Ssi.ISsiService ssi) : ControllerBase
 {
     [HttpGet("nft-licences")]
     public Task<List<NftLicenseView>> MyLicences(CancellationToken ct)
         => nfts.ListMyAsync(User.RequireUser(), ct);
+
+    // SSI verifiable credentials in the citizen's wallet (DigitalId + any
+    // PropertyDeed VCs). Matches the Flutter VerifiableCredential model.
+    [HttpGet("credentials")]
+    public Task<List<Sarh.Api.Ssi.SsiCredentialView>> MyCredentials(CancellationToken ct)
+        => ssi.ListMineAsync(User.RequireUser(), ct);
 
     [HttpGet("notifications")]
     public Task<CursorPage<NotificationView>> Notifications(

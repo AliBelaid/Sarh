@@ -19,6 +19,8 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
     public DbSet<OwnershipHistory> OwnershipHistory => Set<OwnershipHistory>();
     public DbSet<PropertyDispute> PropertyDisputes => Set<PropertyDispute>();
     public DbSet<Office> Offices => Set<Office>();
+    public DbSet<SsiWallet> SsiWallets => Set<SsiWallet>();
+    public DbSet<SsiCredential> SsiCredentials => Set<SsiCredential>();
     public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -91,6 +93,17 @@ public class SarhDbContext(DbContextOptions<SarhDbContext> options) : DbContext(
         b.Entity<Office>().ToTable("offices", t => t.HasTrigger("tr_offices_updated_at"));
         b.Entity<Office>().Property(x => x.CreatedAt).ValueGeneratedOnAdd();
         b.Entity<Office>().Property(x => x.UpdatedAt).ValueGeneratedOnAddOrUpdate();
+
+        // SSI — wallets are 1:1 with citizens; credentials hang off a wallet.
+        // created_at is stamped by the SQL DEFAULT, so let EF read it back.
+        b.Entity<SsiWallet>().HasKey(x => x.Id);
+        b.Entity<SsiWallet>().HasIndex(x => x.CitizenId).IsUnique();
+        b.Entity<SsiWallet>().HasIndex(x => x.Did).IsUnique();
+        b.Entity<SsiWallet>().Property(x => x.CreatedAt).ValueGeneratedOnAdd();
+        b.Entity<SsiCredential>().HasKey(x => x.Id);
+        b.Entity<SsiCredential>().HasIndex(x => x.WalletId);
+        // issued_at / state are set explicitly by SsiServiceBase; the SQL
+        // DEFAULTs (migration 009/022) stay as a safety net only.
 
         b.Entity<AuditLogEntry>().HasKey(x => x.Id);
         b.Entity<AuditLogEntry>().ToTable("audit_log", t =>

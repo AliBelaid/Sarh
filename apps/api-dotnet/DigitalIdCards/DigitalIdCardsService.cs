@@ -16,6 +16,7 @@ public sealed partial class DigitalIdCardsService(
     DigitalIdNumberService numbers,
     NfcKeyStoreService keyStore,
     NotificationsService notifications,
+    Sarh.Api.Ssi.ISsiService ssi,
     IConfiguration config,
     ILogger<DigitalIdCardsService> log)
 {
@@ -146,8 +147,10 @@ public sealed partial class DigitalIdCardsService(
         });
         await db.SaveChangesAsync(ct);
 
-        // VC issuance is best-effort; placeholder until Phase 12 wires ACA-Py.
-        AttachPlaceholderVc(card);
+        // Issue the DigitalId VC into the citizen's SSI wallet and stamp the
+        // wallet DID on the card. Best-effort — an SSI outage falls back to a
+        // placeholder DID and never fails issuance.
+        await IssueDigitalIdVcAsync(card, ct);
         await db.SaveChangesAsync(ct);
 
         await notifications.NotifyCitizenAsync(
@@ -239,7 +242,7 @@ public sealed partial class DigitalIdCardsService(
         });
         await db.SaveChangesAsync(ct);
 
-        AttachPlaceholderVc(card);
+        await IssueDigitalIdVcAsync(card, ct);
         await db.SaveChangesAsync(ct);
 
         return new IssueCardResult
@@ -315,6 +318,23 @@ public sealed partial class DigitalIdCardsService(
         log.LogInformation("Photo hash placeholder for path {Path} until Phase 5 storage land", path);
         var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(path));
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    // Issues the DigitalId verifiable credential into the citizen's SSI wallet
+    // and stamps the wallet DID onto the card. Best-effort: any SSI failure
+    // degrades to a placeholder DID so card issuance always completes.
+    private async Task IssueDigitalIdVcAsync(DigitalIdCard card, CancellationToken ct)
+    {
+        try
+        {
+            var vc = await ssi.IssueDigitalIdVcAsync(card.Id, ct);
+            if (vc is not null) { card.Did = vc.Did; return; }
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "SSI DigitalId VC issuance failed for card {CardId}; using placeholder DID.", card.Id);
+        }
+        AttachPlaceholderVc(card);
     }
 
     private void AttachPlaceholderVc(DigitalIdCard card)
