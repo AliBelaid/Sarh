@@ -3,10 +3,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/router.dart';
+import 'core/api/sarh_api_client.dart' show activeApiBaseUrl, resolveApiBaseUrl;
 import 'core/theme/sarh_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Pick a reachable API host before the first widget builds (emulator vs
+  // physical device vs simulator/web). Falls back to the compile-time default.
+  activeApiBaseUrl = await resolveApiBaseUrl();
   runApp(const ProviderScope(child: SarhApp()));
 }
 

@@ -1,14 +1,16 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Citizen, CitizensService } from '@core/citizens.service';
+import { AuthService } from '@core/auth.service';
 import { REGIONS } from '../../../shared/status-pills';
 
 @Component({
   selector: 'app-admin-citizens',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="page fade-in">
       <header class="head">
@@ -64,6 +66,7 @@ import { REGIONS } from '../../../shared/status-pills';
                 <th>البريد</th>
                 <th>الرقم الوطني السابق</th>
                 <th>الحالة</th>
+                @if (canEdit()) { <th></th> }
               </tr>
             </thead>
             <tbody>
@@ -89,6 +92,14 @@ import { REGIONS } from '../../../shared/status-pills';
                       {{ c.is_active ? 'نشط' : 'موقوف' }}
                     </span>
                   </td>
+                  @if (canEdit()) {
+                    <td>
+                      <a class="edit-link" [routerLink]="['/app/citizens', c.id, 'edit']" title="تعديل">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+                        تعديل
+                      </a>
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -130,6 +141,9 @@ import { REGIONS } from '../../../shared/status-pills';
     .status.on { background: rgba(8, 145, 178, 0.12); color: var(--good); }
     .status.off { background: rgba(220, 38, 38, 0.10); color: var(--warn); }
 
+    .edit-link { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border: 1px solid var(--rule); border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 600; transition: all .15s; }
+    .edit-link:hover { color: var(--accent); border-color: var(--accent); background: rgba(249,115,22,0.05); }
+
     .skel-table { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 8px 0; }
     .skel-row { display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--rule); }
     .skel-row:last-child { border-bottom: 0; }
@@ -144,6 +158,10 @@ import { REGIONS } from '../../../shared/status-pills';
 })
 export class AdminCitizensPage implements OnInit {
   private readonly api = inject(CitizensService);
+  private readonly auth = inject(AuthService);
+
+  // Only super_admin may edit civil-identity data via this screen (auditor is read-only).
+  readonly canEdit = computed(() => this.auth.user()?.role === 'super_admin');
 
   readonly items = signal<Citizen[]>([]);
   readonly loading = signal(false);

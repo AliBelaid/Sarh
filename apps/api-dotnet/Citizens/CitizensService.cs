@@ -5,6 +5,7 @@ using Sarh.Api.Common;
 using Sarh.Api.Common.Errors;
 using Sarh.Api.Data;
 using Sarh.Api.Data.Entities;
+using Sarh.Api.DigitalIdCards;
 
 namespace Sarh.Api.Citizens;
 
@@ -139,12 +140,30 @@ public sealed class CitizensService(SarhDbContext db)
         var c = await db.Citizens.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw SarhException.NotFound("المواطن", "Citizen");
 
+        // Core civil-identity fields. A change here re-derives the card data_hash
+        // (see below) so an issued card's server-side fingerprint stays in sync.
+        var identityChanged = false;
+        if (dto.FirstNameAr is not null && dto.FirstNameAr != c.FirstNameAr)
+        { c.FirstNameAr = dto.FirstNameAr; identityChanged = true; }
+        if (dto.FatherNameAr is not null && dto.FatherNameAr != c.FatherNameAr)
+        { c.FatherNameAr = dto.FatherNameAr; identityChanged = true; }
+        if (dto.GrandfatherNameAr is not null && dto.GrandfatherNameAr != c.GrandfatherNameAr)
+        { c.GrandfatherNameAr = dto.GrandfatherNameAr; identityChanged = true; }
+        if (dto.FamilyNameAr is not null && dto.FamilyNameAr != c.FamilyNameAr)
+        { c.FamilyNameAr = dto.FamilyNameAr; identityChanged = true; }
+        if (dto.BirthDate is not null)
+        {
+            var newBirth = dto.BirthDate.Value.ToDateTime(TimeOnly.MinValue);
+            if (newBirth != c.BirthDate) { c.BirthDate = newBirth; identityChanged = true; }
+        }
+
         if (dto.FirstNameEn is not null) c.FirstNameEn = dto.FirstNameEn;
         if (dto.FatherNameEn is not null) c.FatherNameEn = dto.FatherNameEn;
         if (dto.GrandfatherNameEn is not null) c.GrandfatherNameEn = dto.GrandfatherNameEn;
         if (dto.FamilyNameEn is not null) c.FamilyNameEn = dto.FamilyNameEn;
         if (dto.MotherNameAr is not null) c.MotherNameAr = dto.MotherNameAr;
-        if (dto.LegacyNationalNo is not null) c.LegacyNationalNo = dto.LegacyNationalNo;
+        if (dto.LegacyNationalNo is not null && dto.LegacyNationalNo != c.LegacyNationalNo)
+        { c.LegacyNationalNo = dto.LegacyNationalNo; identityChanged = true; }
         if (dto.FamilyBookNo is not null) c.FamilyBookNo = dto.FamilyBookNo;
         if (dto.BirthPlace is not null) c.BirthPlace = dto.BirthPlace;
         if (dto.MaritalStatus is not null) c.MaritalStatus = dto.MaritalStatus;
@@ -156,6 +175,9 @@ public sealed class CitizensService(SarhDbContext db)
         if (dto.PhotoPath is not null) c.PhotoPath = dto.PhotoPath;
         if (dto.SignaturePath is not null) c.SignaturePath = dto.SignaturePath;
 
+        if (identityChanged)
+            await RefreshCardIdentityHashesAsync(c, actor, ct);
+
         try
         {
             await db.SaveChangesAsync(ct);
@@ -163,10 +185,38 @@ public sealed class CitizensService(SarhDbContext db)
         catch (DbUpdateException ex) when (IsUnique(ex))
         {
             throw SarhException.Conflict(
-                "تعارض في رقم الهاتف أو البريد الإلكتروني.",
-                "Conflict on phone or email.");
+                "تعارض في رقم الهاتف أو البريد الإلكتروني أو الرقم الوطني.",
+                "Conflict on phone, email or national number.");
         }
         return CitizenView.From(c);
+    }
+
+    /// <summary>
+    /// Re-derives <c>digital_id_cards.data_hash</c> for every live card the
+    /// citizen holds after a civil-identity edit, and records the change in
+    /// id_issuance_history so officers know the physical card may need reissue.
+    /// Revoked/expired cards are left untouched (historical record).
+    /// </summary>
+    private async Task RefreshCardIdentityHashesAsync(Citizen c, CurrentUser actor, CancellationToken ct)
+    {
+        var liveCards = await db.DigitalIdCards
+            .Where(card => card.CitizenId == c.Id
+                && card.Status != "revoked" && card.Status != "expired")
+            .ToListAsync(ct);
+
+        foreach (var card in liveCards)
+        {
+            card.DataHash = IdentityHash.Compute(c, card.DigitalIdNumber);
+            db.IdIssuanceHistory.Add(new IdIssuanceHistory
+            {
+                Id = Guid.NewGuid(),
+                CitizenId = c.Id,
+                CardId = card.Id,
+                Action = "identity-updated",
+                Reason = "تحديث بيانات الهوية أعاد احتساب بصمة البطاقة (data_hash).",
+                OfficerId = actor.OfficerId,
+            });
+        }
     }
 
     private static bool IsUnique(DbUpdateException ex) =>

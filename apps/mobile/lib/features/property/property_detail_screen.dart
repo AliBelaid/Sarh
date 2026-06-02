@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/router.dart';
 import '../../core/api/repositories.dart';
-import '../../core/api/sarh_api_client.dart' show sarhApiBaseUrl;
+import '../../core/api/sarh_api_client.dart' show activeApiBaseUrl;
 import '../../core/models/api_error.dart';
 import '../../core/models/property.dart';
 import '../../core/theme/sarh_colors.dart';
@@ -200,7 +200,7 @@ class _DeedCard extends StatelessWidget {
   const _DeedCard({required this.propertyCode});
 
   Future<void> _open(BuildContext context) async {
-    final uri = Uri.parse('$sarhApiBaseUrl/verify/$propertyCode/deed.pdf');
+    final uri = Uri.parse('$activeApiBaseUrl/verify/$propertyCode/deed.pdf');
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

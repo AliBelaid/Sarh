@@ -44,6 +44,30 @@ export interface ListCitizensParams {
   cursor?: string;
 }
 
+// PATCH payload — omit a field to leave it unchanged. Editing the Arabic
+// quadruple name or birth_date re-derives the bound card's data_hash server-side.
+export interface UpdateCitizenPayload {
+  first_name_ar?: string;
+  father_name_ar?: string;
+  grandfather_name_ar?: string;
+  family_name_ar?: string;
+  birth_date?: string; // yyyy-MM-dd
+  first_name_en?: string;
+  father_name_en?: string;
+  grandfather_name_en?: string;
+  family_name_en?: string;
+  mother_name_ar?: string;
+  legacy_national_no?: string;
+  family_book_no?: string;
+  birth_place?: string;
+  marital_status?: string;
+  phone?: string;
+  email?: string;
+  region_id?: number;
+  municipality_id?: number;
+  address_ar?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CitizensService {
   private readonly http = inject(HttpClient);
@@ -59,5 +83,9 @@ export class CitizensService {
 
   get(id: string): Promise<Citizen> {
     return firstValueFrom(this.http.get<Citizen>(`${API_BASE}/citizens/${id}`));
+  }
+
+  update(id: string, payload: UpdateCitizenPayload): Promise<Citizen> {
+    return firstValueFrom(this.http.patch<Citizen>(`${API_BASE}/citizens/${id}`, payload));
   }
 }

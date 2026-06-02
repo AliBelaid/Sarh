@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show ChangeNotifier;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -183,20 +185,77 @@ class _ErrorInterceptor extends Interceptor {
   }
 }
 
-// The API base URL (…/api/v1). Single source of truth so screens can build
-// public links (e.g. the verify deed PDF) off the same value the dio client
-// uses. Overridden via --dart-define=SARH_API_URL=http://<host>:3001/api/v1.
+// Compile-time API base URL (…/api/v1). Used as-is when a developer passes an
+// explicit --dart-define=SARH_API_URL=http://<host>:3001/api/v1; otherwise it
+// is just the first probe candidate. The 10.0.2.2 default is the Android
+// *emulator* alias for the host loopback — it does NOT route from a physical
+// device, which is why we fall back (see resolveApiBaseUrl).
 const sarhApiBaseUrl = String.fromEnvironment(
   'SARH_API_URL',
   defaultValue: 'http://10.0.2.2:3001/api/v1',
 );
 
+// The base URL actually in use. Defaults to the compile-time value and is
+// replaced once at startup by resolveApiBaseUrl(). Screens that build public
+// links (e.g. the verify deed PDF) read this so they track the resolved host.
+// Set exactly once in main() before any widget builds, so plain mutation is safe.
+String activeApiBaseUrl = sarhApiBaseUrl;
+
+// Picks a reachable API host so the app "just works" on the emulator
+// (10.0.2.2), a USB-tethered physical device (localhost via `adb reverse
+// tcp:3001`), an iOS simulator / web / desktop (localhost), without anyone
+// remembering a --dart-define.
+//
+//   * An explicit --dart-define=SARH_API_URL wins outright — no probing.
+//   * Otherwise every candidate's /health is probed concurrently and the
+//     first 200 wins. If none answer (offline / LAN-only / demo mode) we keep
+//     the compile-time default, so behaviour is never worse than before.
+//
+// For a LAN device with no adb tunnel the host IP is unknowable here — pass it
+// via --dart-define.
+Future<String> resolveApiBaseUrl() async {
+  if (bool.hasEnvironment('SARH_API_URL')) return sarhApiBaseUrl;
+  const candidates = <String>[
+    'http://localhost:3001/api/v1',
+    'http://127.0.0.1:3001/api/v1',
+    'http://10.0.2.2:3001/api/v1',
+  ];
+  return await _firstReachable(candidates) ?? sarhApiBaseUrl;
+}
+
+Future<String?> _firstReachable(List<String> bases) async {
+  final probe = Dio(BaseOptions(
+    connectTimeout: const Duration(milliseconds: 1500),
+    receiveTimeout: const Duration(milliseconds: 1500),
+  ));
+  final completer = Completer<String?>();
+  var pending = bases.length;
+  for (final base in bases) {
+    () async {
+      var ok = false;
+      try {
+        final res = await probe.get<dynamic>('$base/health');
+        ok = res.statusCode == 200;
+      } catch (_) {
+        ok = false;
+      }
+      if (ok) {
+        if (!completer.isCompleted) completer.complete(base);
+      } else if (--pending == 0 && !completer.isCompleted) {
+        completer.complete(null);
+      }
+    }();
+  }
+  final result = await completer.future;
+  probe.close(force: true);
+  return result;
+}
+
 // Exposed in the provider tree by the widget bootstrap so screens can
 // depend on `apiClientProvider` without each one constructing a dio.
 final apiClientProvider = Provider<SarhApiClient>((ref) {
-  const baseUrl = sarhApiBaseUrl;
   return SarhApiClient.build(
-    baseUrl: baseUrl,
+    baseUrl: activeApiBaseUrl,
     // On a 401 from any non-auth endpoint, flip the auth controller to
     // signed-out so the GoRouter redirect sends the user to /login on
     // the next frame instead of leaving them staring at a raw error.

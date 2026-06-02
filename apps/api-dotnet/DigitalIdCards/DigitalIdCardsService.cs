@@ -116,6 +116,7 @@ public sealed partial class DigitalIdCardsService(
             DigitalIdNumber = digitalIdNumber,
             CardSerial = cardSerial,
             PhotoHash = photoHash,
+            DataHash = IdentityHash.Compute(citizen, digitalIdNumber),
             IssuedByOfficerId = actor.OfficerId,
             IssuedAt = DateTimeOffset.UtcNow,
             ExpiresAt = expiresAt,
@@ -184,6 +185,9 @@ public sealed partial class DigitalIdCardsService(
         var old = await db.DigitalIdCards.AsNoTracking().FirstOrDefaultAsync(c => c.Id == cardId, ct)
             ?? throw SarhException.NotFound("البطاقة", "Card");
 
+        var citizen = await db.Citizens.AsNoTracking().FirstOrDefaultAsync(c => c.Id == old.CitizenId, ct)
+            ?? throw SarhException.NotFound("المواطن", "Citizen");
+
         await TransitionAsync(cardId, "revoked", $"إعادة إصدار: {dto.Reason}", actor, "revoked", ct);
 
         var year = DateTime.UtcNow.Year;
@@ -205,6 +209,7 @@ public sealed partial class DigitalIdCardsService(
             DigitalIdNumber = digitalIdNumber,
             CardSerial = cardSerial,
             PhotoHash = old.PhotoHash,
+            DataHash = IdentityHash.Compute(citizen, digitalIdNumber),
             IssuedByOfficerId = actor.OfficerId,
             IssuedAt = DateTimeOffset.UtcNow,
             ExpiresAt = DateTimeOffset.UtcNow.AddYears(5),
