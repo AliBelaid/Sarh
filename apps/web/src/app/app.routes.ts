@@ -221,6 +221,16 @@ export const APP_ROUTES: Routes = [
           import('./features/admin/pages/citizens.page').then((m) => m.AdminCitizensPage),
       },
       {
+        // Edit a citizen's civil-identity data. Backend PATCH /citizens allows
+        // id_issuer / registry_officer / super_admin; of those only super_admin
+        // reaches the admin citizens list, so the edit screen is super-admin only
+        // (auditor is read-only).
+        path: 'citizens/:id/edit',
+        canActivate: [roleGuard(['super_admin'])],
+        loadComponent: () =>
+          import('./features/admin/pages/citizen-edit.page').then((m) => m.AdminCitizenEditPage),
+      },
+      {
         path: 'digital-ids',
         canActivate: [roleGuard([...ADMIN_ROLES, 'id_issuer'])],
         loadComponent: () =>

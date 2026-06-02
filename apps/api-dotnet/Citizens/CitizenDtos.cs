@@ -39,6 +39,14 @@ public sealed class CreateCitizenDto
 /// distinguish "explicit null" from "absent" with System.Text.Json.</summary>
 public sealed class UpdateCitizenDto
 {
+    // Core civil-identity fields (الاسم الرباعي وتاريخ الميلاد). Editing these
+    // re-derives the card data_hash; see CitizensService.UpdateAsync.
+    [MinLength(2), MaxLength(64)] public string? FirstNameAr { get; set; }
+    [MaxLength(64)] public string? FatherNameAr { get; set; }
+    [MaxLength(64)] public string? GrandfatherNameAr { get; set; }
+    [MaxLength(64)] public string? FamilyNameAr { get; set; }
+    public DateOnly? BirthDate { get; set; }
+
     [MaxLength(64)] public string? FirstNameEn { get; set; }
     [MaxLength(64)] public string? FatherNameEn { get; set; }
     [MaxLength(64)] public string? GrandfatherNameEn { get; set; }
