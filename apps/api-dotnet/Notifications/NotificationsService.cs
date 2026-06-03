@@ -12,10 +12,14 @@ namespace Sarh.Api.Notifications;
 public sealed class NotificationsService(
     SarhDbContext db,
     IHubContext<NotificationsHub> hub,
+    ISmsSender sms,
     ILogger<NotificationsService> log)
 {
+    // alsoSms=true additionally sends the message to the citizen's phone via
+    // the SMS gateway for critical events (approval, rejection, card issuance).
     public async Task NotifyCitizenAsync(
-        Guid citizenId, string titleAr, string bodyAr, object? payload, CancellationToken ct)
+        Guid citizenId, string titleAr, string bodyAr, object? payload, CancellationToken ct,
+        bool alsoSms = false)
     {
         await TryInsertAsync(new Notification
         {
@@ -27,6 +31,9 @@ public sealed class NotificationsService(
             Payload = payload is null ? null : JsonSerializer.Serialize(payload),
             DeliveryStatus = "queued",
         }, ct);
+
+        if (alsoSms)
+            await TrySendSmsAsync(citizenId, titleAr, bodyAr, payload, ct);
     }
 
     public async Task NotifyOfficerAsync(
@@ -136,6 +143,57 @@ public sealed class NotificationsService(
         if (actor.OfficerId is Guid oid)
             return db.Notifications.Where(n => n.RecipientOfficerId == oid);
         throw SarhException.Forbidden("لا يوجد مستلِم مرتبط بحسابك.");
+    }
+
+    // Sends an SMS and records the attempt as a kind='sms' notification row
+    // with delivery_status reflecting the outcome (sent / failed). Entirely
+    // best-effort: a missing/invalid phone or a gateway error is logged and
+    // recorded, never thrown back into the approve/issue flow.
+    private async Task TrySendSmsAsync(
+        Guid citizenId, string titleAr, string bodyAr, object? payload, CancellationToken ct)
+    {
+        var row = new Notification
+        {
+            Id = Guid.NewGuid(),
+            RecipientCitizenId = citizenId,
+            Kind = "sms",
+            TitleAr = titleAr,
+            BodyAr = bodyAr,
+            Payload = payload is null ? null : JsonSerializer.Serialize(payload),
+            DeliveryStatus = "queued",
+        };
+        try
+        {
+            var phone = await db.Citizens.AsNoTracking()
+                .Where(c => c.Id == citizenId)
+                .Select(c => c.Phone)
+                .FirstOrDefaultAsync(ct);
+            var e164 = LibyanPhone.Normalize(phone);
+
+            db.Notifications.Add(row);
+            await db.SaveChangesAsync(ct);
+
+            if (e164 is null)
+            {
+                log.LogWarning("SMS skipped for citizen {Citizen}: no valid mobile number.", citizenId);
+                row.DeliveryStatus = "failed";
+                await db.SaveChangesAsync(ct);
+                return;
+            }
+
+            var result = await sms.SendAsync(e164, SmsText.Compose(titleAr, bodyAr), ct);
+            row.DeliveryStatus = result.Success ? "sent" : "failed";
+            await db.SaveChangesAsync(ct);
+
+            if (!result.Success)
+                log.LogWarning("SMS to {Citizen} via {Provider} failed: {Error}",
+                    citizenId, sms.Provider, result.Error);
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "TrySendSmsAsync failed for citizen {Citizen}", citizenId);
+            db.Entry(row).State = EntityState.Detached;
+        }
     }
 
     private async Task TryInsertAsync(Notification n, CancellationToken ct)

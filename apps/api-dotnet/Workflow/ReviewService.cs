@@ -121,7 +121,7 @@ public sealed class ReviewService(
             "تم اعتماد عقارك",
             $"تم اعتماد عقارك ورمزه {propertyCode}. يمكنك الآن تنزيل سند الملكية.",
             new { property_id = property.Id, property_code = propertyCode, verify_url = verifyUrl },
-            ct);
+            ct, alsoSms: true);
 
         return new ReviewResult
         {
@@ -171,7 +171,7 @@ public sealed class ReviewService(
             "تم رفض طلب تسجيل العقار",
             $"تم رفض طلبك. السبب: {dto.Note}",
             new { property_id = property.Id, reason = dto.Note },
-            ct);
+            ct, alsoSms: true);
 
         return new ReviewResult { Property = PropertyView.From(property) };
     }

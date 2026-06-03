@@ -158,7 +158,7 @@ public sealed partial class DigitalIdCardsService(
             "تم إصدار بطاقة الهوية الرقمية",
             $"تم إصدار بطاقتك برقم {card.DigitalIdNumber}.",
             new { card_id = card.Id, digital_id_number = card.DigitalIdNumber },
-            ct);
+            ct, alsoSms: true);
 
         return new IssueCardResult
         {

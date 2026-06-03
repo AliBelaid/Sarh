@@ -91,6 +91,21 @@ builder.Services.AddScoped<Sarh.Api.Audit.AuditService>();
 builder.Services.AddScoped<Sarh.Api.Audit.AuditActionFilter>();
 builder.Services.AddScoped<Sarh.Api.Notifications.NotificationsService>();
 
+// SMS — log-only by default. Set SMS_GATEWAY_URL (or Sarh:Sms:Mode=libyana)
+// to send approval/rejection/issuance alerts through the Libyana gateway.
+var smsSection = builder.Configuration.GetSection(Sarh.Api.Notifications.SmsOptions.SectionName);
+builder.Services.Configure<Sarh.Api.Notifications.SmsOptions>(smsSection);
+var smsOptions = smsSection.Get<Sarh.Api.Notifications.SmsOptions>() ?? new Sarh.Api.Notifications.SmsOptions();
+if (smsOptions.UseGateway)
+{
+    builder.Services.AddHttpClient<Sarh.Api.Notifications.ISmsSender, Sarh.Api.Notifications.LibyanaSmsSender>(c =>
+        c.Timeout = TimeSpan.FromSeconds(15));
+}
+else
+{
+    builder.Services.AddScoped<Sarh.Api.Notifications.ISmsSender, Sarh.Api.Notifications.LogSmsSender>();
+}
+
 // Boot-time seed: re-stamps demo bcrypt hashes and warns if 029 didn't run.
 builder.Services.AddHostedService<Sarh.Api.Data.DbSeeder>();
 
