@@ -36,6 +36,9 @@ public static class EnvBootstrap
         Pair(pairs, "Sarh:DeedSigning:CertPath", "DEED_SIGNING_CERT_PATH");
         Pair(pairs, "Sarh:DeedSigning:CertPassphrase", "DEED_SIGNING_CERT_PASSPHRASE");
 
+        // App-level rate limiting (defense in depth; nginx is the first layer).
+        Pair(pairs, "Sarh:RateLimit:Enabled", "RATE_LIMIT_ENABLED");
+
         // SMS gateway (Libyana). Unset GatewayUrl → the log-only sender runs.
         Pair(pairs, "Sarh:Sms:Mode", "SMS_MODE");
         Pair(pairs, "Sarh:Sms:GatewayUrl", "SMS_GATEWAY_URL");
