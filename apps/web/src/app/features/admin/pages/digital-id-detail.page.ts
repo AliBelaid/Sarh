@@ -10,7 +10,7 @@ import { Citizen, CitizensService } from '@core/citizens.service';
 import { DigitalIdCard, DigitalIdCardsService, ResetPinResult } from '@core/digital-id-cards.service';
 import { CARD_STATUS, REGIONS } from '../../../shared/status-pills';
 
-type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | null;
+type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | 'edit' | null;
 
 @Component({
   selector: 'app-digital-id-detail',
@@ -150,6 +150,12 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | null;
 
             <h3 class="panel-title mt">الإجراءات</h3>
             <div class="actions">
+              @if (canEdit() && (c.status === 'active' || c.status === 'frozen')) {
+                <button class="btn ghost" (click)="openModal('edit')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  تعديل الصلاحية
+                </button>
+              }
               @if (c.status === 'active') {
                 <button class="btn warn" (click)="openModal('freeze')">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M4 6l16 12M20 6L4 18"/></svg>
@@ -194,6 +200,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | null;
                   @case ('reissue') { إعادة إصدار البطاقة }
                   @case ('pin')     { إعادة تعيين رمز PIN }
                   @case ('delete')  { حذف البطاقة نهائياً }
+                  @case ('edit')    { تعديل صلاحية البطاقة }
                 }
               </h3>
               <p class="modal-sub">
@@ -203,8 +210,15 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | null;
                   @case ('reissue') { سيتم إصدار بطاقة جديدة بمفاتيح NFC جديدة، وإلغاء البطاقة الحالية. }
                   @case ('pin')     { سيتم توليد رمز PIN جديد من 6 أرقام. لن يكون بالإمكان استرجاعه لاحقاً — اطبعه أو اكتبه فوراً. }
                   @case ('delete')  { إجراء لا يمكن التراجع عنه: سيتم إلغاء البطاقة وإتلاف مفاتيح NFC السرّية ومسح بياناتها الحسّاسة. يبقى سجل البطاقة للتدقيق فقط. }
+                  @case ('edit')    { تحديث تاريخ انتهاء صلاحية البطاقة فقط. لا يؤثّر على الهوية أو الصورة أو مفاتيح NFC. }
                 }
               </p>
+
+              @if (modal() === 'edit') {
+                <label class="modal-lbl">تاريخ الانتهاء الجديد</label>
+                <input type="date" class="modal-input" dir="ltr"
+                       [(ngModel)]="editExpiry" name="editExpiry" [min]="todayIso" />
+              }
 
               @if (modal() === 'pin' && pinResult(); as pin) {
                 <div class="pin-display">
@@ -235,7 +249,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | null;
                 } @else {
                   <button class="btn ghost" (click)="closeModal()" [disabled]="acting()">إلغاء</button>
                   <button class="btn primary" (click)="confirmAction()"
-                          [disabled]="(modal() !== 'pin' && !reason.trim()) || acting()">
+                          [disabled]="(modal() !== 'pin' && !reason.trim()) || (modal() === 'edit' && !editExpiry) || acting()">
                     @if (acting()) { <span class="spin"></span> جارٍ التنفيذ… }
                     @else { تأكيد }
                   </button>
@@ -561,6 +575,16 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
   // button so it never shows for id_issuer / auditor reaching this page.
   readonly canDelete = computed(() => this.auth.user()?.role === 'super_admin');
 
+  // Validity edit is open to the issuing roles; auditor reaches this page but
+  // is read-only, so keep the button hidden for them.
+  readonly canEdit = computed(() => {
+    const r = this.auth.user()?.role;
+    return r === 'super_admin' || r === 'id_issuer';
+  });
+
+  readonly todayIso = new Date().toISOString().slice(0, 10);
+  editExpiry = '';
+
   readonly card = signal<DigitalIdCard | null>(null);
   readonly citizen = signal<Citizen | null>(null);
   readonly citizenPhoto = signal<string | null>(null);
@@ -652,6 +676,10 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
     this.keepNumber = false;
     this.modalError.set(null);
     this.pinResult.set(null);
+    if (m === 'edit') {
+      const exp = this.card()?.expires_at;
+      this.editExpiry = exp ? new Date(exp).toISOString().slice(0, 10) : '';
+    }
   }
   closeModal(): void {
     this.modal.set(null);
@@ -691,6 +719,14 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
           await this.api.delete(c.id, this.reason.trim());
           this.router.navigate(['/app/digital-ids']);
           return;
+        }
+        case 'edit': {
+          const iso = new Date(this.editExpiry + 'T00:00:00Z').toISOString();
+          const updated = await this.api.update(c.id, { expires_at: iso, reason: this.reason.trim() });
+          // The PATCH returns the card without the citizen summary — keep the
+          // one we already loaded so the side panel doesn't blank out.
+          this.card.set({ ...updated, citizen: updated.citizen ?? c.citizen });
+          break;
         }
       }
       this.closeModal();

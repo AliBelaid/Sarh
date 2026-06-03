@@ -31,6 +31,16 @@ public sealed class ReissueCardDto
     public bool? KeepDigitalIdNumber { get; set; }
 }
 
+// In-place edit of an issued card. The card is immutable by design for
+// tamper-evidence; the only safely-mutable attribute is its validity window.
+// Supply an absolute ExpiresAt, or ValidityYears (= IssuedAt + N years).
+public sealed class UpdateCardDto
+{
+    public DateTimeOffset? ExpiresAt { get; set; }
+    [Range(1, 20)] public int? ValidityYears { get; set; }
+    [MaxLength(500)] public string? Reason { get; set; }
+}
+
 public sealed class ListCardsQuery
 {
     public string? Cursor { get; set; }

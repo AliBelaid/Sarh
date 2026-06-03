@@ -120,6 +120,17 @@ export class DigitalIdCardsService {
     );
   }
 
+  // Edit an issued card's validity window. The card is immutable apart from
+  // its expiry — pass a new absolute expires_at (ISO) or validity_years.
+  update(
+    id: string,
+    payload: { expires_at?: string; validity_years?: number; reason?: string },
+  ): Promise<DigitalIdCard> {
+    return firstValueFrom(
+      this.http.patch<DigitalIdCard>(`${API_BASE}/digital-id-cards/${id}`, payload),
+    );
+  }
+
   // Super-admin only. Soft-deletes the card (status=revoked) and purges its
   // NFC secrets server-side. Reason is optional but recorded in the audit log.
   delete(id: string, reason?: string): Promise<DeleteCardResult> {
