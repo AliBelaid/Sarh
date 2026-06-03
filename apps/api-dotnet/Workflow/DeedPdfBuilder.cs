@@ -9,8 +9,10 @@ namespace Sarh.Api.Workflow;
 // Generates the official Sarh "صحيفة ملكية عقاريّة" PDF on approval. Output is a
 // single A4 page rendered with QuestPDF in Arabic-RTL using the brand palette.
 //
-// PAdES envelope signing (CMS over CAdES) is intentionally NOT included here —
-// that requires a CA-issued cert + iText/BouncyCastle; tracked separately.
+// This builder only renders the PDF bytes. The deed is then cryptographically
+// signed by DeedSigningService (detached CMS/PKCS#7, written as deed.pdf.p7s);
+// embedding the signature inside the PDF's /ByteRange (full ISO 32000 PAdES)
+// would need an incremental-update PDF writer and is tracked separately.
 // What this DOES guarantee:
 //   1. The PDF is real bytes (callers can SHA-256 the result).
 //   2. It carries the canonical fields a verifier needs.

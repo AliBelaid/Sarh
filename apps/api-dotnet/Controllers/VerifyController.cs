@@ -61,4 +61,14 @@ public class VerifyController(VerifyService verify, MapService map, StorageServi
         Response.Headers["X-Deed-SHA256"] = expectedHash ?? "";
         return File(bytes, "application/pdf");
     }
+
+    // Detached CMS/PKCS#7 signature for the deed — lets a verifier check the
+    // deed PDF against the Sarh deed authority's signature out-of-band.
+    [HttpGet("{code}/deed.p7s")]
+    public async Task<IActionResult> DownloadDeedSignature(string code, CancellationToken ct)
+    {
+        var (propertyCode, signature) = await verify.ResolveDeedSignatureAsync(code, ct);
+        Response.Headers["Content-Disposition"] = $"attachment; filename=\"{propertyCode}.pdf.p7s\"";
+        return File(signature, "application/pkcs7-signature");
+    }
 }

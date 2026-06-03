@@ -15,7 +15,10 @@ namespace Sarh.Api.Verify;
 public sealed class VerifyService(
     SarhDbContext db,
     IBlockchainService chain,
-    IIpfsService ipfs)
+    IIpfsService ipfs,
+    Sarh.Api.Storage.StorageService storage,
+    Sarh.Api.Workflow.DeedSigningService deedSigning,
+    ILogger<VerifyService> log)
 {
     // Statuses that count as "publicly verifiable". Adds 'minted' +
     // 'transferred' on top of the legacy 'approved' since both imply
@@ -66,6 +69,8 @@ public sealed class VerifyService(
         var deedSignedUrl = !string.IsNullOrEmpty(p.DeedPdfPath)
             ? $"/api/v1/verify/{p.PropertyCode}/deed.pdf"
             : null;
+
+        var deedSignature = await LoadDeedSignatureAsync(p.PropertyCode!, p.DeedPdfPath, ct);
 
         // On-chain NFT (if any). Look up the active row only — a 'failed' or
         // 'burned' NFT must not appear on the public deed view.
@@ -136,6 +141,7 @@ public sealed class VerifyService(
             BoundaryPolygonGeojson = polygon,
             DeedPdfSignedUrl = deedSignedUrl,
             DeedSignedHash = p.DeedSignedHash,
+            DeedSignature = deedSignature,
             Nft = nftView,
             HasActiveDispute = activeDisputes.Count > 0,
             ActiveDisputes = activeDisputes,
@@ -152,6 +158,55 @@ public sealed class VerifyService(
         if (row is null || string.IsNullOrEmpty(row.DeedPdfPath))
             throw SarhException.NotFound("السند العقاري", "Deed");
         return (row.PropertyCode!, row.DeedPdfPath!, row.DeedSignedHash);
+    }
+
+    // Reads the deed PDF + its detached .p7s from storage and verifies the
+    // signature. Returns null (no signature on file) for older unsigned deeds
+    // or any read error — verification is informational, never fatal.
+    private async Task<DeedSignatureView?> LoadDeedSignatureAsync(
+        string propertyCode, string? deedPdfPath, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(deedPdfPath)) return null;
+        var slash = deedPdfPath.IndexOf('/');
+        if (slash <= 0) return null;
+        var bucket = deedPdfPath[..slash];
+        var path = deedPdfPath[(slash + 1)..];
+
+        try
+        {
+            var pdf = await storage.ReadAsync(bucket, path, ct);
+            byte[] sig;
+            try { sig = await storage.ReadAsync(bucket, path + ".p7s", ct); }
+            catch (SarhException) { return null; } // unsigned (older) deed
+
+            var result = deedSigning.Verify(pdf, sig);
+            return new DeedSignatureView
+            {
+                Valid = result.Valid,
+                SignerSubject = result.SignerSubject,
+                SignerThumbprint = result.SignerThumbprint,
+                SignedAt = result.SignedAt,
+                SignatureUrl = $"/api/v1/verify/{propertyCode}/deed.p7s",
+            };
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "Deed signature verification failed for {Code}; treating as unsigned.", propertyCode);
+            return null;
+        }
+    }
+
+    // Resolves the detached signature bytes for the public download route.
+    public async Task<(string PropertyCode, byte[] Signature)> ResolveDeedSignatureAsync(string code, CancellationToken ct)
+    {
+        var (propertyCode, deedPdfPath, _) = await ResolveDeedPathAsync(code, ct);
+        var slash = deedPdfPath.IndexOf('/');
+        var bucket = deedPdfPath[..slash];
+        var path = deedPdfPath[(slash + 1)..];
+        byte[] sig;
+        try { sig = await storage.ReadAsync(bucket, path + ".p7s", ct); }
+        catch (SarhException) { throw SarhException.NotFound("توقيع السند", "Deed signature"); }
+        return (propertyCode, sig);
     }
 
     private async Task<JsonElement?> LoadPolygonGeoJsonAsync(Guid propertyId, CancellationToken ct)
