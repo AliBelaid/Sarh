@@ -32,6 +32,10 @@ public static class EnvBootstrap
         Pair(pairs, "Sarh:Ssi:PropertyDeedSchemaId", "ACA_PY_PROPERTY_DEED_SCHEMA_ID");
         Pair(pairs, "Sarh:Ssi:PropertyDeedCredDefId", "ACA_PY_PROPERTY_DEED_CRED_DEF_ID");
 
+        // Deed PAdES/CMS signing. Unset CertPath → a self-signed dev authority.
+        Pair(pairs, "Sarh:DeedSigning:CertPath", "DEED_SIGNING_CERT_PATH");
+        Pair(pairs, "Sarh:DeedSigning:CertPassphrase", "DEED_SIGNING_CERT_PASSPHRASE");
+
         // SMS gateway (Libyana). Unset GatewayUrl → the log-only sender runs.
         Pair(pairs, "Sarh:Sms:Mode", "SMS_MODE");
         Pair(pairs, "Sarh:Sms:GatewayUrl", "SMS_GATEWAY_URL");

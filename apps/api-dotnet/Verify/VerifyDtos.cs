@@ -17,6 +17,10 @@ public sealed class PublicDeedView
     public string? DeedPdfSignedUrl { get; init; }
     public string? DeedSignedHash { get; init; }
 
+    // Cryptographic deed signature (detached CMS/PKCS#7). Null when no
+    // signature is on file (older approvals predating signing).
+    public DeedSignatureView? DeedSignature { get; init; }
+
     // On-chain NFT licence — present when the property has been minted.
     // Null when the deed exists but no licence has been minted yet (older
     // approvals, or the manager hasn't run final-approve).
@@ -27,6 +31,19 @@ public sealed class PublicDeedView
     // still be unsellable. Empty list = clear title at the registry's record.
     public bool HasActiveDispute { get; init; }
     public IReadOnlyList<PublicDisputeView> ActiveDisputes { get; init; } = [];
+}
+
+// Public view of the deed's cryptographic signature. Lets a verifier confirm
+// the PDF was signed by the Sarh deed authority and hasn't been altered since.
+public sealed class DeedSignatureView
+{
+    // True when the detached CMS verifies against the deed PDF on file.
+    public required bool Valid { get; init; }
+    public string? SignerSubject { get; init; }
+    public string? SignerThumbprint { get; init; }
+    public DateTimeOffset? SignedAt { get; init; }
+    // Download URL for the detached .p7s signature.
+    public required string SignatureUrl { get; init; }
 }
 
 // Sanitised encumbrance view for the public verify page. No officer ids or

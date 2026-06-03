@@ -13,6 +13,7 @@ public sealed class ReviewService(
     SarhDbContext db,
     NotificationsService notifications,
     DeedPdfBuilder deedBuilder,
+    DeedSigningService deedSigning,
     StorageService storage,
     Sarh.Api.Ssi.ISsiService ssi,
     IConfiguration config,
@@ -95,6 +96,11 @@ public sealed class ReviewService(
         var written = await storage.WriteRawAsync("property_deeds", deedRel, pdfBytes, "application/pdf", ct);
         var deedPath = $"property_deeds/{written.Path}";
         var deedHash = written.Sha256;
+
+        // PAdES/CMS signature — a detached PKCS#7 over the PDF bytes, written
+        // beside the deed as deed.pdf.p7s. Best-effort: a signing hiccup must
+        // not block approval (the SHA-256 tamper check still applies).
+        await SignDeedAsync(property.Id, deedRel, pdfBytes, ct);
 
         property.Status = "approved";
         property.PropertyCode = propertyCode;
@@ -194,6 +200,22 @@ public sealed class ReviewService(
             ct);
 
         return new ReviewResult { Property = PropertyView.From(property) };
+    }
+
+    // Signs the deed PDF and writes the detached CMS signature alongside it
+    // (property_deeds/{id}/deed.pdf.p7s). Best-effort.
+    private async Task SignDeedAsync(Guid propertyId, string deedRel, byte[] pdfBytes, CancellationToken ct)
+    {
+        try
+        {
+            var signature = deedSigning.Sign(pdfBytes);
+            await storage.WriteRawAsync(
+                "property_deeds", $"{deedRel}.p7s", signature, "application/pkcs7-signature", ct);
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "Deed signing failed for property {PropertyId}; deed stored unsigned.", propertyId);
+        }
     }
 
     private string BuildVerifyUrl(string propertyCode)

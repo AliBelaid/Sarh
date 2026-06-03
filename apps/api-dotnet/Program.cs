@@ -48,6 +48,11 @@ builder.Services.AddScoped<Sarh.Api.Citizens.CitizensService>();
 builder.Services.AddScoped<Sarh.Api.Officers.OfficersService>();
 builder.Services.AddScoped<Sarh.Api.Properties.PropertiesService>();
 builder.Services.AddSingleton<Sarh.Api.Workflow.DeedPdfBuilder>();
+// Deed signing — detached CMS/PKCS#7 over the deed PDF. Self-signed dev
+// authority by default; set DEED_SIGNING_CERT_PATH to a real PFX in production.
+builder.Services.Configure<Sarh.Api.Workflow.DeedSigningOptions>(
+    builder.Configuration.GetSection(Sarh.Api.Workflow.DeedSigningOptions.SectionName));
+builder.Services.AddSingleton<Sarh.Api.Workflow.DeedSigningService>();
 builder.Services.AddScoped<Sarh.Api.Workflow.ReviewService>();
 builder.Services.AddScoped<Sarh.Api.Workflow.LicenseService>();
 builder.Services.AddScoped<Sarh.Api.Workflow.NftsService>();
