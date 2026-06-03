@@ -20,6 +20,18 @@ public static class EnvBootstrap
         Pair(pairs, "Sarh:KmsMasterKey", "KMS_MASTER_KEY");
         Pair(pairs, "Sarh:NfcSunBaseUrl", "NFC_SUN_BASE_URL");
 
+        // SSI / Hyperledger Aries (ACA-Py). Unset → the placeholder issuer runs.
+        // The *_SCHEMA_ID / *_CRED_DEF_ID values are emitted by
+        // infra/docker/aca-py/bootstrap-schemas.ts into .env.aca-py.
+        Pair(pairs, "Sarh:Ssi:Mode", "ACA_PY_MODE");
+        Pair(pairs, "Sarh:Ssi:AdminUrl", "ACA_PY_ADMIN_URL");
+        Pair(pairs, "Sarh:Ssi:AdminApiKey", "ACA_PY_ADMIN_API_KEY");
+        Pair(pairs, "Sarh:Ssi:DidMethod", "ACA_PY_DID_METHOD");
+        Pair(pairs, "Sarh:Ssi:DigitalIdSchemaId", "ACA_PY_DIGITAL_ID_SCHEMA_ID");
+        Pair(pairs, "Sarh:Ssi:DigitalIdCredDefId", "ACA_PY_DIGITAL_ID_CRED_DEF_ID");
+        Pair(pairs, "Sarh:Ssi:PropertyDeedSchemaId", "ACA_PY_PROPERTY_DEED_SCHEMA_ID");
+        Pair(pairs, "Sarh:Ssi:PropertyDeedCredDefId", "ACA_PY_PROPERTY_DEED_CRED_DEF_ID");
+
         // CORS — comma- or whitespace-separated list. Convert to indexed keys
         // because IConfiguration arrays are bound from "Sarh:CorsOrigins:0",
         // "Sarh:CorsOrigins:1", etc.

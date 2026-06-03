@@ -68,6 +68,23 @@ builder.Services.Configure<Sarh.Api.Blockchain.IpfsOptions>(
 builder.Services.AddSingleton<Sarh.Api.Blockchain.IBlockchainService, Sarh.Api.Blockchain.StubBlockchainService>();
 builder.Services.AddSingleton<Sarh.Api.Blockchain.IIpfsService, Sarh.Api.Blockchain.StubIpfsService>();
 
+// SSI (Hyperledger Aries / ACA-Py) — placeholder issuer by default. Set
+// ACA_PY_ADMIN_URL (or Sarh:Ssi:Mode=acapy) to talk to a real agent; see
+// infra/docker/aca-py/README.md.
+var ssiSection = builder.Configuration.GetSection(Sarh.Api.Ssi.SsiOptions.SectionName);
+builder.Services.Configure<Sarh.Api.Ssi.SsiOptions>(ssiSection);
+var ssiOptions = ssiSection.Get<Sarh.Api.Ssi.SsiOptions>() ?? new Sarh.Api.Ssi.SsiOptions();
+if (ssiOptions.UseAcaPy)
+{
+    builder.Services.AddHttpClient<Sarh.Api.Ssi.AcaPyClient>(c =>
+        c.Timeout = TimeSpan.FromSeconds(15));
+    builder.Services.AddScoped<Sarh.Api.Ssi.ISsiService, Sarh.Api.Ssi.AcaPySsiService>();
+}
+else
+{
+    builder.Services.AddScoped<Sarh.Api.Ssi.ISsiService, Sarh.Api.Ssi.PlaceholderSsiService>();
+}
+
 builder.Services.AddScoped<Sarh.Api.Map.MapService>();
 builder.Services.AddScoped<Sarh.Api.Verify.VerifyService>();
 builder.Services.AddScoped<Sarh.Api.Audit.AuditService>();

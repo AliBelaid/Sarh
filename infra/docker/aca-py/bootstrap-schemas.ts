@@ -4,8 +4,8 @@
 // reuses the existing id. The resulting ids are written to .env.aca-py
 // at the repo root so the API can pick them up.
 //
-// Run:
-//   pnpm --filter @sarh/api exec ts-node infra/docker/aca-py/bootstrap-schemas.ts
+// Run (from the repo root; uses global fetch, no deps):
+//   npx tsx infra/docker/aca-py/bootstrap-schemas.ts
 //
 // Required env (or pass via CLI):
 //   ACA_PY_ADMIN_URL          (default http://localhost:8021)

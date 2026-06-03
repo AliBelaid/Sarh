@@ -16,10 +16,15 @@ curl http://localhost:9000/genesis | head -c 100
 curl -H "x-api-key: sarh-dev-admin-key" http://localhost:8021/status
 ```
 
-The API reads `ACA_PY_ADMIN_URL`, `ACA_PY_ADMIN_API_KEY`, and
-`ACA_PY_TENANT_HEADER` from `.env.local` and talks to
-`http://localhost:8021` by default. With these unset, `SsiService` falls
-back to placeholder mode (Phase 5 behavior).
+The API reads `ACA_PY_ADMIN_URL` + `ACA_PY_ADMIN_API_KEY` (mapped onto
+`Sarh:Ssi:*` by `EnvBootstrap`) and talks to the agent at
+`http://localhost:8021`. With `ACA_PY_ADMIN_URL` unset, the `ISsiService`
+binding resolves to `PlaceholderSsiService` — DIDs are derived
+deterministically from the citizen id and credentials are recorded straight
+into `ssi_credentials` (state=`issued`) with no agent. Set `ACA_PY_ADMIN_URL`
+(or `ACA_PY_MODE=acapy`) to switch to `AcaPySsiService`, which provisions a
+multitenant sub-wallet per citizen and issues via `issue-credential-2.0`.
+Both implementations live under `apps/api-dotnet/Ssi/`.
 
 ## Bootstrap schemas
 
@@ -28,7 +33,8 @@ defs against the local ledger. The script is idempotent — run it again
 and it returns the existing ids.
 
 ```bash
-pnpm --filter @sarh/api exec ts-node infra/docker/aca-py/bootstrap-schemas.ts
+# plain Node script (uses global fetch); run from the repo root
+npx tsx infra/docker/aca-py/bootstrap-schemas.ts
 ```
 
 The script writes the resulting ids to `.env.aca-py` at the repo root.
