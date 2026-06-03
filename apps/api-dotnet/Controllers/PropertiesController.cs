@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Sarh.Api.Audit;
 using Sarh.Api.Auth;
 using Sarh.Api.Common;
@@ -28,6 +29,7 @@ public class PropertiesController(
         => map.OfficerMapAsync(User.RequireUser(), regionId, ct);
 
     [HttpPost]
+    [EnableRateLimiting(RateLimitPolicies.Write)]
     [Audit(Action = AuditActions.Create, Entity = "properties", EntityIdFrom = "property.id")]
     public Task<SubmitResult> Submit([FromBody] CreatePropertyDto dto, CancellationToken ct)
         => svc.SubmitAsync(dto, User.RequireUser(), ct);

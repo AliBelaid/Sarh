@@ -36,6 +36,57 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 
 builder.Services.AddSignalR();
 
+// Rate limiting (defense in depth — see Sarh.Api.Common.RateLimitPolicies).
+// Always registered so [EnableRateLimiting] attributes resolve; the middleware
+// is only wired into the pipeline when Sarh:RateLimit:Enabled is true.
+var rateLimitOptions = builder.Configuration.GetSection(Sarh.Api.Common.RateLimitOptions.SectionName)
+    .Get<Sarh.Api.Common.RateLimitOptions>() ?? new Sarh.Api.Common.RateLimitOptions();
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    o.AddPolicy(Sarh.Api.Common.RateLimitPolicies.Auth, ctx =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: Sarh.Api.Common.RateLimitPolicies.ClientKey(
+                ctx.Request.Headers["X-Forwarded-For"], ctx.Connection.RemoteIpAddress?.ToString()),
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = rateLimitOptions.AuthPermitPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+
+    o.AddPolicy(Sarh.Api.Common.RateLimitPolicies.Write, ctx =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: Sarh.Api.Common.RateLimitPolicies.WriteKey(
+                ctx.User.FindFirst("sub")?.Value,
+                ctx.Request.Headers["X-Forwarded-For"], ctx.Connection.RemoteIpAddress?.ToString()),
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = rateLimitOptions.WritePermitPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+
+    // Emit the standard Sarh error envelope (not an empty 429 body).
+    o.OnRejected = async (ctx, ct) =>
+    {
+        ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        ctx.HttpContext.Response.ContentType = "application/json; charset=utf-8";
+        var body = new SarhErrorEnvelope
+        {
+            Error = new SarhErrorBody
+            {
+                Code = "ERR_RATE_LIMITED",
+                MessageAr = "عدد كبير من الطلبات. يرجى المحاولة بعد قليل.",
+                MessageEn = "Too many requests. Please try again shortly.",
+            },
+        };
+        await ctx.HttpContext.Response.WriteAsync(
+            System.Text.Json.JsonSerializer.Serialize(body, JsonDefaults.Options), ct);
+    };
+});
+
 // EF Core → SQL Server.
 var connStr = builder.Configuration["Sarh:ConnectionString"]
     ?? throw new InvalidOperationException("Sarh:ConnectionString is required.");
@@ -225,6 +276,12 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Wire the limiter after auth so the write policy can partition by JWT subject.
+if (rateLimitOptions.Enabled)
+{
+    app.UseRateLimiter();
+}
 
 app.MapControllers();
 app.MapHub<Sarh.Api.Notifications.NotificationsHub>("/hubs/notifications");
