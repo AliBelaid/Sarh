@@ -31,10 +31,8 @@ class AuthState {
 }
 
 // AuthController talks to the .NET API directly. Mobile is citizen-only —
-// the only entry points are POST /auth/sign-in-with-pin (digital_id_number
-// + 6-digit PIN, optionally backed by an NFC tap proof) and a built-in
-// demo path that uses Ahmed's seeded card so a fresh checkout works
-// without manual data entry.
+// the only entry point is POST /auth/sign-in-with-pin (digital_id_number
+// + 6-digit PIN, optionally backed by an NFC tap proof).
 class AuthController extends StateNotifier<AuthState> {
   final SarhApiClient client;
   final AuthBus _bus;
@@ -115,18 +113,6 @@ class AuthController extends StateNotifier<AuthState> {
       throw SarhApiError.unknown(e.message ?? 'تعذّر الاتصال بالخادم.');
     }
   }
-
-  // Demo login — uses Ahmed's seeded card. The DbSeeder hosted service in
-  // the .NET API stamps PIN `123456` onto cards 301/302 on every boot, so
-  // this works without any manual setup. If the seed isn't present (e.g.
-  // a fresh DB without 029), the API returns 401 and we surface it.
-  static const _demoDigitalIdNumber = 'LY-11-2026-000101-0';
-  static const _demoPin = '123456';
-
-  Future<void> loginAsDemo() => login(
-        digitalIdNumber: _demoDigitalIdNumber,
-        pin: _demoPin,
-      );
 
   Future<void> signOut() async {
     await client.clearToken();
