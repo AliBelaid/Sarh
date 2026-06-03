@@ -32,6 +32,14 @@ public static class EnvBootstrap
         Pair(pairs, "Sarh:Ssi:PropertyDeedSchemaId", "ACA_PY_PROPERTY_DEED_SCHEMA_ID");
         Pair(pairs, "Sarh:Ssi:PropertyDeedCredDefId", "ACA_PY_PROPERTY_DEED_CRED_DEF_ID");
 
+        // SMS gateway (Libyana). Unset GatewayUrl → the log-only sender runs.
+        Pair(pairs, "Sarh:Sms:Mode", "SMS_MODE");
+        Pair(pairs, "Sarh:Sms:GatewayUrl", "SMS_GATEWAY_URL");
+        Pair(pairs, "Sarh:Sms:ApiKey", "SMS_API_KEY");
+        Pair(pairs, "Sarh:Sms:Username", "SMS_USERNAME");
+        Pair(pairs, "Sarh:Sms:Password", "SMS_PASSWORD");
+        Pair(pairs, "Sarh:Sms:SenderId", "SMS_SENDER_ID");
+
         // CORS — comma- or whitespace-separated list. Convert to indexed keys
         // because IConfiguration arrays are bound from "Sarh:CorsOrigins:0",
         // "Sarh:CorsOrigins:1", etc.
