@@ -270,42 +270,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    const Divider(),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'دخول سريع للتجربة',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: SarhColors.muted,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.bolt_outlined, size: 16, color: SarhColors.accent),
-                        label: const Text('أحمد التجريبي (LY-11-2026-000101-0)'),
-                        onPressed: _busy ? null : _demoLogin,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: SarhColors.primary,
-                          textStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'PIN: 123456',
-                      textDirection: TextDirection.ltr,
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 11,
-                        color: SarhColors.muted,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 22),
                     const Text(
                       '© 2026 LVCT — Libya Vision for Communication & Technology',
                       textAlign: TextAlign.center,
@@ -323,22 +288,5 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _demoLogin() async {
-    setState(() {
-      _busy = true;
-      _statusAr = 'جاري الدخول التجريبي…';
-    });
-    try {
-      await ref.read(authControllerProvider.notifier).loginAsDemo();
-      if (mounted) context.go(AppRoutes.home);
-    } on SarhApiError catch (e) {
-      setState(() => _statusAr = e.messageAr);
-    } catch (e) {
-      setState(() => _statusAr = 'تعذّر الدخول التجريبي.');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
   }
 }
