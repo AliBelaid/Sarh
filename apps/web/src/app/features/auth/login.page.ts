@@ -17,21 +17,6 @@ function canRoleAccess(role: string, path: string): boolean {
   return true;
 }
 
-interface QuickRole {
-  key: 'citizen' | 'officer' | 'manager' | 'issuer' | 'admin' | 'reviewer';
-  ar: string;
-  email: string;
-  password: string;
-  accent: string;
-}
-
-interface QuickPinRole {
-  ar: string;
-  digitalId: string;
-  pin: string;
-  accent: string;
-}
-
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -149,44 +134,6 @@ interface QuickPinRole {
             </button>
           </form>
         }
-
-        <div class="quick">
-          <div class="quick-label">دخول سريع للتجربة</div>
-
-          @if (mode() === 'email') {
-            <div class="quick-grid">
-              @for (q of quickRoles; track q.email) {
-                <button type="button" class="quick-btn" [style.--qa]="q.accent"
-                        (click)="quickFill(q)" [disabled]="loading()">
-                  <span class="quick-dot"></span>
-                  {{ q.ar }}
-                </button>
-              }
-            </div>
-            <div class="quick-divider"></div>
-            <div class="quick-grid">
-              @for (q of adminRoles; track q.email) {
-                <button type="button" class="quick-btn" [style.--qa]="q.accent"
-                        (click)="quickFill(q)" [disabled]="loading()">
-                  <span class="quick-dot"></span>
-                  {{ q.ar }}
-                </button>
-              }
-            </div>
-            <div class="quick-hint mono">كلمة المرور لجميع الحسابات: Demo!12345</div>
-          } @else {
-            <div class="quick-grid">
-              @for (q of quickPinRoles; track q.digitalId) {
-                <button type="button" class="quick-btn" [style.--qa]="q.accent"
-                        (click)="quickFillPin(q)" [disabled]="loading()">
-                  <span class="quick-dot"></span>
-                  {{ q.ar }}
-                </button>
-              }
-            </div>
-            <div class="quick-hint mono">رمز PIN التجريبي لجميع البطاقات: 123456</div>
-          }
-        </div>
 
         <p class="foot mono">© {{ year }} LVCT — Libya Vision for Communication & Technology</p>
       </div>
@@ -394,56 +341,6 @@ interface QuickPinRole {
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .quick {
-      margin-top: 24px;
-      padding-top: 20px;
-      border-top: 1px solid var(--rule);
-    }
-    .quick-label {
-      text-align: center;
-      font-size: 11px; font-weight: 600;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-    .quick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .quick-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 8px 12px;
-      background: var(--paper);
-      border: 1px solid var(--rule);
-      border-radius: 8px;
-      font-size: 12px; font-weight: 600;
-      color: var(--ink);
-      cursor: pointer;
-      transition: all .15s;
-      font-family: inherit;
-    }
-    .quick-btn:hover:not(:disabled) {
-      border-color: var(--qa);
-      background: #fff;
-    }
-    .quick-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .quick-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--qa);
-      flex-shrink: 0;
-    }
-
-    .quick-divider {
-      height: 1px;
-      background: var(--rule);
-      margin: 8px 0;
-    }
-    .quick-hint {
-      text-align: center;
-      font-size: 10px;
-      color: var(--muted);
-      margin-top: 8px;
-      letter-spacing: 0.04em;
-      direction: ltr;
-    }
-
     .foot {
       text-align: center;
       margin: 22px 0 0;
@@ -454,7 +351,6 @@ interface QuickPinRole {
 
     @media (max-width: 540px) {
       .card { padding: 30px 22px 22px; border-radius: 16px; }
-      .quick-grid { grid-template-columns: 1fr 1fr; }
       .back-home span { display: none; }
     }
   `],
@@ -484,27 +380,6 @@ export class LoginPage {
       : 'ar',
   );
 
-  readonly quickRoles: QuickRole[] = [
-    { key: 'citizen',  ar: 'مواطن (تجريبي)',  email: 'demo@sarh.ly',     password: 'Demo!12345', accent: '#3b82f6' },
-    { key: 'officer',  ar: 'موظف تسجيل',     email: 'officer@sarh.ly',  password: 'Demo!12345', accent: '#0891B2' },
-    { key: 'manager',  ar: 'مدير القسم',     email: 'manager@sarh.ly',  password: 'Demo!12345', accent: '#5b21b6' },
-    { key: 'issuer',   ar: 'مصدر هويات',     email: 'idissuer@sarh.ly', password: 'Demo!12345', accent: '#DC2626' },
-  ];
-
-  readonly adminRoles: QuickRole[] = [
-    { key: 'admin',    ar: 'مسؤول عام',       email: 'admin@sarh.ly',    password: 'Demo!12345', accent: '#F97316' },
-    { key: 'reviewer', ar: 'مراجع تقني',      email: 'reviewer@sarh.ly', password: 'Demo!12345', accent: '#0891B2' },
-  ];
-
-  // Seeded by DbSeeder — every demo card gets PIN '123456'. Digital ID
-  // numbers come from migrations 029/034 / DbSeeder.SeedDigitalIdCardsAsync.
-  readonly quickPinRoles: QuickPinRole[] = [
-    { ar: 'أحمد البارودي',  digitalId: 'LY-11-2026-000101-0', pin: '123456', accent: '#3b82f6' },
-    { ar: 'فاطمة الزروق',   digitalId: 'LY-11-2026-000102-0', pin: '123456', accent: '#a855f7' },
-    { ar: 'خالد العبيدي',   digitalId: 'LY-21-2026-000103-0', pin: '123456', accent: '#0891B2' },
-    { ar: 'عمر الهادي',     digitalId: 'LY-22-2026-000105-0', pin: '123456', accent: '#F97316' },
-  ];
-
   setMode(m: 'email' | 'pin'): void {
     this.mode.set(m);
     this.error.set(null);
@@ -520,16 +395,6 @@ export class LoginPage {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('sarh.lang', next);
     }
-  }
-
-  quickFill(q: QuickRole): void {
-    this.email = q.email;
-    this.password = q.password;
-  }
-
-  quickFillPin(q: QuickPinRole): void {
-    this.digitalId = q.digitalId;
-    this.pin = q.pin;
   }
 
   async submitPin(): Promise<void> {

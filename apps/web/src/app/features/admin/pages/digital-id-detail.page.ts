@@ -5,11 +5,12 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '@core/api-config';
+import { AuthService } from '@core/auth.service';
 import { Citizen, CitizensService } from '@core/citizens.service';
 import { DigitalIdCard, DigitalIdCardsService, ResetPinResult } from '@core/digital-id-cards.service';
 import { CARD_STATUS, REGIONS } from '../../../shared/status-pills';
 
-type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | null;
+type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | null;
 
 @Component({
   selector: 'app-digital-id-detail',
@@ -173,6 +174,12 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | null;
                   إعادة تعيين رمز PIN
                 </button>
               }
+              @if (canDelete()) {
+                <button class="btn danger del" (click)="openModal('delete')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  حذف البطاقة نهائياً
+                </button>
+              }
             </div>
           </div>
         </div>
@@ -186,6 +193,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | null;
                   @case ('revoke')  { إلغاء البطاقة }
                   @case ('reissue') { إعادة إصدار البطاقة }
                   @case ('pin')     { إعادة تعيين رمز PIN }
+                  @case ('delete')  { حذف البطاقة نهائياً }
                 }
               </h3>
               <p class="modal-sub">
@@ -194,6 +202,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | null;
                   @case ('revoke')  { الإلغاء نهائي. لا يمكن استخدام البطاقة بعد ذلك أبداً. }
                   @case ('reissue') { سيتم إصدار بطاقة جديدة بمفاتيح NFC جديدة، وإلغاء البطاقة الحالية. }
                   @case ('pin')     { سيتم توليد رمز PIN جديد من 6 أرقام. لن يكون بالإمكان استرجاعه لاحقاً — اطبعه أو اكتبه فوراً. }
+                  @case ('delete')  { إجراء لا يمكن التراجع عنه: سيتم إلغاء البطاقة وإتلاف مفاتيح NFC السرّية ومسح بياناتها الحسّاسة. يبقى سجل البطاقة للتدقيق فقط. }
                 }
               </p>
 
@@ -449,6 +458,13 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | null;
       background: #fff5f5; border-color: #fecaca; color: var(--warn);
     }
     .btn.danger:hover:not(:disabled) { background: #ffe4e6; }
+    /* Permanent delete (super-admin) — solid red so it reads as more severe
+       than the outlined "revoke" above it. */
+    .btn.danger.del {
+      margin-top: 4px;
+      background: var(--warn); border-color: var(--warn); color: #fff;
+    }
+    .btn.danger.del:hover:not(:disabled) { background: #b91c1c; border-color: #b91c1c; }
 
     .empty {
       padding: 60px 24px;
@@ -539,6 +555,11 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
   private readonly api = inject(DigitalIdCardsService);
   private readonly citizensApi = inject(CitizensService);
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+
+  // Hard-delete is super-admin only (the API rejects anyone else). Gate the
+  // button so it never shows for id_issuer / auditor reaching this page.
+  readonly canDelete = computed(() => this.auth.user()?.role === 'super_admin');
 
   readonly card = signal<DigitalIdCard | null>(null);
   readonly citizen = signal<Citizen | null>(null);
@@ -665,6 +686,11 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
           const result = await this.api.resetPin(c.id);
           this.pinResult.set(result);
           return; // keep modal open so the issuer can copy the PIN
+        }
+        case 'delete': {
+          await this.api.delete(c.id, this.reason.trim());
+          this.router.navigate(['/app/digital-ids']);
+          return;
         }
       }
       this.closeModal();

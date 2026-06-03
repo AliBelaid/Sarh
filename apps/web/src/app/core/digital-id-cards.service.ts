@@ -119,10 +119,29 @@ export class DigitalIdCardsService {
       this.http.post<ResetPinResult>(`${API_BASE}/digital-id-cards/${id}/reset-pin`, {}),
     );
   }
+
+  // Super-admin only. Soft-deletes the card (status=revoked) and purges its
+  // NFC secrets server-side. Reason is optional but recorded in the audit log.
+  delete(id: string, reason?: string): Promise<DeleteCardResult> {
+    return firstValueFrom(
+      this.http.delete<DeleteCardResult>(`${API_BASE}/digital-id-cards/${id}`, {
+        body: reason ? { reason } : {},
+      }),
+    );
+  }
 }
 
 export interface ResetPinResult {
   card_id: string;
   pin: string;
   set_at: string;
+}
+
+export interface DeleteCardResult {
+  card_id: string;
+  digital_id_number: string;
+  citizen_id: string;
+  status: CardStatus;
+  revoked_at: string;
+  nfc_secrets_purged: number;
 }
