@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart' show ChangeNotifier;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/api_error.dart';
-import 'demo_mock_data.dart';
 
 // Single dio instance, with:
 //   - JWT bearer interceptor (reads from secure storage)
@@ -32,9 +31,6 @@ class SarhApiClient {
       aOptions: AndroidOptions(encryptedSharedPreferences: true),
     );
 
-    // Order matters: demo interceptor runs first so it can short-circuit
-    // requests before the auth/error interceptors touch them.
-    dio.interceptors.add(_DemoInterceptor(storage));
     dio.interceptors.add(_AuthInterceptor(storage));
     dio.interceptors.add(_ErrorInterceptor(storage, onUnauthorized));
     return SarhApiClient(dio: dio, storage: storage);
@@ -44,84 +40,6 @@ class SarhApiClient {
   Future<void> writeToken(String value) =>
       storage.write(key: 'sarh_jwt', value: value);
   Future<void> clearToken() => storage.delete(key: 'sarh_jwt');
-}
-
-// Short-circuits every API call when the user is signed in offline as
-// the demo citizen. We resolve with canned mock data instead of issuing
-// the network request, so screens render without a live backend.
-class _DemoInterceptor extends Interceptor {
-  static const _demoToken = 'demo-offline';
-  final FlutterSecureStorage storage;
-  _DemoInterceptor(this.storage);
-
-  @override
-  Future<void> onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) async {
-    final token = await storage.read(key: 'sarh_jwt');
-    if (token != _demoToken) {
-      return handler.next(options);
-    }
-    final mock = _route(options);
-    if (mock == null) {
-      // Path not mocked — return an empty success rather than a network
-      // error, so the UI shows an empty state instead of "connection
-      // refused".
-      return handler.resolve(_okResponse(options, const {'items': []}));
-    }
-    return handler.resolve(_okResponse(options, mock));
-  }
-
-  Map<String, dynamic>? _route(RequestOptions opts) {
-    final path = opts.path;
-    final method = opts.method.toUpperCase();
-
-    if (method == 'GET') {
-      if (path == '/properties') return mockMyProperties();
-      if (path.startsWith('/properties/')) {
-        final id = path.substring('/properties/'.length).split('/').first;
-        return mockProperty(id);
-      }
-      if (path == '/notifications') return mockNotifications();
-      if (path == '/verify/map') return mockCadastralMap();
-      if (path == '/ssi/credentials') return mockCredentials();
-      if (path == '/auth/me') {
-        return {
-          'citizen': {
-            'id': 'demo-citizen',
-            'first_name_ar': 'مستخدم',
-            'father_name_ar': 'تجريبي',
-            'grandfather_name_ar': 'صرح',
-            'family_name_ar': 'ديمو',
-            'phone': '+218-91-9000001',
-            'region_id': 11,
-            'digital_id_number': 'LY-99-2026-000001-0',
-          },
-        };
-      }
-    }
-
-    if (method == 'POST') {
-      if (path == '/properties' && opts.data is Map) {
-        return mockSubmittedProperty((opts.data as Map).cast<String, dynamic>());
-      }
-      if (path.startsWith('/notifications/') && path.endsWith('/read')) {
-        return const {'ok': true};
-      }
-    }
-
-    return null;
-  }
-
-  Response<dynamic> _okResponse(RequestOptions opts, dynamic data) {
-    return Response<dynamic>(
-      requestOptions: opts,
-      statusCode: 200,
-      statusMessage: 'OK (demo)',
-      data: data,
-    );
-  }
 }
 
 class _AuthInterceptor extends Interceptor {

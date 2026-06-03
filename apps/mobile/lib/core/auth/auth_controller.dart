@@ -62,8 +62,7 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> _restore() async {
     final token = await client.readToken();
-    if (token == null || token.isEmpty || token == 'demo-offline') {
-      if (token == 'demo-offline') await client.clearToken();
+    if (token == null || token.isEmpty) {
       state = const AuthState(initializing: false);
       return;
     }
