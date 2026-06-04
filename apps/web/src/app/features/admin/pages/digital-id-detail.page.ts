@@ -655,6 +655,18 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
       return;
     }
     await this.loadCard(id);
+
+    // Deep-link from the digital-IDs list row actions (?edit=1 / ?delete=1):
+    // open the matching modal once the card is loaded, honouring the same
+    // role/status gates the on-page buttons use.
+    const card = this.card();
+    if (!card) return;
+    const qp = this.route.snapshot.queryParamMap;
+    if (qp.get('edit') && this.canEdit() && (card.status === 'active' || card.status === 'frozen')) {
+      this.openModal('edit');
+    } else if (qp.get('delete') && this.canDelete()) {
+      this.openModal('delete');
+    }
   }
 
   ngOnDestroy(): void {

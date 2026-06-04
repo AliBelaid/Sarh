@@ -89,10 +89,9 @@ export const APP_ROUTES: Routes = [
       // ---- Officer / reviewer ----------------------------------------
       {
         // Officer-side property registration (on behalf of a citizen).
-        // Backend accepts any officer role with region-scope; id_issuer +
-        // department_manager also opened for office-counter use.
+        // Property roles only — id_issuer is digital-ID issuance, not cadastre.
         path: 'properties/new',
-        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES, 'id_issuer'])],
+        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES])],
         loadComponent: () =>
           import('./features/officer/pages/new-property.page').then((m) => m.OfficerNewPropertyPage),
       },
@@ -104,9 +103,9 @@ export const APP_ROUTES: Routes = [
       },
       {
         // Officer cadastral map — all in-region parcels coloured by legal
-        // status. Backend opens the feed to every office-side role.
+        // status. Property/admin roles only — id_issuer is excluded.
         path: 'map',
-        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES, ...ADMIN_ROLES, 'id_issuer'])],
+        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES, ...ADMIN_ROLES])],
         loadComponent: () =>
           import('./features/officer/pages/map.page').then((m) => m.OfficerMapPage),
       },
@@ -145,13 +144,13 @@ export const APP_ROUTES: Routes = [
       // citizens reach final-approve through their own property detail.
       {
         path: 'manager/queue',
-        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES, 'id_issuer'])],
+        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES])],
         loadComponent: () =>
           import('./features/manager/pages/manager-queue.page').then((m) => m.ManagerQueuePage),
       },
       {
         path: 'manager/approve/:id',
-        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES, 'id_issuer'])],
+        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES])],
         loadComponent: () =>
           import('./features/manager/pages/manager-approve.page').then((m) => m.ManagerApprovePage),
       },
