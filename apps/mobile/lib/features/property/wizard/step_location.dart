@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../app/router.dart';
+import '../../../core/constants/regions.dart';
 import '../../../core/theme/sarh_colors.dart';
 import 'wizard_state.dart';
 
@@ -24,15 +25,28 @@ class WizardStepLocation extends ConsumerStatefulWidget {
 
 class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
   final _map = MapController();
+  final _addressC = TextEditingController();
   static const _tripoli = LatLng(32.8872, 13.1913);
+  static const _defaultRegionId = 11; // طرابلس
 
   bool _tracing = false;
   String? _trackError;
   StreamSubscription<Position>? _posSub;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final s = ref.read(wizardStateProvider);
+      if (s.regionId == null) _ctrl.setRegion(_defaultRegionId);
+      if (s.addressAr != null) _addressC.text = s.addressAr!;
+    });
+  }
+
+  @override
   void dispose() {
     _posSub?.cancel();
+    _addressC.dispose();
     super.dispose();
   }
 
@@ -51,9 +65,6 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
       [p.longitude, p.latitude],
     ];
     _ctrl.setPolygon(ring);
-    if (ref.read(wizardStateProvider).regionId == null) {
-      _ctrl.setRegion(regionId: 11); // Tripoli default
-    }
   }
 
   void _undo() {
@@ -133,11 +144,49 @@ class _WizardStepLocationState extends ConsumerState<WizardStepLocation> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-            child: Text(
-              _tracing
-                  ? '2 / 4 — جارٍ التتبّع… امشِ حول حدود الأرض (${pts.length} نقطة)'
-                  : '2 / 4 — اضغط على الخريطة لإضافة نقاط الحدود، أو ارسم بالمشي.',
-              style: Theme.of(context).textTheme.bodyMedium,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        value: state.regionId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'المنطقة',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          for (final e in kRegions.entries)
+                            DropdownMenuItem(value: e.key, child: Text(e.value)),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) _ctrl.setRegion(v);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _addressC,
+                  decoration: const InputDecoration(
+                    labelText: 'العنوان (اختياري)',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: _ctrl.setAddress,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _tracing
+                      ? 'جارٍ التتبّع… امشِ حول حدود الأرض (${pts.length} نقطة)'
+                      : 'اضغط على الخريطة لإضافة نقاط الحدود، أو ارسم بالمشي.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
             ),
           ),
           Expanded(

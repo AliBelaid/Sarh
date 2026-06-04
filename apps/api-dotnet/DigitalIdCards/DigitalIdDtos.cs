@@ -31,14 +31,32 @@ public sealed class ReissueCardDto
     public bool? KeepDigitalIdNumber { get; set; }
 }
 
-// In-place edit of an issued card. The card is immutable by design for
-// tamper-evidence; the only safely-mutable attribute is its validity window.
-// Supply an absolute ExpiresAt, or ValidityYears (= IssuedAt + N years).
+// In-place edit of an issued card. Two kinds of change are allowed:
+//   1. Validity window — supply an absolute ExpiresAt, or ValidityYears
+//      (= IssuedAt + N years). expires_at feeds no hash, so it moves freely.
+//   2. Civil-identity corrections — the cardholder's Arabic name parts and/or
+//      birth date. These live on the citizen record; changing any of them
+//      re-derives the tamper-evident data_hash ("NFC/identity hash") for every
+//      live card the citizen holds. digital_id_number, card_serial and the NFC
+//      keys remain immutable.
+// At least one of the two must produce a real change.
 public sealed class UpdateCardDto
 {
     public DateTimeOffset? ExpiresAt { get; set; }
     [Range(1, 20)] public int? ValidityYears { get; set; }
     [MaxLength(500)] public string? Reason { get; set; }
+
+    // Optional civil-identity edits. Null = leave unchanged.
+    [MaxLength(100)] public string? FirstNameAr { get; set; }
+    [MaxLength(100)] public string? FatherNameAr { get; set; }
+    [MaxLength(100)] public string? GrandfatherNameAr { get; set; }
+    [MaxLength(100)] public string? FamilyNameAr { get; set; }
+    public DateOnly? BirthDate { get; set; }
+
+    public bool HasIdentityEdits =>
+        FirstNameAr is not null || FatherNameAr is not null ||
+        GrandfatherNameAr is not null || FamilyNameAr is not null ||
+        BirthDate is not null;
 }
 
 public sealed class ListCardsQuery

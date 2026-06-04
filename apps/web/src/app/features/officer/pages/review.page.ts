@@ -105,6 +105,9 @@ const DOC_LABELS: Record<string, string> = {
               }
               <dt>المنطقة</dt><dd>{{ regionLabel(p.region_id) }}</dd>
               <dt>العنوان</dt><dd>{{ p.address_ar ?? '—' }}</dd>
+              <dt>رقم القطعة</dt><dd dir="ltr" class="mono">{{ p.parcel_number ?? '—' }}</dd>
+              <dt>رقم المخطط</dt><dd dir="ltr" class="mono">{{ p.plan_number ?? '—' }}</dd>
+              <dt>رقم البلوك</dt><dd dir="ltr" class="mono">{{ p.block_number ?? '—' }}</dd>
               <dt>تاريخ الإرسال</dt><dd dir="ltr" class="mono small">{{ dateLabel(p.submitted_at) }}</dd>
               @if (p.reviewed_at) {
                 <dt>آخر مراجعة</dt><dd dir="ltr" class="mono small">{{ dateLabel(p.reviewed_at) }}</dd>

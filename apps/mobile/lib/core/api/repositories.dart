@@ -98,6 +98,8 @@ class PropertiesRepository {
     int? municipalityId,
     String? addressAr,
     String? parcelNumber,
+    String? planNumber,
+    String? blockNumber,
     required Map<String, dynamic> boundaryPolygonGeoJson,
     required double areaSqm,
     double? documentedAreaSqm,
@@ -112,6 +114,8 @@ class PropertiesRepository {
           if (municipalityId != null) 'municipality_id': municipalityId,
           if (addressAr != null) 'address_ar': addressAr,
           if (parcelNumber != null) 'parcel_number': parcelNumber,
+          if (planNumber != null) 'plan_number': planNumber,
+          if (blockNumber != null) 'block_number': blockNumber,
           'boundary_polygon': boundaryPolygonGeoJson,
           // Authoritative area is the polygon's — never length × width.
           'area_sqm': areaSqm,

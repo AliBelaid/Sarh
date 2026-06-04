@@ -93,6 +93,8 @@ class Property {
   final String id;
   final String? propertyCode;
   final String? parcelNumber;
+  final String? planNumber;
+  final String? blockNumber;
   final PropertyType type;
   final PropertyStatus status;
   final int? regionId;
@@ -116,6 +118,8 @@ class Property {
     required this.status,
     this.propertyCode,
     this.parcelNumber,
+    this.planNumber,
+    this.blockNumber,
     this.regionId,
     this.addressAr,
     this.areaSqm,
@@ -134,6 +138,8 @@ class Property {
         id: json['id'] as String,
         propertyCode: json['property_code'] as String?,
         parcelNumber: json['parcel_number'] as String?,
+        planNumber: json['plan_number'] as String?,
+        blockNumber: json['block_number'] as String?,
         type: PropertyType.tryParse(json['property_type'] as String?) ??
             PropertyType.residential,
         status: PropertyStatus.parse(json['status'] as String? ?? 'pending'),

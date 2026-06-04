@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '@core/api-config';
 import { AuthService } from '@core/auth.service';
 import { Citizen, CitizensService } from '@core/citizens.service';
-import { DigitalIdCard, DigitalIdCardsService, ResetPinResult } from '@core/digital-id-cards.service';
+import { DigitalIdCard, DigitalIdCardsService, ResetPinResult, UpdateCardPayload } from '@core/digital-id-cards.service';
 import { CARD_STATUS, REGIONS } from '../../../shared/status-pills';
 
 type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | 'edit' | null;
@@ -122,6 +122,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | 'edit' | null;
               <div><span class="k">تاريخ الانتهاء</span><span class="v mono" [class.expiring]="isExpiringSoon(c.expires_at)">{{ longDate(c.expires_at) }}</span></div>
               <div><span class="k">DID</span><span class="v mono small">{{ c.did ?? '—' }}</span></div>
               <div><span class="k">عدد عمليات NFC</span><span class="v mono">{{ c.last_nfc_counter }}</span></div>
+              <div class="full"><span class="k">بصمة الهوية (data_hash)</span><span class="v mono small">{{ c.data_hash ?? '—' }}</span></div>
               @if (c.revoked_at) {
                 <div class="full"><span class="k">تاريخ الإلغاء</span><span class="v mono">{{ longDate(c.revoked_at) }}</span></div>
               }
@@ -153,7 +154,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | 'edit' | null;
               @if (canEdit() && (c.status === 'active' || c.status === 'frozen')) {
                 <button class="btn ghost" (click)="openModal('edit')">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  تعديل الصلاحية
+                  تعديل البيانات
                 </button>
               }
               @if (c.status === 'active') {
@@ -200,7 +201,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | 'edit' | null;
                   @case ('reissue') { إعادة إصدار البطاقة }
                   @case ('pin')     { إعادة تعيين رمز PIN }
                   @case ('delete')  { حذف البطاقة نهائياً }
-                  @case ('edit')    { تعديل صلاحية البطاقة }
+                  @case ('edit')    { تعديل بيانات الهوية والصلاحية }
                 }
               </h3>
               <p class="modal-sub">
@@ -210,12 +211,33 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | 'edit' | null;
                   @case ('reissue') { سيتم إصدار بطاقة جديدة بمفاتيح NFC جديدة، وإلغاء البطاقة الحالية. }
                   @case ('pin')     { سيتم توليد رمز PIN جديد من 6 أرقام. لن يكون بالإمكان استرجاعه لاحقاً — اطبعه أو اكتبه فوراً. }
                   @case ('delete')  { إجراء لا يمكن التراجع عنه: سيتم إلغاء البطاقة وإتلاف مفاتيح NFC السرّية ومسح بياناتها الحسّاسة. يبقى سجل البطاقة للتدقيق فقط. }
-                  @case ('edit')    { تحديث تاريخ انتهاء صلاحية البطاقة فقط. لا يؤثّر على الهوية أو الصورة أو مفاتيح NFC. }
+                  @case ('edit')    { تصحيح الاسم أو تاريخ الميلاد يعيد احتساب بصمة الهوية (data_hash) المرتبطة بشريحة NFC لكل البطاقات الفعّالة. رقم الهوية ومفاتيح NFC لا تتغيّر. }
                 }
               </p>
 
               @if (modal() === 'edit') {
-                <label class="modal-lbl">تاريخ الانتهاء الجديد</label>
+                <div class="name-grid">
+                  <div>
+                    <label class="modal-lbl">الاسم الأول</label>
+                    <input type="text" class="modal-input" [(ngModel)]="editFirstName" name="editFirstName" />
+                  </div>
+                  <div>
+                    <label class="modal-lbl">اسم الأب</label>
+                    <input type="text" class="modal-input" [(ngModel)]="editFatherName" name="editFatherName" />
+                  </div>
+                  <div>
+                    <label class="modal-lbl">اسم الجد</label>
+                    <input type="text" class="modal-input" [(ngModel)]="editGrandfatherName" name="editGrandfatherName" />
+                  </div>
+                  <div>
+                    <label class="modal-lbl">اللقب</label>
+                    <input type="text" class="modal-input" [(ngModel)]="editFamilyName" name="editFamilyName" />
+                  </div>
+                </div>
+                <label class="modal-lbl">تاريخ الميلاد</label>
+                <input type="date" class="modal-input" dir="ltr"
+                       [(ngModel)]="editBirthDate" name="editBirthDate" [max]="todayIso" />
+                <label class="modal-lbl">تاريخ الانتهاء</label>
                 <input type="date" class="modal-input" dir="ltr"
                        [(ngModel)]="editExpiry" name="editExpiry" [min]="todayIso" />
               }
@@ -522,6 +544,8 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | 'edit' | null;
       resize: vertical;
     }
     .modal-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.15); }
+    .name-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+    .name-grid > div { display: flex; flex-direction: column; gap: 4px; }
     .check {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 12.5px; color: var(--ink);
@@ -584,6 +608,12 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
 
   readonly todayIso = new Date().toISOString().slice(0, 10);
   editExpiry = '';
+  // Civil-identity corrections (prefilled from the citizen in openModal).
+  editFirstName = '';
+  editFatherName = '';
+  editGrandfatherName = '';
+  editFamilyName = '';
+  editBirthDate = '';
 
   readonly card = signal<DigitalIdCard | null>(null);
   readonly citizen = signal<Citizen | null>(null);
@@ -679,6 +709,12 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
     if (m === 'edit') {
       const exp = this.card()?.expires_at;
       this.editExpiry = exp ? new Date(exp).toISOString().slice(0, 10) : '';
+      const cz = this.citizen();
+      this.editFirstName = cz?.first_name_ar ?? '';
+      this.editFatherName = cz?.father_name_ar ?? '';
+      this.editGrandfatherName = cz?.grandfather_name_ar ?? '';
+      this.editFamilyName = cz?.family_name_ar ?? '';
+      this.editBirthDate = cz?.birth_date ? new Date(cz.birth_date).toISOString().slice(0, 10) : '';
     }
   }
   closeModal(): void {
@@ -721,11 +757,27 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
           return;
         }
         case 'edit': {
-          const iso = new Date(this.editExpiry + 'T00:00:00Z').toISOString();
-          const updated = await this.api.update(c.id, { expires_at: iso, reason: this.reason.trim() });
+          const payload: UpdateCardPayload = {
+            expires_at: new Date(this.editExpiry + 'T00:00:00Z').toISOString(),
+            reason: this.reason.trim(),
+            // Sent as-is; the API only treats them as changes when different,
+            // and re-derives data_hash when the identity actually moves.
+            first_name_ar: this.editFirstName.trim(),
+            father_name_ar: this.editFatherName.trim(),
+            grandfather_name_ar: this.editGrandfatherName.trim(),
+            family_name_ar: this.editFamilyName.trim(),
+            ...(this.editBirthDate ? { birth_date: this.editBirthDate } : {}),
+          };
+          const updated = await this.api.update(c.id, payload);
           // The PATCH returns the card without the citizen summary — keep the
           // one we already loaded so the side panel doesn't blank out.
           this.card.set({ ...updated, citizen: updated.citizen ?? c.citizen });
+          // Identity may have changed → reload the citizen so the printed card
+          // preview (name/birth date) and the side panel reflect the edit.
+          if (c.citizen_id) {
+            const cz = await this.citizensApi.get(c.citizen_id).catch(() => null);
+            if (cz) this.citizen.set(cz);
+          }
           break;
         }
       }

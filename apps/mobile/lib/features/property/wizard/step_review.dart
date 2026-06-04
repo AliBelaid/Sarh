@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/api/repositories.dart';
+import '../../../core/constants/regions.dart';
 import '../../../core/models/api_error.dart';
 import '../../../core/theme/sarh_colors.dart';
 import 'wizard_state.dart';
@@ -18,10 +19,29 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
   bool _busy = false;
   String? _error;
   final _docAreaC = TextEditingController();
+  final _parcelC = TextEditingController();
+  final _planC = TextEditingController();
+  final _blockC = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Prefill from state so values survive back/forward navigation.
+    final s = ref.read(wizardStateProvider);
+    _parcelC.text = s.parcelNumber ?? '';
+    _planC.text = s.planNumber ?? '';
+    _blockC.text = s.blockNumber ?? '';
+    if (s.documentedAreaSqm != null) {
+      _docAreaC.text = s.documentedAreaSqm!.toStringAsFixed(0);
+    }
+  }
 
   @override
   void dispose() {
     _docAreaC.dispose();
+    _parcelC.dispose();
+    _planC.dispose();
+    _blockC.dispose();
     super.dispose();
   }
 
@@ -64,6 +84,8 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
         municipalityId: state.municipalityId,
         addressAr: state.addressAr,
         parcelNumber: state.parcelNumber,
+        planNumber: state.planNumber,
+        blockNumber: state.blockNumber,
         boundaryPolygonGeoJson: state.boundaryPolygonGeoJson!,
         areaSqm: state.polygonAreaSqm!,
         documentedAreaSqm: state.documentedAreaSqm,
@@ -101,6 +123,7 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _row('النوع', s.type?.arLabel ?? '—'),
+                  _row('المنطقة', regionLabel(s.regionId)),
                   _row(
                     'الإحداثيات',
                     s.hasPolygon ? '${s.polygonRing.length} نقاط' : '—',
@@ -108,6 +131,53 @@ class _WizardStepReviewState extends ConsumerState<WizardStepReview> {
                   _row('المساحة (م²)',
                       s.polygonAreaSqm?.toStringAsFixed(2) ?? '—'),
                   _row('المستندات', '${s.documents.length}'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('أرقام السجل — اختياري',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _parcelC,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم القطعة',
+                      isDense: true,
+                    ),
+                    onChanged: (v) => ref
+                        .read(wizardStateProvider.notifier)
+                        .setParcelNumber(v),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _planC,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم المخطط',
+                      isDense: true,
+                    ),
+                    onChanged: (v) =>
+                        ref.read(wizardStateProvider.notifier).setPlanNumber(v),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _blockC,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم البلوك',
+                      isDense: true,
+                    ),
+                    onChanged: (v) =>
+                        ref.read(wizardStateProvider.notifier).setBlockNumber(v),
+                  ),
                 ],
               ),
             ),

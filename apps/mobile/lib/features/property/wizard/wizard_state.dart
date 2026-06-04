@@ -28,7 +28,9 @@ class WizardState {
   final int? regionId;
   final int? municipalityId;
   final String? addressAr;
-  final String? parcelNumber;
+  final String? parcelNumber; // رقم القطعة
+  final String? planNumber; // رقم المخطط
+  final String? blockNumber; // رقم البلوك
   final double? documentedAreaSqm; // area stated on the paper deed (optional)
   final List<PickedDocument> documents;
 
@@ -39,6 +41,8 @@ class WizardState {
     this.municipalityId,
     this.addressAr,
     this.parcelNumber,
+    this.planNumber,
+    this.blockNumber,
     this.documentedAreaSqm,
     this.documents = const [],
   });
@@ -98,6 +102,8 @@ class WizardState {
     int? municipalityId,
     String? addressAr,
     String? parcelNumber,
+    String? planNumber,
+    String? blockNumber,
     double? documentedAreaSqm,
     List<PickedDocument>? documents,
   }) {
@@ -108,11 +114,17 @@ class WizardState {
       municipalityId: municipalityId ?? this.municipalityId,
       addressAr: addressAr ?? this.addressAr,
       parcelNumber: parcelNumber ?? this.parcelNumber,
+      planNumber: planNumber ?? this.planNumber,
+      blockNumber: blockNumber ?? this.blockNumber,
       documentedAreaSqm: documentedAreaSqm ?? this.documentedAreaSqm,
       documents: documents ?? this.documents,
     );
   }
 }
+
+// Sentinel marking "leave this field untouched" in _patch (so a real null
+// can clear a value, which copyWith's `?? this.x` cannot express).
+const Object _keep = Object();
 
 class WizardController extends StateNotifier<WizardState> {
   WizardController() : super(const WizardState());
@@ -122,25 +134,48 @@ class WizardController extends StateNotifier<WizardState> {
   void setPolygon(List<List<double>> ring) =>
       state = state.copyWith(polygonRing: ring);
 
-  void setRegion({required int regionId, int? municipalityId, String? addressAr}) {
-    state = state.copyWith(
-      regionId: regionId,
-      municipalityId: municipalityId,
-      addressAr: addressAr,
-    );
+  void setRegion(int regionId) => state = state.copyWith(regionId: regionId);
+
+  // Optional text fields — empty input clears back to null.
+  void setAddress(String? v) => state = _patch(addressAr: _nz(v));
+  void setParcelNumber(String? v) => state = _patch(parcelNumber: _nz(v));
+  void setPlanNumber(String? v) => state = _patch(planNumber: _nz(v));
+  void setBlockNumber(String? v) => state = _patch(blockNumber: _nz(v));
+  void setDocumentedArea(double? v) => state = _patch(documentedAreaSqm: v);
+
+  // Trim and collapse blank input to null.
+  static String? _nz(String? v) {
+    final t = v?.trim();
+    return (t == null || t.isEmpty) ? null : t;
   }
 
-  // Direct rebuild (not copyWith) so the value can be cleared back to null.
-  void setDocumentedArea(double? v) => state = WizardState(
-        type: state.type,
-        polygonRing: state.polygonRing,
-        regionId: state.regionId,
-        municipalityId: state.municipalityId,
-        addressAr: state.addressAr,
-        parcelNumber: state.parcelNumber,
-        documentedAreaSqm: v,
-        documents: state.documents,
-      );
+  // Field-level patch that can set a value to null. Pass `_keep` (the default)
+  // to leave a field as-is; pass any other value (including null) to set it.
+  WizardState _patch({
+    Object? addressAr = _keep,
+    Object? parcelNumber = _keep,
+    Object? planNumber = _keep,
+    Object? blockNumber = _keep,
+    Object? documentedAreaSqm = _keep,
+  }) {
+    final s = state;
+    return WizardState(
+      type: s.type,
+      polygonRing: s.polygonRing,
+      regionId: s.regionId,
+      municipalityId: s.municipalityId,
+      addressAr: identical(addressAr, _keep) ? s.addressAr : addressAr as String?,
+      parcelNumber:
+          identical(parcelNumber, _keep) ? s.parcelNumber : parcelNumber as String?,
+      planNumber: identical(planNumber, _keep) ? s.planNumber : planNumber as String?,
+      blockNumber:
+          identical(blockNumber, _keep) ? s.blockNumber : blockNumber as String?,
+      documentedAreaSqm: identical(documentedAreaSqm, _keep)
+          ? s.documentedAreaSqm
+          : documentedAreaSqm as double?,
+      documents: s.documents,
+    );
+  }
 
   void addDocument(PickedDocument doc) =>
       state = state.copyWith(documents: [...state.documents, doc]);
