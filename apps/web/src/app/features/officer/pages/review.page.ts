@@ -1,5 +1,4 @@
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
@@ -123,9 +122,15 @@ const DOC_LABELS: Record<string, string> = {
               @if (p.boundary_polygon) {
                 المضلّع المرسوم من قبل المواطن (المساحة المحسوبة منه: <span class="mono" dir="ltr">{{ areaLabel(p.area_sqm) }}</span>).
               } @else {
-                لم تُرفق حدود مضلّع لهذا الطلب — تظهر علامة عند مركز المنطقة فقط.
+                لم تُرفق حدود مضلّع لهذا الطلب — يمكنك رسمها الآن قبل الاعتماد.
               }
             </p>
+            <a class="edit-boundary"
+               [routerLink]="['/app/properties', p.id, 'boundary']"
+               [queryParams]="{ returnTo: '/app/review/' + p.id }">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              {{ p.boundary_polygon ? 'تعديل حدود الأرض' : 'رسم حدود الأرض' }}
+            </a>
           </article>
 
           <!-- Documents -->
@@ -286,6 +291,19 @@ const DOC_LABELS: Record<string, string> = {
 
     .map { width: 100%; height: 280px; border-radius: 10px; overflow: hidden; border: 1px solid var(--rule); margin-bottom: 8px; }
     .hint { font-size: 11.5px; color: var(--muted); margin: 0; }
+    .edit-boundary {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 12px;
+      padding: 7px 14px;
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: 99px;
+      color: var(--ink);
+      font-size: 12px; font-weight: 600;
+      text-decoration: none;
+      transition: all .15s;
+    }
+    .edit-boundary:hover { border-color: var(--accent); color: var(--accent); }
 
     .dec-toggle { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 16px; }
     .dec-btn {
@@ -348,14 +366,30 @@ const DOC_LABELS: Record<string, string> = {
     @keyframes spin { to { transform: rotate(360deg); } }
   `],
 })
-export class OfficerReviewPage implements AfterViewInit, OnDestroy {
+export class OfficerReviewPage implements OnDestroy {
   @Input() id?: string;
 
   private readonly api = inject(PropertiesService);
   private readonly disputesApi = inject(DisputesService);
   private readonly router = inject(Router);
 
-  @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
+  // The map div sits inside an @if that only renders once the property has
+  // loaded, so a plain ViewChild + ngAfterViewInit queries it while it is
+  // still absent (loading state) and the map never boots. A setter boots the
+  // map the moment the element appears — property() is already set by then,
+  // since the element only renders in the property() branch.
+  //
+  // The boot is deferred one macrotask: the setter fires synchronously during
+  // change detection, the same tick the @if reveals the grid cell, so the
+  // browser has not laid it out yet. Booting Leaflet then makes it measure a
+  // 0-size container and fitBounds can't zoom to the parcel — the map stays at
+  // world zoom and a small polygon looks like it's "not there". A setTimeout(0)
+  // lets layout settle first (see initMap's invalidateSize()).
+  private mapEl?: ElementRef<HTMLDivElement>;
+  @ViewChild('mapEl') set mapElRef(el: ElementRef<HTMLDivElement> | undefined) {
+    this.mapEl = el;
+    if (el) setTimeout(() => this.initMap(), 0);
+  }
 
   readonly property = signal<Property | null>(null);
   readonly loading = signal(true);
@@ -389,10 +423,6 @@ export class OfficerReviewPage implements AfterViewInit, OnDestroy {
     } finally {
       this.loading.set(false);
     }
-  }
-
-  ngAfterViewInit(): void {
-    setTimeout(() => this.initMap(), 0);
   }
 
   ngOnDestroy(): void {
@@ -489,6 +519,10 @@ export class OfficerReviewPage implements AfterViewInit, OnDestroy {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(this.map);
+
+    // Make sure Leaflet has the container's real (laid-out) size before we
+    // fit/zoom — the boot is deferred a tick precisely so this reads non-zero.
+    this.map.invalidateSize();
 
     // Draw the real parcel boundary when the API returned it; otherwise fall
     // back to a marker at the region centroid.
