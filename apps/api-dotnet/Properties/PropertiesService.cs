@@ -20,6 +20,15 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
         var ownerCitizenId = await ResolveOwnerAsync(dto, actor, ct);
         EnforceOfficerRegionScope(dto, actor);
 
+        // region_id is a FK to regions(id) (the Shabiyah code). Validate it
+        // up-front so an unknown code returns a clean 422 instead of a raw
+        // FK-violation 500 surfacing from insert_property_with_polygon.
+        if (!await db.Regions.AsNoTracking().AnyAsync(r => r.Id == dto.RegionId, ct))
+            throw SarhException.Validation(
+                $"المنطقة (الرمز {dto.RegionId}) غير معروفة. استخدم رمز شعبية معتمداً.",
+                $"Unknown region_id {dto.RegionId}. Use a valid Shabiyah region code.",
+                new { region_id = dto.RegionId });
+
         // Required evidence: real-world parcels are rarely clean rectangles,
         // so the area is taken from the drawn polygon (below) — never from
         // length × width — and the citizen must instead attach photos of the
