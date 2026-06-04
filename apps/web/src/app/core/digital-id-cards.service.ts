@@ -51,6 +51,18 @@ export interface ListCardsParams {
   cursor?: string;
 }
 
+export interface UpdateCardPayload {
+  expires_at?: string;
+  validity_years?: number;
+  reason?: string;
+  // Optional civil-identity corrections (re-derive data_hash server-side).
+  first_name_ar?: string;
+  father_name_ar?: string;
+  grandfather_name_ar?: string;
+  family_name_ar?: string;
+  birth_date?: string; // YYYY-MM-DD
+}
+
 export interface IssueCardPayload {
   citizen_id: string;
   region_code: string;
@@ -120,12 +132,13 @@ export class DigitalIdCardsService {
     );
   }
 
-  // Edit an issued card's validity window. The card is immutable apart from
-  // its expiry — pass a new absolute expires_at (ISO) or validity_years.
-  update(
-    id: string,
-    payload: { expires_at?: string; validity_years?: number; reason?: string },
-  ): Promise<DigitalIdCard> {
+  // Edit an issued card. Two safe kinds of change:
+  //   • validity window — expires_at (ISO) or validity_years.
+  //   • civil-identity corrections — Arabic name parts and/or birth_date
+  //     (YYYY-MM-DD). A change re-derives the card's data_hash (the NFC /
+  //     identity fingerprint) server-side. digital_id_number, card_serial and
+  //     the NFC keys stay immutable.
+  update(id: string, payload: UpdateCardPayload): Promise<DigitalIdCard> {
     return firstValueFrom(
       this.http.patch<DigitalIdCard>(`${API_BASE}/digital-id-cards/${id}`, payload),
     );
