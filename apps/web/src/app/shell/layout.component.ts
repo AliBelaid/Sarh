@@ -34,14 +34,15 @@ const NAV: NavItem[] = [
   // Officer / reviewer
   { ar: 'قائمة المراجعة', en: 'Review queue',  path: '/app/queue',     icon: 'queue',     roles: ['registry_officer', 'reviewer', 'super_admin'], group: 'main' },
   { ar: 'الاعتمادات',    en: 'Approvals',     path: '/app/approvals', icon: 'approvals', roles: ['registry_officer', 'reviewer', 'super_admin'], group: 'main' },
-  // Officer cadastral map — parcels coloured by legal status.
-  { ar: 'خريطة العقارات', en: 'Parcel map',   path: '/app/map',       icon: 'map',       roles: ['registry_officer', 'reviewer', 'department_manager', 'id_issuer', 'super_admin', 'auditor'], group: 'main' },
+  // Officer cadastral map — parcels coloured by legal status. id_issuer is
+  // deliberately excluded: their job is digital-ID issuance, not the cadastre.
+  { ar: 'خريطة العقارات', en: 'Parcel map',   path: '/app/map',       icon: 'map',       roles: ['registry_officer', 'reviewer', 'department_manager', 'super_admin', 'auditor'], group: 'main' },
   // Officer-side property registration (on behalf of a citizen).
-  { ar: 'تسجيل عقار',    en: 'Register property', path: '/app/properties/new', icon: 'properties', roles: ['registry_officer', 'reviewer', 'id_issuer', 'department_manager', 'super_admin'], group: 'main' },
+  { ar: 'تسجيل عقار',    en: 'Register property', path: '/app/properties/new', icon: 'properties', roles: ['registry_officer', 'reviewer', 'department_manager', 'super_admin'], group: 'main' },
 
-  // Final approvals — backend opened to any authenticated role; sidebar
-  // shows it to anyone office-side so they can drive a licence through.
-  { ar: 'الاعتمادات النهائية', en: 'Final approvals', path: '/app/manager/queue', icon: 'nft', roles: ['registry_officer', 'reviewer', 'id_issuer', 'department_manager', 'super_admin'], group: 'main' },
+  // Final approvals — property licence (NFT) minting. Office-side property
+  // roles only; id_issuer (digital-ID only) does not see it.
+  { ar: 'الاعتمادات النهائية', en: 'Final approvals', path: '/app/manager/queue', icon: 'nft', roles: ['registry_officer', 'reviewer', 'department_manager', 'super_admin'], group: 'main' },
 
   // ID issuer
   { ar: 'محطة الإصدار',   en: 'Issue station', path: '/app/issue',       icon: 'issue',      roles: ['id_issuer', 'super_admin'], group: 'main' },

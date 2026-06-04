@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '@core/auth.service';
 import { DigitalIdCard, DigitalIdCardsService, CardStatus } from '@core/digital-id-cards.service';
 import { CARD_STATUS } from '../../../shared/status-pills';
 
@@ -80,7 +81,7 @@ import { CARD_STATUS } from '../../../shared/status-pills';
                 <th>تاريخ الإصدار</th>
                 <th>الانتهاء</th>
                 <th>الحالة</th>
-                <th></th>
+                <th class="act-h">إجراءات</th>
               </tr>
             </thead>
             <tbody>
@@ -96,7 +97,18 @@ import { CARD_STATUS } from '../../../shared/status-pills';
                       {{ status(c.status).ar }}
                     </span>
                   </td>
-                  <td class="chev" aria-hidden="true">←</td>
+                  <td class="actions" (click)="$event.stopPropagation()">
+                    @if (canEdit() && editable(c)) {
+                      <button type="button" class="act edit" title="تعديل البيانات" (click)="editCard(c, $event)">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                    }
+                    @if (canDelete()) {
+                      <button type="button" class="act del" title="حذف البطاقة" (click)="deleteCard(c, $event)">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      </button>
+                    }
+                  </td>
                 </tr>
               }
             </tbody>
@@ -152,9 +164,18 @@ import { CARD_STATUS } from '../../../shared/status-pills';
     .tbl tbody tr:last-child td { border-bottom: 0; }
     .tbl tbody tr.row { cursor: pointer; transition: background .12s; }
     .tbl tbody tr.row:hover { background: rgba(249, 115, 22, 0.05); }
-    .chev { color: var(--muted); font-size: 16px; width: 24px; }
-    [dir='rtl'] .chev { transform: scaleX(1); }
-    [dir='ltr'] .chev { transform: scaleX(-1); }
+    .act-h { width: 1%; white-space: nowrap; text-align: center; }
+    .actions { white-space: nowrap; text-align: center; }
+    .act {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px;
+      border: 1px solid var(--rule); background: #fff;
+      border-radius: 8px; cursor: pointer; color: var(--muted);
+      transition: all .15s; margin-inline-start: 6px;
+    }
+    .act:first-child { margin-inline-start: 0; }
+    .act.edit:hover { color: var(--accent); border-color: var(--accent); background: rgba(249,115,22,0.08); }
+    .act.del:hover  { color: var(--warn);   border-color: var(--warn);   background: #fff2f3; }
 
     .code { font-weight: 700; font-size: 12.5px; }
     .small { font-size: 12px; }
@@ -176,6 +197,17 @@ import { CARD_STATUS } from '../../../shared/status-pills';
 export class AdminDigitalIdsPage implements OnInit {
   private readonly api = inject(DigitalIdCardsService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+
+  // Edit is open to the issuing roles; delete (hard-revoke + NFC-secret scrub)
+  // is super-admin only — same gates the card detail page enforces and the
+  // backend rejects anyone else. Both row actions deep-link into the detail
+  // page's existing modals (no duplicated destructive logic here).
+  readonly canEdit = computed(() => {
+    const r = this.auth.user()?.role;
+    return r === 'super_admin' || r === 'id_issuer';
+  });
+  readonly canDelete = computed(() => this.auth.user()?.role === 'super_admin');
 
   readonly items = signal<DigitalIdCard[]>([]);
   readonly loading = signal(false);
@@ -217,6 +249,24 @@ export class AdminDigitalIdsPage implements OnInit {
 
   open(id: string): void {
     void this.router.navigate(['/app/digital-ids', id]);
+  }
+
+  // Row actions open the detail page with the matching modal already up, so
+  // the edit/delete flows (reason input, confirm, audit) live in one place.
+  // stopPropagation keeps the row's own navigate() from also firing.
+  editCard(c: DigitalIdCard, ev: Event): void {
+    ev.stopPropagation();
+    void this.router.navigate(['/app/digital-ids', c.id], { queryParams: { edit: 1 } });
+  }
+
+  deleteCard(c: DigitalIdCard, ev: Event): void {
+    ev.stopPropagation();
+    void this.router.navigate(['/app/digital-ids', c.id], { queryParams: { delete: 1 } });
+  }
+
+  // A card is editable only while live; a revoked/expired one is read-only.
+  editable(c: DigitalIdCard): boolean {
+    return c.status === 'active' || c.status === 'frozen';
   }
 
   status(s: string) { return CARD_STATUS[s] ?? { ar: s, color: '#94a3b8' }; }
