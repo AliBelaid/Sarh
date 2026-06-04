@@ -264,9 +264,10 @@ export class AdminDigitalIdsPage implements OnInit {
     void this.router.navigate(['/app/digital-ids', c.id], { queryParams: { delete: 1 } });
   }
 
-  // A card is editable only while live; a revoked/expired one is read-only.
+  // A card is editable only while active (enabled). Frozen (stopped), revoked,
+  // expired or lost cards are read-only — reactivate / reissue first.
   editable(c: DigitalIdCard): boolean {
-    return c.status === 'active' || c.status === 'frozen';
+    return c.status === 'active';
   }
 
   status(s: string) { return CARD_STATUS[s] ?? { ar: s, color: '#94a3b8' }; }

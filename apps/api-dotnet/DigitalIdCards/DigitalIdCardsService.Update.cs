@@ -22,10 +22,13 @@ public sealed partial class DigitalIdCardsService
         var card = await db.DigitalIdCards.FirstOrDefaultAsync(c => c.Id == cardId, ct)
             ?? throw SarhException.NotFound("البطاقة", "Card");
 
-        if (card.Status is "revoked" or "expired")
+        // Edits are allowed only while the card is active (enabled). A frozen
+        // (stopped), revoked, expired or lost card is read-only — it must be
+        // reactivated or reissued before any change.
+        if (card.Status != "active")
             throw SarhException.Conflict(
-                "لا يمكن تعديل بطاقة ملغاة أو منتهية.",
-                "Cannot edit a revoked or expired card.");
+                "لا يمكن تعديل البطاقة إلا وهي نشطة. البطاقات المجمّدة أو الملغاة أو المنتهية أو المفقودة غير قابلة للتعديل.",
+                "A card can only be edited while active. Frozen, revoked, expired or lost cards are read-only.");
 
         var now = DateTimeOffset.UtcNow;
         var reason = string.IsNullOrWhiteSpace(dto.Reason) ? null : dto.Reason!.Trim();
