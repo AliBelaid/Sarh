@@ -46,6 +46,14 @@ public class DigitalIdCardsController(DigitalIdCardsService cards) : ControllerB
     public Task<ResetPinResult> ResetPin(Guid id, CancellationToken ct)
         => cards.ResetPinAsync(id, User.RequireUser(), ct);
 
+    // Edit the card's validity window (expires_at). Other attributes are
+    // immutable by design — see UpdateAsync.
+    [HttpPatch("{id:guid}")]
+    [OfficerOnly("id_issuer", "super_admin")]
+    [Audit(Action = AuditActions.Update, Entity = "digital_id_cards")]
+    public Task<CardView> Update(Guid id, [FromBody] UpdateCardDto dto, CancellationToken ct)
+        => cards.UpdateAsync(id, dto, User.RequireUser(), ct);
+
     // Super-admin only. Soft-deletes the card (status=revoked, PIN+NFC
     // scrubbed) and purges nfc_card_secrets. Body is optional — if a
     // reason is supplied it lands in revoked_reason and id_issuance_history.
