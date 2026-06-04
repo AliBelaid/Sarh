@@ -51,3 +51,29 @@ export const REGIONS: Record<number, string> = {
   31: 'سبها',             32: 'مرزق',       33: 'وادي الحياة',
   34: 'غات',
 };
+
+// Approximate centroid (capital city) of each Shabiyah region, keyed by the
+// SAME regions.id Shabiyah codes as REGIONS / the DB (016_seed_regions.sql).
+// Used only as a fallback map marker when a parcel has no drawn polygon —
+// labels always come from REGIONS, never from here.
+export const REGION_CENTROIDS: Record<number, { lat: number; lng: number }> = {
+  11: { lat: 32.8872, lng: 13.1913 }, // طرابلس
+  12: { lat: 32.5300, lng: 13.0200 }, // الجفارة (العزيزية)
+  13: { lat: 32.7522, lng: 12.7278 }, // الزاوية
+  14: { lat: 32.9312, lng: 12.0800 }, // النقاط الخمس (زوارة)
+  15: { lat: 32.3754, lng: 15.0925 }, // مصراتة
+  16: { lat: 32.6486, lng: 14.2619 }, // المرقب (الخمس)
+  21: { lat: 32.1167, lng: 20.0686 }, // بنغازي
+  22: { lat: 32.7627, lng: 21.7551 }, // الجبل الأخضر (البيضاء)
+  23: { lat: 32.4925, lng: 20.8306 }, // المرج
+  24: { lat: 32.7561, lng: 22.6378 }, // درنة
+  25: { lat: 32.0836, lng: 23.9764 }, // طبرق
+  31: { lat: 27.0377, lng: 14.4283 }, // سبها
+  32: { lat: 25.9155, lng: 13.9184 }, // مرزق
+  33: { lat: 26.5921, lng: 12.7762 }, // وادي الحياة (أوباري)
+  34: { lat: 24.9647, lng: 10.1728 }, // غات
+};
+
+// Geographic centre of Libya — last-resort fallback when a parcel has neither
+// a polygon nor a recognised region code.
+export const LIBYA_CENTER = { lat: 27.0, lng: 17.0 };

@@ -15,7 +15,7 @@ import { Router, RouterLink } from '@angular/router';
 import * as L from 'leaflet';
 import { PropertiesService } from '@core/properties.service';
 import type { Property, ReviewDecision } from '@sarh/shared-types';
-import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS } from '../../../shared/status-pills';
+import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS, REGION_CENTROIDS, LIBYA_CENTER } from '../../../shared/status-pills';
 import { Dispute, DisputesService } from '../disputes.service';
 
 interface DocVM {
@@ -541,24 +541,11 @@ export class OfficerReviewPage implements OnDestroy {
       return;
     }
 
-    const region = REGION_CENTROIDS[p.region_id ?? 10] ?? REGION_CENTROIDS[10];
+    const known = p.region_id != null ? REGION_CENTROIDS[p.region_id] : undefined;
+    const region = known ?? LIBYA_CENTER;
     L.circleMarker([region.lat, region.lng], {
       radius: 10, color: '#0F172A', weight: 2, fillColor: '#F97316', fillOpacity: 1,
     }).addTo(this.map).bindPopup(p.property_code ?? 'العقار').openPopup();
-    this.map.flyTo([region.lat, region.lng], 11, { duration: 0.6 });
+    this.map.flyTo([region.lat, region.lng], known ? 11 : 6, { duration: 0.6 });
   }
 }
-
-const REGION_CENTROIDS: Record<number, { lat: number; lng: number }> = {
-  10: { lat: 32.8872, lng: 13.1913 }, 11: { lat: 32.0833, lng: 20.0667 },
-  12: { lat: 32.7546, lng: 12.7236 }, 13: { lat: 32.5266, lng: 13.6212 },
-  14: { lat: 32.3756, lng: 15.0935 }, 15: { lat: 32.4500, lng: 14.2500 },
-  16: { lat: 30.7500, lng: 20.2500 }, 17: { lat: 32.7670, lng: 22.6359 },
-  18: { lat: 32.7634, lng: 21.7081 }, 19: { lat: 32.0500, lng: 23.9700 },
-  20: { lat: 31.2089, lng: 16.5879 }, 21: { lat: 30.8000, lng: 13.7000 },
-  22: { lat: 30.1500, lng: 13.0500 }, 23: { lat: 31.7500, lng: 12.0500 },
-  24: { lat: 26.3500, lng: 14.5500 }, 25: { lat: 24.9167, lng: 14.4500 },
-  26: { lat: 27.0333, lng: 11.0167 }, 27: { lat: 27.0500, lng: 12.6500 },
-  28: { lat: 24.1833, lng: 23.2667 }, 29: { lat: 25.9167, lng: 10.7333 },
-  30: { lat: 28.0333, lng: 19.5500 }, 31: { lat: 30.6500, lng: 17.6833 },
-};
