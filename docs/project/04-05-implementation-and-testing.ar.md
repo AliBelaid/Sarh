@@ -172,7 +172,10 @@ sarh/
 ### واجهة تسجيل الدخول (Login)
 **المسار:** `/login` · **الملف:** `apps/web/src/app/features/auth/login.page.ts`
 
-`[ أدرج لقطة شاشة: صفحة تسجيل الدخول ]`
+<figure>
+<img src="screenshots/01-login.png" alt="صفحة تسجيل الدخول" style="width:100%;border:1px solid #cbd5e1;border-radius:8px;" />
+<figcaption>الشكل 1: صفحة تسجيل الدخول الموحّدة — موظف (بريد + كلمة مرور) أو مواطن (هوية رقمية + PIN).</figcaption>
+</figure>
 
 - **الوظيفة:** دخول موحّد لكل الأدوار، بوضعين: موظف (بريد + كلمة مرور) ومواطن (رقم الهوية الرقمية + PIN من 6 أرقام).
 - **المدخلات:** البريد/كلمة المرور، أو رقم الهوية الرقمية (مثل `LY-11-2026-000101-0`) + PIN.
@@ -181,7 +184,10 @@ sarh/
 ### تقديم عقار جديد ورسم الحدود (Citizen — New Property)
 **المسار:** `/app/my/...` · **الملف:** `features/citizen/pages/new-property.page.ts`
 
-`[ أدرج لقطة شاشة: خريطة رسم حدود الأرض ]`
+<figure>
+<img src="screenshots/05-citizen-new-property.png" alt="رسم حدود الأرض" style="width:100%;border:1px solid #cbd5e1;border-radius:8px;" />
+<figcaption>الشكل 2: رسم حدود الأرض على الخريطة مع إظهار الأراضي المسجّلة كخلفية رمادية لتفادي الرسم فوقها.</figcaption>
+</figure>
 
 - **الوظيفة:** يرسم المواطن مضلّع حدود أرضه على خريطة Leaflet بالنقر على الزوايا، ويرفق صورة موقع وشهادة كروكي (koreky).
 - **المدخلات:** نقاط المضلّع (≥3)، نوع العقار، المنطقة، المساحة، المستندات.
@@ -190,7 +196,10 @@ sarh/
 ### طابور المراجعة (Officer Queue)
 **المسار:** `/app/queue` · **الملف:** `features/officer/pages/queue.page.ts`
 
-`[ أدرج لقطة شاشة: طابور الطلبات ]`
+<figure>
+<img src="screenshots/02-officer-queue.png" alt="طابور الطلبات" style="width:100%;border:1px solid #cbd5e1;border-radius:8px;" />
+<figcaption>الشكل 3: طابور طلبات المراجعة الواردة لموظف المنطقة.</figcaption>
+</figure>
 
 - **الوظيفة:** يعرض الطلبات الواردة لمنطقة الموظف للمراجعة.
 - **المخرجات:** قائمة طلبات قابلة للفتح للمراجعة التفصيلية.
@@ -198,7 +207,10 @@ sarh/
 ### مراجعة الطلب (Officer Review)
 **المسار:** `/app/review/:id` · **الملف:** `features/officer/pages/review.page.ts`
 
-`[ أدرج لقطة شاشة: شاشة مراجعة العقار + الخريطة ]`
+<figure>
+<img src="screenshots/03-officer-review-conflict.png" alt="مراجعة العقار مع تضارب في الموقع" style="width:100%;border:1px solid #cbd5e1;border-radius:8px;" />
+<figcaption>الشكل 4: شاشة مراجعة العقار مع تنبيه «تضارب في الموقع» وإبراز القطعة المتداخلة على الخريطة (نسبة تداخل ≈ 63%) — تبقى القطعتان دون اعتماد حتى حلّ التعارض.</figcaption>
+</figure>
 
 - **الوظيفة:** يعرض حدود الأرض على الخريطة، المستندات المرفقة، تحذيرات التداخل/النزاع، وقرار الموظف (اعتماد/رفض/طلب توضيح).
 - **المدخلات:** قرار + ملاحظة + رقم قرار اعتماد (عند الاعتماد).
@@ -207,7 +219,10 @@ sarh/
 ### الخريطة المساحية للموظف (Officer Map)
 **المسار:** `/app/map` (officer) · **الملف:** `features/officer/pages/map.page.ts`
 
-`[ أدرج لقطة شاشة: خريطة كل عقارات المنطقة ]`
+<figure>
+<img src="screenshots/04-officer-map.png" alt="الخريطة المساحية للمنطقة" style="width:100%;border:1px solid #cbd5e1;border-radius:8px;" />
+<figcaption>الشكل 5: الخريطة المساحية لكل قطع المنطقة، بألوان حسب الحالة مع تمييز التضاربات.</figcaption>
+</figure>
 
 - **الوظيفة:** عرض كل قطع المنطقة بألوان حسب الحالة (واضح/متنازَع/قيد العمل)، لكشف التداخل والنزاعات بصرياً.
 
@@ -226,9 +241,20 @@ sarh/
 ### التحقق العام (Public Verify)
 **الملف:** `features/verify/...` · **الرابط العام:** `verify.sarh.ly/{deed_id}`
 
-`[ أدرج لقطة شاشة: صفحة التحقق + رمز QR ]`
+<figure>
+<img src="screenshots/07-verify.png" alt="بوابة التحقق العام" style="width:100%;border:1px solid #cbd5e1;border-radius:8px;" />
+<figcaption>الشكل 6: بوابة التحقق العام من صحة الصكوك.</figcaption>
+</figure>
 
 - **الوظيفة:** يتحقق أي شخص من صحة صكّ عبر رمز QR؛ النظام يتحقق من توقيع PAdES ويعرض الصكّ.
+
+### الخريطة العقارية العامة (Public Map)
+**المسار:** `/map` · **الملف:** `features/map/public-map.page.ts`
+
+<figure>
+<img src="screenshots/06-public-map.png" alt="الخريطة العقارية العامة" style="width:100%;border:1px solid #cbd5e1;border-radius:8px;" />
+<figcaption>الشكل 7: الخريطة العقارية العامة — تعرض العقارات الصادرة صكوكها فقط، دون أي بيانات شخصية.</figcaption>
+</figure>
 
 ---
 
