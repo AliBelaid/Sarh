@@ -108,8 +108,10 @@ import { ParcelMapComponent } from '../../../shared/parcel-map.component';
             @if (f.properties.has_active_dispute) {
               <p class="warn-note">⚠ هذا العقار عليه حجز/نزاع قانوني قائم.</p>
             }
-            @if (f.properties.has_location_conflict) {
-              <p class="warn-note">⚠ تضارب في الموقع — تتداخل حدوده مع قطعة مسجّلة أخرى.</p>
+            @if (f.properties.conflict_kind === 'ownership_conflict') {
+              <p class="warn-note">⚠ خلل في الملكية — تتعارض حدوده مع عقار معتمد مسبقاً.</p>
+            } @else if (f.properties.has_location_conflict) {
+              <p class="warn-note">⚠ تضارب في الموقع — تتداخل حدوده مع قطعة غير معتمدة أخرى.</p>
             }
             <div class="actions">
               <a class="act" [routerLink]="['/app/review', f.properties.id]">فتح المراجعة</a>

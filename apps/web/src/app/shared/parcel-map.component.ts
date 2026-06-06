@@ -13,9 +13,18 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
-import type { ParcelFeature } from '@core/map.service';
+import type { ParcelFeature, ParcelProps } from '@core/map.service';
 import { mapStatusMeta } from './map-status';
 import { PROPERTY_TYPE } from './status-pills';
+
+// Outline colour for a conflicting parcel, or null when it has no conflict.
+// Red = ownership conflict (overlaps an issued parcel, خلل في الملكية);
+// orange = location conflict (two not-yet-approved parcels overlapping).
+function conflictOutline(p: ParcelProps): string | null {
+  if (p.conflict_kind === 'ownership_conflict') return '#DC2626';
+  if (p.conflict_kind === 'location_conflict' || p.has_location_conflict) return '#EA580C';
+  return null;
+}
 
 // Shared Leaflet canvas that paints parcel polygons coloured by their derived
 // map_status, drops a matching marker dot at each centroid, and emits the
@@ -106,15 +115,17 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       const latlngs = ring.map(([lng, lat]) => [lat, lng] as L.LatLngTuple);
       const meta = mapStatusMeta(f.properties.map_status);
 
-      // A location conflict (overlapping another parcel) overrides the normal
-      // outline with a bold red dashed stroke so it reads as a problem at a
-      // glance, regardless of the underlying map_status colour.
-      const conflict = f.properties.has_location_conflict === true;
+      // A conflict overrides the normal outline with a bold dashed stroke so it
+      // reads as a problem at a glance, regardless of the map_status colour:
+      // red for an ownership conflict (overlaps an issued parcel), orange for a
+      // location conflict (two not-yet-approved parcels overlapping).
+      const conflictColor = conflictOutline(f.properties);
+      const conflict = conflictColor !== null;
       const poly = L.polygon(latlngs, {
-        color: conflict ? '#DC2626' : meta.color,
+        color: conflict ? conflictColor! : meta.color,
         weight: conflict ? 3 : 2,
         dashArray: conflict ? '6 5' : undefined,
-        fillColor: conflict ? '#DC2626' : meta.color,
+        fillColor: conflict ? conflictColor! : meta.color,
         fillOpacity: 0.28,
       })
         .bindPopup(this.popupHtml(f))
@@ -157,13 +168,14 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     for (const [id, poly] of this.polygons) {
       const props = this.features.find((f) => f.properties.id === id)?.properties;
       const meta = mapStatusMeta(props?.map_status ?? 'pending');
-      const conflict = props?.has_location_conflict === true;
+      const conflictColor = props ? conflictOutline(props) : null;
+      const conflict = conflictColor !== null;
       const on = id === this.selectedId;
       poly.setStyle({
         weight: on ? 4 : conflict ? 3 : 2,
         fillOpacity: on ? 0.45 : 0.28,
         dashArray: conflict ? '6 5' : undefined,
-        color: conflict ? '#DC2626' : meta.color,
+        color: conflict ? conflictColor! : meta.color,
       });
       if (on || conflict) poly.bringToFront();
     }
@@ -185,7 +197,11 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
           <span style="display:inline-block; padding:2px 9px; border-radius:99px; font-size:10.5px; color:#fff; background:${meta.color};">
             ${meta.ar}</span>
         </div>
-        ${p.has_location_conflict ? `<div style="margin-top:7px; padding:4px 8px; border-radius:7px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; font-size:10.5px; font-weight:600;">⚠ تضارب في الموقع — تتداخل مع قطعة أخرى</div>` : ''}
+        ${p.conflict_kind === 'ownership_conflict'
+          ? `<div style="margin-top:7px; padding:4px 8px; border-radius:7px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; font-size:10.5px; font-weight:600;">⚠ خلل في الملكية — تتعارض مع عقار معتمد</div>`
+          : p.has_location_conflict
+          ? `<div style="margin-top:7px; padding:4px 8px; border-radius:7px; background:#fff7ed; border:1px solid #fed7aa; color:#b45309; font-size:10.5px; font-weight:600;">⚠ تضارب في الموقع — تتداخل مع قطعة غير معتمدة</div>`
+          : ''}
         <div style="font-size:10px; color:#94a3b8; margin-top:7px;">آخر تحديث: ${updated}</div>
       </div>`;
   }

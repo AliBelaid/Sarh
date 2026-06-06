@@ -106,8 +106,13 @@ export interface Property {
   // registered/live parcel by a real area (possible double-registration).
   // Present on GET /properties/{id}; a soft warning the reviewer resolves.
   has_location_conflict?: boolean;
+  // 'ownership_conflict' = overlaps an already-issued parcel (خلل في الملكية);
+  // 'location_conflict' = overlaps only not-yet-approved parcels; else 'none'.
+  conflict_kind?: ConflictKind;
   location_conflicts?: PropertyOverlap[];
 }
+
+export type ConflictKind = 'none' | 'location_conflict' | 'ownership_conflict';
 
 export interface GeoJsonPolygon {
   type: 'Polygon';
@@ -119,6 +124,8 @@ export interface PropertyOverlap {
   property_code?: string | null;
   parcel_number: string | null;
   overlap_pct: number | null;
+  // Workflow status of the overlapping parcel (approved/pending/…).
+  other_status?: string | null;
 }
 
 export interface PropertyDocument {

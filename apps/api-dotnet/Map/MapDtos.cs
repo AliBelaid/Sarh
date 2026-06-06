@@ -42,6 +42,9 @@ public sealed class MapFeatureProps
     // area (possible double-registration). Derived in property_map_features (045);
     // independent of MapStatus so the client can paint a distinct conflict outline.
     public bool HasLocationConflict { get; init; }
+    // Refines the boolean (046): "ownership_conflict" (overlaps an ISSUED parcel),
+    // "location_conflict" (overlaps only pending ones), or "none".
+    public string ConflictKind { get; init; } = "none";
     // Marker anchor (centroid). Handy for label/pin placement without the
     // client re-deriving it from the polygon ring.
     public double Lng { get; init; }

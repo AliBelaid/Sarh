@@ -58,6 +58,18 @@ public sealed class ReviewService(
 
     private async Task<ReviewResult> ApproveAsync(Property property, ReviewDecisionDto dto, CurrentUser actor, CancellationToken ct)
     {
+        // Ownership guard (خلل في الملكية): never approve a parcel whose polygon
+        // overlaps an ALREADY-ISSUED parcel by a real area — that would create a
+        // second approved owner of the same land. (Exact-centroid duplicates are
+        // already blocked at submit; this covers partial area overlap.) A clash
+        // with a still-pending parcel is NOT blocked here — both stay unapproved
+        // with a "تضارب في الموقع" warning until a human resolves which is valid.
+        var issuedClash = await IssuedOverlapClashAsync(property.Id, ct);
+        if (issuedClash is not null)
+            throw SarhException.Conflict(
+                $"لا يمكن اعتماد هذا العقار: حدوده تتعارض مع عقار معتمد مسبقاً (الرمز {issuedClash}) — خلل في الملكية. يجب حلّ التعارض (إعادة رسم الحدود أو فتح نزاع) قبل الاعتماد.",
+                $"Cannot approve: boundary overlaps an already-issued property (code {issuedClash}). Resolve the ownership conflict first.");
+
         var region = property.RegionId is int rid
             ? await db.Regions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == rid, ct)
             : null;
@@ -216,6 +228,30 @@ public sealed class ReviewService(
         {
             log.LogWarning(ex, "Deed signing failed for property {PropertyId}; deed stored unsigned.", propertyId);
         }
+    }
+
+    // Returns the property_code of an ALREADY-ISSUED parcel whose polygon
+    // overlaps @id by a real area (> 1 m², so a shared boundary line doesn't
+    // count), or null if none. Mirrors the area-overlap rule in 046.
+    private async Task<string?> IssuedOverlapClashAsync(Guid id, CancellationToken ct)
+    {
+        var conn = (Microsoft.Data.SqlClient.SqlConnection)db.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            DECLARE @poly geography = (SELECT boundary_polygon FROM properties WHERE id = @id);
+            IF @poly IS NULL SELECT CAST(NULL AS NVARCHAR(32));
+            ELSE
+            SELECT TOP (1) q.property_code
+            FROM properties q
+            WHERE q.id <> @id
+              AND q.boundary_polygon IS NOT NULL
+              AND q.status IN (N'approved', N'minted', N'transferred')
+              AND @poly.STIntersects(q.boundary_polygon) = 1
+              AND @poly.STIntersection(q.boundary_polygon).STArea() > 1.0
+            ORDER BY @poly.STIntersection(q.boundary_polygon).STArea() DESC;";
+        cmd.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@id", System.Data.SqlDbType.UniqueIdentifier) { Value = id });
+        return await cmd.ExecuteScalarAsync(ct) as string;
     }
 
     private string BuildVerifyUrl(string propertyCode)

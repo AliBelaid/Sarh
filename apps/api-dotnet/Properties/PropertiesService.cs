@@ -208,6 +208,7 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
         // Geometric "تضارب في الموقع": parcels this one overlaps by a real area.
         view.LocationConflicts = await LocationConflictsForPropertyAsync(id, ct);
         view.HasLocationConflict = view.LocationConflicts.Count > 0;
+        view.ConflictKind = ClassifyConflict(view.LocationConflicts);
         return view;
     }
 
@@ -284,6 +285,7 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
         // Redrawing changes the geometry — recompute the overlap warning.
         view.LocationConflicts = await LocationConflictsForPropertyAsync(id, ct);
         view.HasLocationConflict = view.LocationConflicts.Count > 0;
+        view.ConflictKind = ClassifyConflict(view.LocationConflicts);
         return view;
     }
 
@@ -409,7 +411,8 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
             DECLARE @poly geography = geography::STGeomFromText(@wkt, 4326);
             SELECT q.id, q.property_code, q.parcel_number,
                    ROUND(CAST(q.boundary_polygon.STIntersection(@poly).STArea() AS DECIMAL(18,6))
-                         / NULLIF(CAST(@poly.STArea() AS DECIMAL(18,6)), 0) * 100.0, 2) AS overlap_pct
+                         / NULLIF(CAST(@poly.STArea() AS DECIMAL(18,6)), 0) * 100.0, 2) AS overlap_pct,
+                   q.status AS other_status
             FROM properties q
             WHERE (@exclude IS NULL OR q.id <> @exclude)
               AND q.boundary_polygon IS NOT NULL
@@ -431,9 +434,25 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
                 PropertyCode = r.IsDBNull(1) ? null : r.GetString(1),
                 ParcelNumber = r.IsDBNull(2) ? null : r.GetString(2),
                 OverlapPct = r.IsDBNull(3) ? null : r.GetDecimal(3),
+                OtherStatus = r.IsDBNull(4) ? null : r.GetString(4),
             });
         }
         return rows;
+    }
+
+    // Classifies a conflict list into the displayed state:
+    //   ownership_conflict — overlaps an ISSUED parcel (approved/minted/transferred)
+    //   location_conflict  — overlaps only not-yet-approved parcels
+    //   none               — no overlaps
+    private static readonly HashSet<string> IssuedStatuses = new(StringComparer.Ordinal)
+        { "approved", "minted", "transferred" };
+
+    internal static string ClassifyConflict(IReadOnlyList<PropertyOverlap> conflicts)
+    {
+        if (conflicts.Count == 0) return "none";
+        return conflicts.Any(c => c.OtherStatus is not null && IssuedStatuses.Contains(c.OtherStatus))
+            ? "ownership_conflict"
+            : "location_conflict";
     }
 
     // Conflicts for an already-stored parcel (reads its own polygon as WKT).

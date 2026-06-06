@@ -147,6 +147,10 @@ public sealed class PropertyView
     // the detail read; the reviewer decides. The overlapping parcels are listed
     // in LocationConflicts so the review banner can name them.
     public bool HasLocationConflict { get; set; }
+    // "ownership_conflict" when an overlapping parcel is already issued
+    // (approved/minted/transferred) — "خلل في الملكية"; "location_conflict" when
+    // it overlaps only not-yet-approved parcels — "تضارب في الموقع"; else "none".
+    public string ConflictKind { get; set; } = "none";
     public IReadOnlyList<PropertyOverlap> LocationConflicts { get; set; } = Array.Empty<PropertyOverlap>();
 
     public static PropertyView From(Property p) => new()
@@ -248,6 +252,10 @@ public sealed class PropertyOverlap
     public string? PropertyCode { get; init; }
     public string? ParcelNumber { get; init; }
     public decimal? OverlapPct { get; init; }
+    // Workflow status of the OTHER (overlapping) parcel — lets the client tell
+    // an "ownership_conflict" (the other is approved/issued) from a
+    // "location_conflict" (the other is still pending).
+    public string? OtherStatus { get; init; }
 }
 
 public sealed class PropertyNearby

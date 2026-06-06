@@ -81,14 +81,20 @@ const DOC_LABELS: Record<string, string> = {
         </div>
 
         @if (p.has_location_conflict) {
-          <div class="conflict-banner">
+          <div class="conflict-banner" [class.ownership]="p.conflict_kind === 'ownership_conflict'">
             <span class="conflict-mark">⚠</span>
             <div class="conflict-text">
-              <strong>تضارب في الموقع — تتداخل حدود هذه الأرض مع قطعة مسجّلة أخرى (احتمال بيع الأرض لأكثر من شخص).</strong>
-              @for (c of conflicts(); track c.property_id) {
-                <p>• {{ c.property_code ?? (c.parcel_number ? 'قطعة ' + c.parcel_number : 'قطعة غير مرقّمة') }} — نسبة التداخل ≈ {{ c.overlap_pct != null ? (c.overlap_pct | number: '1.0-1') + '%' : '—' }}</p>
+              @if (p.conflict_kind === 'ownership_conflict') {
+                <strong>خلل في الملكية — تتعارض حدود هذه الأرض مع عقار مُعتمد مسبقاً. لا يمكن اعتمادها (مالك آخر مسجّل لنفس الموقع).</strong>
+              } @else {
+                <strong>تضارب في الموقع — تتداخل حدود هذه الأرض مع قطعة أخرى غير مُعتمدة. يبقى الطلبان دون اعتماد حتى حلّ التعارض.</strong>
               }
-              <p class="conflict-hint">القطع المتداخلة مميّزة باللون الأحمر على الخريطة. راجع المخطّط قبل الاعتماد.</p>
+              @for (c of conflicts(); track c.property_id) {
+                <p>• {{ c.property_code ?? (c.parcel_number ? 'قطعة ' + c.parcel_number : 'قطعة غير مرقّمة') }}
+                   <span class="other-status">({{ statusLabel(c.other_status ?? '') }})</span>
+                   — نسبة التداخل ≈ {{ c.overlap_pct != null ? (c.overlap_pct | number: '1.0-1') + '%' : '—' }}</p>
+              }
+              <p class="conflict-hint">القطع المتعارضة مميّزة باللون الأحمر على الخريطة. راجع المخطّط قبل اتخاذ القرار.</p>
             </div>
           </div>
         }
@@ -303,10 +309,14 @@ const DOC_LABELS: Record<string, string> = {
     .manage-link { align-self: center; padding: 8px 14px; border: 1px solid var(--rule); border-radius: 99px; background: var(--paper); color: var(--ink); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: all .15s; }
     .manage-link:hover { border-color: var(--accent); color: var(--accent); }
 
-    .conflict-banner { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; padding: 12px 16px; background: rgba(220,38,38,0.06); border: 1.5px solid rgba(220,38,38,0.4); border-radius: 10px; }
-    .conflict-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #DC2626; color: #fff; font-size: 15px; font-weight: 700; flex-shrink: 0; }
-    .conflict-text strong { display: block; font-size: 12.5px; color: #b91c1c; margin-bottom: 4px; }
+    .conflict-banner { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; padding: 12px 16px; background: rgba(245,158,11,0.08); border: 1.5px solid rgba(245,158,11,0.5); border-radius: 10px; }
+    .conflict-banner.ownership { background: rgba(220,38,38,0.1); border-color: #DC2626; }
+    .conflict-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #f59e0b; color: #fff; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+    .conflict-banner.ownership .conflict-mark { background: #DC2626; }
+    .conflict-text strong { display: block; font-size: 12.5px; color: #b45309; margin-bottom: 4px; }
+    .conflict-banner.ownership .conflict-text strong { color: #b91c1c; }
     .conflict-text p { margin: 2px 0; font-size: 11.5px; color: var(--ink); }
+    .conflict-text .other-status { color: var(--muted); font-size: 10.5px; }
     .conflict-text .conflict-hint { color: var(--muted); margin-top: 6px; }
 
     .map { width: 100%; height: 280px; border-radius: 10px; overflow: hidden; border: 1px solid var(--rule); margin-bottom: 8px; }
@@ -556,19 +566,27 @@ export class OfficerReviewPage implements OnDestroy {
     this.neighborLayer?.remove();
     this.neighborLayer = L.layerGroup().addTo(this.map);
 
-    const conflictIds = new Set(this.conflicts().map((c) => c.property_id));
+    // Map each overlapping parcel id → colour: red for an issued parcel
+    // (خلل في الملكية), orange for a still-pending one (تضارب في الموقع).
+    const issued = (s?: string | null) => s === 'approved' || s === 'minted' || s === 'transferred';
+    const conflictColor = new Map<string, string>();
+    for (const c of this.conflicts()) {
+      conflictColor.set(c.property_id, issued(c.other_status) ? '#DC2626' : '#EA580C');
+    }
 
     for (const f of this.neighbors()) {
       if (f.properties.id === me.id) continue; // skip the parcel under review
       const ring = f.geometry?.coordinates?.[0];
       if (!ring || ring.length < 3) continue;
       const latlngs = ring.map(([lng, lat]) => [lat, lng] as [number, number]);
-      const isConflict = conflictIds.has(f.properties.id) || f.properties.has_location_conflict;
+      const col = conflictColor.get(f.properties.id) ?? null;
+      const isConflict = col !== null;
+      const color = col ?? '#94a3b8';
       L.polygon(latlngs, {
-        color: isConflict ? '#DC2626' : '#94a3b8',
+        color,
         weight: isConflict ? 2.5 : 1,
         dashArray: isConflict ? '6 5' : undefined,
-        fillColor: isConflict ? '#DC2626' : '#94a3b8',
+        fillColor: color,
         fillOpacity: isConflict ? 0.22 : 0.05,
       })
         .addTo(this.neighborLayer)
