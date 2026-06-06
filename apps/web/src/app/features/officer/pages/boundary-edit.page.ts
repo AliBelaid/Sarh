@@ -29,10 +29,10 @@ import { PROPERTY_TYPE, REGIONS } from '../../../shared/status-pills';
     <section class="page">
       <header class="head">
         <div>
-          <h1 class="display">تعديل حدود العقار</h1>
-          <p class="sub">اسحب النقاط لتحريكها، أو اضغط على الخريطة لإضافة نقطة جديدة. تُحتسب المساحة تلقائياً عند الحفظ.</p>
+          <h1 class="display">{{ hasOriginal() ? 'تعديل حدود العقار' : 'رسم حدود العقار' }}</h1>
+          <p class="sub">اضغط على الخريطة لإضافة نقاط الحدود، واسحب أي نقطة لتحريكها. تُحتسب المساحة تلقائياً عند الحفظ.</p>
         </div>
-        <a class="back" routerLink="/app/map">← الخريطة</a>
+        <a class="back" [routerLink]="returnTo">← {{ backLabel }}</a>
       </header>
 
       @if (loading()) {
@@ -56,7 +56,7 @@ import { PROPERTY_TYPE, REGIONS } from '../../../shared/status-pills';
             <span class="pts mono">{{ points().length }} نقطة</span>
             <div class="grow"></div>
             <button class="mini" (click)="undo()" [disabled]="points().length === 0 || saving()">تراجع</button>
-            <button class="mini" (click)="reset()" [disabled]="saving()">استرجاع الأصل</button>
+            <button class="mini" (click)="reset()" [disabled]="saving() || !hasOriginal()">استرجاع الأصل</button>
             <button class="mini warn" (click)="clear()" [disabled]="points().length === 0 || saving()">مسح</button>
           </div>
         </div>
@@ -65,7 +65,7 @@ import { PROPERTY_TYPE, REGIONS } from '../../../shared/status-pills';
         @if (saved()) { <div class="banner ok">تم حفظ الحدود الجديدة وإعادة احتساب المساحة.</div> }
 
         <div class="actions">
-          <button class="btn ghost" routerLink="/app/map" [disabled]="saving()">إلغاء</button>
+          <button class="btn ghost" [routerLink]="returnTo" [disabled]="saving()">إلغاء</button>
           <button class="btn" (click)="save()" [disabled]="points().length < 3 || saving()">
             {{ saving() ? 'جارٍ الحفظ…' : 'حفظ الحدود' }}
           </button>
@@ -118,11 +118,13 @@ export class OfficerBoundaryEditPage implements OnInit, OnDestroy {
 
   // The map div lives inside an @if, so it only exists once the property has
   // loaded. A setter boots the map exactly when the element appears (by then
-  // `points` is already seeded from the loaded boundary).
+  // `points` is already seeded from the loaded boundary). The boot is deferred
+  // one macrotask so the just-revealed container is laid out before Leaflet
+  // measures it — otherwise recenter()'s fitBounds runs against a 0-size map.
   private mapEl?: ElementRef<HTMLDivElement>;
   @ViewChild('mapEl') set mapElRef(el: ElementRef<HTMLDivElement> | undefined) {
     this.mapEl = el;
-    if (el) this.bootMap();
+    if (el) setTimeout(() => this.bootMap(), 0);
   }
 
   readonly prop = signal<Property | null>(null);
@@ -132,6 +134,14 @@ export class OfficerBoundaryEditPage implements OnInit, OnDestroy {
   readonly saveError = signal<string | null>(null);
   readonly saved = signal(false);
   readonly points = signal<L.LatLng[]>([]);
+  // True when the parcel already had a boundary on load (edit vs. draw-new).
+  readonly hasOriginal = signal(false);
+
+  // Where "back"/"cancel"/post-save go. Defaults to the officer map; the
+  // review screen passes ?returnTo=/app/review/:id so the reviewer lands back
+  // on the request after drawing/fixing the boundary.
+  returnTo = '/app/map';
+  backLabel = 'الخريطة';
 
   private id = '';
   private original: L.LatLng[] = [];
@@ -143,10 +153,16 @@ export class OfficerBoundaryEditPage implements OnInit, OnDestroy {
 
   async ngOnInit(): Promise<void> {
     this.id = this.route.snapshot.paramMap.get('id') ?? '';
+    const ret = this.route.snapshot.queryParamMap.get('returnTo');
+    if (ret) {
+      this.returnTo = ret;
+      this.backLabel = ret.includes('/review') ? 'المراجعة' : 'الخريطة';
+    }
     try {
       const p = await this.api.get(this.id);
       this.prop.set(p);
       this.original = this.ringFromProperty(p);
+      this.hasOriginal.set(this.original.length > 0);
       this.points.set([...this.original]);
     } catch {
       this.loadError.set('تعذّر تحميل العقار أو ليس لديك صلاحية تعديله.');
@@ -175,7 +191,8 @@ export class OfficerBoundaryEditPage implements OnInit, OnDestroy {
       this.prop.set(updated);
       this.saved.set(true);
       this.original = [...this.points()];
-      setTimeout(() => this.router.navigateByUrl('/app/map'), 900);
+      this.hasOriginal.set(true);
+      setTimeout(() => this.router.navigateByUrl(this.returnTo), 900);
     } catch (e: unknown) {
       const err = e as { error?: { error?: { message_ar?: string } } };
       this.saveError.set(err.error?.error?.message_ar ?? 'تعذّر حفظ الحدود. حاول مجدداً.');
@@ -196,6 +213,9 @@ export class OfficerBoundaryEditPage implements OnInit, OnDestroy {
     }).addTo(this.map);
     this.markerLayer.addTo(this.map);
     this.map.on('click', (e: L.LeafletMouseEvent) => this.addPoint(e.latlng));
+    // Container is laid out by now (boot is deferred a tick), but invalidate
+    // once more so a tab/resize that happened mid-load can't leave a 0-size map.
+    this.map.invalidateSize();
     this.redraw();
     this.recenter();
   }

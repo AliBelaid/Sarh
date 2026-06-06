@@ -144,8 +144,9 @@ export class DigitalIdCardsService {
     );
   }
 
-  // Super-admin only. Soft-deletes the card (status=revoked) and purges its
-  // NFC secrets server-side. Reason is optional but recorded in the audit log.
+  // Super-admin only. HARD-deletes the card: the card row, its NFC secrets
+  // and its issuance history are physically removed from the database (the
+  // deletion stays in the append-only audit log). Reason is optional.
   delete(id: string, reason?: string): Promise<DeleteCardResult> {
     return firstValueFrom(
       this.http.delete<DeleteCardResult>(`${API_BASE}/digital-id-cards/${id}`, {
@@ -165,7 +166,7 @@ export interface DeleteCardResult {
   card_id: string;
   digital_id_number: string;
   citizen_id: string;
-  status: CardStatus;
-  revoked_at: string;
+  // Hard delete: the card row (+ NFC secrets + issuance history) is removed.
+  deleted: boolean;
   nfc_secrets_purged: number;
 }

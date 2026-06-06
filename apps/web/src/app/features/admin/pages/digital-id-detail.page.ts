@@ -151,7 +151,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | 'edit' | null;
 
             <h3 class="panel-title mt">الإجراءات</h3>
             <div class="actions">
-              @if (canEdit() && (c.status === 'active' || c.status === 'frozen')) {
+              @if (canEdit() && c.status === 'active') {
                 <button class="btn ghost" (click)="openModal('edit')">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   تعديل البيانات
@@ -210,7 +210,7 @@ type Modal = 'freeze' | 'revoke' | 'reissue' | 'pin' | 'delete' | 'edit' | null;
                   @case ('revoke')  { الإلغاء نهائي. لا يمكن استخدام البطاقة بعد ذلك أبداً. }
                   @case ('reissue') { سيتم إصدار بطاقة جديدة بمفاتيح NFC جديدة، وإلغاء البطاقة الحالية. }
                   @case ('pin')     { سيتم توليد رمز PIN جديد من 6 أرقام. لن يكون بالإمكان استرجاعه لاحقاً — اطبعه أو اكتبه فوراً. }
-                  @case ('delete')  { إجراء لا يمكن التراجع عنه: سيتم إلغاء البطاقة وإتلاف مفاتيح NFC السرّية ومسح بياناتها الحسّاسة. يبقى سجل البطاقة للتدقيق فقط. }
+                  @case ('delete')  { إجراء لا يمكن التراجع عنه: سيتم حذف البطاقة نهائياً من قاعدة البيانات مع مفاتيح NFC السرّية وسجلّ إصدارها. يبقى أثر الحذف في سجل التدقيق فقط. }
                   @case ('edit')    { تصحيح الاسم أو تاريخ الميلاد يعيد احتساب بصمة الهوية (data_hash) المرتبطة بشريحة NFC لكل البطاقات الفعّالة. رقم الهوية ومفاتيح NFC لا تتغيّر. }
                 }
               </p>
@@ -662,7 +662,7 @@ export class AdminDigitalIdDetailPage implements OnInit, OnDestroy {
     const card = this.card();
     if (!card) return;
     const qp = this.route.snapshot.queryParamMap;
-    if (qp.get('edit') && this.canEdit() && (card.status === 'active' || card.status === 'frozen')) {
+    if (qp.get('edit') && this.canEdit() && card.status === 'active') {
       this.openModal('edit');
     } else if (qp.get('delete') && this.canDelete()) {
       this.openModal('delete');

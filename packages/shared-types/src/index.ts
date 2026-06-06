@@ -100,7 +100,19 @@ export interface Property {
   // GeoJSON Polygon of the parcel boundary. Present on GET /properties/{id}
   // (the shape the citizen drew/walked); absent in list responses.
   boundary_polygon?: GeoJsonPolygon | null;
+  // Legal encumbrance flag (court seizure / lien / waqf). Detail read only.
+  has_active_dispute?: boolean;
+  // Geometric "تضارب في الموقع": this parcel's polygon overlaps another
+  // registered/live parcel by a real area (possible double-registration).
+  // Present on GET /properties/{id}; a soft warning the reviewer resolves.
+  has_location_conflict?: boolean;
+  // 'ownership_conflict' = overlaps an already-issued parcel (خلل في الملكية);
+  // 'location_conflict' = overlaps only not-yet-approved parcels; else 'none'.
+  conflict_kind?: ConflictKind;
+  location_conflicts?: PropertyOverlap[];
 }
+
+export type ConflictKind = 'none' | 'location_conflict' | 'ownership_conflict';
 
 export interface GeoJsonPolygon {
   type: 'Polygon';
@@ -109,8 +121,11 @@ export interface GeoJsonPolygon {
 
 export interface PropertyOverlap {
   property_id: string;
+  property_code?: string | null;
   parcel_number: string | null;
-  overlap_pct: number;
+  overlap_pct: number | null;
+  // Workflow status of the overlapping parcel (approved/pending/…).
+  other_status?: string | null;
 }
 
 export interface PropertyDocument {

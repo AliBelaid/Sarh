@@ -18,6 +18,12 @@ export interface ParcelProps {
   area_sqm: number | null;
   updated_at: string;
   has_active_dispute: boolean;
+  // Polygon overlaps another live parcel by a real area (possible double-sell).
+  // Painted as a distinct red hatch on top of map_status. Derived server-side.
+  has_location_conflict: boolean;
+  // 'ownership_conflict' (overlaps an issued parcel) | 'location_conflict'
+  // (overlaps only pending) | 'none'. Refines has_location_conflict.
+  conflict_kind?: 'none' | 'location_conflict' | 'ownership_conflict';
   lng: number;
   lat: number;
 }

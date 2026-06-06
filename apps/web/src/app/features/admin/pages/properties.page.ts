@@ -15,34 +15,7 @@ import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { PropertiesService } from '@core/properties.service';
 import type { Property, PropertyStatus } from '@sarh/shared-types';
-
-// Approximate centroids for Libyan governorates (sha'biyat). region_id values
-// match infra/mssql/migrations/016_seed_regions.sql. Used for map markers when
-// the API doesn't yet return polygon geometry.
-const REGION_CENTROIDS: Record<number, { lat: number; lng: number; ar: string }> = {
-  10: { lat: 32.8872, lng: 13.1913, ar: 'طرابلس' },
-  11: { lat: 32.0833, lng: 20.0667, ar: 'بنغازي' },
-  12: { lat: 32.7546, lng: 12.7236, ar: 'الزاوية' },
-  13: { lat: 32.5266, lng: 13.6212, ar: 'تاجوراء' },
-  14: { lat: 32.3756, lng: 15.0935, ar: 'مصراتة' },
-  15: { lat: 32.4500, lng: 14.2500, ar: 'الخمس' },
-  16: { lat: 30.7500, lng: 20.2500, ar: 'الواحات' },
-  17: { lat: 32.7670, lng: 22.6359, ar: 'المرج' },
-  18: { lat: 32.7634, lng: 21.7081, ar: 'الجبل الأخضر' },
-  19: { lat: 32.0500, lng: 23.9700, ar: 'درنة' },
-  20: { lat: 31.2089, lng: 16.5879, ar: 'سرت' },
-  21: { lat: 30.8000, lng: 13.7000, ar: 'الجفارة' },
-  22: { lat: 30.1500, lng: 13.0500, ar: 'الجبل الغربي' },
-  23: { lat: 31.7500, lng: 12.0500, ar: 'النقاط الخمس' },
-  24: { lat: 26.3500, lng: 14.5500, ar: 'سبها' },
-  25: { lat: 24.9167, lng: 14.4500, ar: 'مرزق' },
-  26: { lat: 27.0333, lng: 11.0167, ar: 'وادي الشاطئ' },
-  27: { lat: 27.0500, lng: 12.6500, ar: 'وادي الحياة' },
-  28: { lat: 24.1833, lng: 23.2667, ar: 'الكفرة' },
-  29: { lat: 25.9167, lng: 10.7333, ar: 'غات' },
-  30: { lat: 28.0333, lng: 19.5500, ar: 'الجفرة' },
-  31: { lat: 30.6500, lng: 17.6833, ar: 'النوقاط' },
-};
+import { REGIONS, REGION_CENTROIDS, LIBYA_CENTER } from '../../../shared/status-pills';
 
 const STATUS_LABEL: Record<string, { ar: string; color: string }> = {
   draft:                { ar: 'مسودة',          color: '#94a3b8' },
@@ -440,7 +413,7 @@ export class AdminPropertiesPage implements OnInit, AfterViewInit, OnDestroy {
 
   regionLabel(id: number | null | undefined): string {
     if (id == null) return '—';
-    return REGION_CENTROIDS[id]?.ar ?? `منطقة ${id}`;
+    return REGIONS[id] ?? `منطقة ${id}`;
   }
 
   areaLabel(a: number | null | undefined): string {
@@ -534,7 +507,7 @@ export class AdminPropertiesPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private centroidFor(p: Property): { lat: number; lng: number } {
-    const base = REGION_CENTROIDS[p.region_id ?? 0] ?? REGION_CENTROIDS[10];
+    const base = (p.region_id != null ? REGION_CENTROIDS[p.region_id] : undefined) ?? LIBYA_CENTER;
     // Deterministic small jitter so markers in the same region don't stack.
     const seed = this.hash(p.id);
     const dx = ((seed % 1000) / 1000 - 0.5) * 0.2; // ~±0.1°

@@ -387,3 +387,19 @@ public partial class M044_SeedMapDemo : Migration
     protected override void Up(MigrationBuilder b) => SqlMigrationRunner.Apply(b, "044_seed_map_demo.sql");
     protected override void Down(MigrationBuilder b) { }
 }
+
+[DbContext(typeof(SarhDbContext))]
+[Migration("20240101000045_045_property_location_conflict")]
+public partial class M045_PropertyLocationConflict : Migration
+{
+    protected override void Up(MigrationBuilder b) => SqlMigrationRunner.Apply(b, "045_property_location_conflict.sql");
+    protected override void Down(MigrationBuilder b) { }
+}
+
+[DbContext(typeof(SarhDbContext))]
+[Migration("20240101000046_046_property_conflict_kind")]
+public partial class M046_PropertyConflictKind : Migration
+{
+    protected override void Up(MigrationBuilder b) => SqlMigrationRunner.Apply(b, "046_property_conflict_kind.sql");
+    protected override void Down(MigrationBuilder b) { }
+}

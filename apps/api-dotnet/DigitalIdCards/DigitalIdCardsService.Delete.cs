@@ -2,17 +2,18 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Sarh.Api.Auth;
 using Sarh.Api.Common.Errors;
-using Sarh.Api.Data.Entities;
 
 namespace Sarh.Api.DigitalIdCards;
 
 public sealed partial class DigitalIdCardsService
 {
-    // Hard-revoke + scrub: super_admin-only. Sets status=revoked, clears the
-    // PIN hash and NFC secrets so the card cannot be replayed, drops the
-    // matching nfc_card_secrets row, and writes a 'deleted' issuance-history
-    // entry. The card row itself is kept for audit (CASCADE on citizen would
-    // otherwise erase the trail).
+    // Hard delete: super_admin-only. Physically removes the card from the
+    // database rather than soft-revoking it. Its NFC key material
+    // (nfc_card_secrets, ON DELETE CASCADE) and its issuance-history rows
+    // (id_issuance_history — a non-cascading FK that must be cleared first)
+    // are removed, then the card row itself, all in one transaction. The
+    // deletion is still captured in the append-only audit_log by the
+    // controller's [Audit] filter; the card row itself is NOT retained.
     public async Task<DeleteCardResult> DeleteAsync(Guid cardId, DeleteCardDto dto, CurrentUser actor, CancellationToken ct)
     {
         if (actor.Role != "super_admin" || actor.OfficerId is null)
@@ -23,47 +24,40 @@ public sealed partial class DigitalIdCardsService
 
         var citizenId = card.CitizenId;
         var didNumber = card.DigitalIdNumber;
-        var wasActive = card.Status is "active" or "frozen";
+        var wasLive = card.Status is "active" or "frozen";
 
-        card.Status = "revoked";
-        card.RevokedAt = DateTimeOffset.UtcNow;
-        card.RevokedReason = string.IsNullOrWhiteSpace(dto.Reason)
-            ? "حذف الهوية الرقمية بواسطة المسؤول العام"
-            : dto.Reason!;
-        card.PinHash = null;
-        card.PinSetAt = null;
-        card.NfcUid = null;
-        card.NfcSignatureKeyId = null;
-        card.UpdatedAt = DateTimeOffset.UtcNow;
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
 
-        db.IdIssuanceHistory.Add(new IdIssuanceHistory
-        {
-            Id = Guid.NewGuid(),
-            CitizenId = citizenId,
-            CardId = card.Id,
-            Action = "deleted",
-            Reason = card.RevokedReason,
-            OfficerId = actor.OfficerId,
-        });
+        // 1) Issuance history references the card via a non-cascading FK, so it
+        //    has to go before the card row or the DELETE would violate the FK.
+        await db.Database.ExecuteSqlRawAsync(
+            "DELETE FROM id_issuance_history WHERE card_id = @id",
+            new object[] { new SqlParameter("@id", cardId) }, ct);
 
-        await db.SaveChangesAsync(ct);
-
-        // Drop the NFC key material so a found/cloned card can't replay.
+        // 2) NFC key material. The FK is ON DELETE CASCADE, but delete it
+        //    explicitly so we can report how many secret rows were purged.
         var secretRows = await db.Database.ExecuteSqlRawAsync(
             "DELETE FROM nfc_card_secrets WHERE card_id = @id",
             new object[] { new SqlParameter("@id", cardId) }, ct);
 
-        log.LogWarning(
-            "Digital ID card {CardId} (digital_id_number={Did}) deleted by super_admin {OfficerId}. " +
-            "NFC secrets purged: {N}.",
-            cardId, didNumber, actor.OfficerId, secretRows);
+        // 3) The card row itself.
+        db.DigitalIdCards.Remove(card);
+        await db.SaveChangesAsync(ct);
 
-        if (wasActive)
+        await tx.CommitAsync(ct);
+
+        log.LogWarning(
+            "Digital ID card {CardId} (digital_id_number={Did}) HARD-DELETED by super_admin {OfficerId}. " +
+            "NFC secrets purged: {N}. Reason: {Reason}.",
+            cardId, didNumber, actor.OfficerId, secretRows,
+            string.IsNullOrWhiteSpace(dto.Reason) ? "(none)" : dto.Reason);
+
+        if (wasLive)
         {
             await notifications.NotifyCitizenAsync(
                 citizenId,
                 "تم حذف بطاقة الهوية الرقمية",
-                $"تم حذف بطاقتك رقم {didNumber}. للاستفسار، تواصل مع مكتب الإصدار.",
+                $"تم حذف بطاقتك رقم {didNumber} نهائياً. للاستفسار، تواصل مع مكتب الإصدار.",
                 new { card_id = cardId, digital_id_number = didNumber, action = "deleted" },
                 ct);
         }
@@ -73,8 +67,7 @@ public sealed partial class DigitalIdCardsService
             CardId = cardId,
             DigitalIdNumber = didNumber,
             CitizenId = citizenId,
-            Status = card.Status,
-            RevokedAt = card.RevokedAt.Value,
+            Deleted = true,
             NfcSecretsPurged = secretRows,
         };
     }
@@ -90,7 +83,8 @@ public sealed class DeleteCardResult
     public required Guid CardId { get; init; }
     public required string DigitalIdNumber { get; init; }
     public required Guid CitizenId { get; init; }
-    public required string Status { get; init; }
-    public required DateTimeOffset RevokedAt { get; init; }
+    // Hard delete: the card row, its NFC secrets and its issuance history are
+    // physically removed from the database.
+    public required bool Deleted { get; init; }
     public required int NfcSecretsPurged { get; init; }
 }
