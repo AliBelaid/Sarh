@@ -18,6 +18,9 @@ export interface ParcelProps {
   area_sqm: number | null;
   updated_at: string;
   has_active_dispute: boolean;
+  // Polygon overlaps another live parcel by a real area (possible double-sell).
+  // Painted as a distinct red hatch on top of map_status. Derived server-side.
+  has_location_conflict: boolean;
   lng: number;
   lat: number;
 }

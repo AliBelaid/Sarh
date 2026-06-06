@@ -56,6 +56,12 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
                 $"An approved property with the same centroid exists (code {validation.MatchedPropertyCode}).");
         }
 
+        // Soft location-conflict check (CLAUDE.md #3: overlap is a WARNING, not a
+        // hard block — legacy paper deeds may legitimately conflict). Surfaces a
+        // possible double-registration to the reviewer without rejecting the
+        // request. An exact-centroid duplicate is the only HARD block (above).
+        var locationConflicts = await LocationConflictsForWktAsync(wkt, excludeId: null, ct);
+
         // insert_property_with_polygon already accepts WKT and parses GeoJSON.
         var propertyId = await CallInsertPropertyAsync(dto, wkt, ownerCitizenId, ct);
 
@@ -96,11 +102,14 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
 
         if (property.RegionId is int rid)
         {
+            var body = locationConflicts.Count > 0
+                ? $"وصل طلب جديد رقم {requestNo} يحتاج إلى مراجعة. تنبيه: تتداخل حدوده مع {locationConflicts.Count} قطعة مسجّلة (تضارب في الموقع)."
+                : $"وصل طلب جديد رقم {requestNo} يحتاج إلى مراجعة.";
             await notifications.NotifyReviewersInRegionAsync(
                 rid,
-                "طلب تسجيل عقار جديد",
-                $"وصل طلب جديد رقم {requestNo} يحتاج إلى مراجعة.",
-                new { property_id = propertyId, request_no = requestNo },
+                locationConflicts.Count > 0 ? "طلب تسجيل عقار — تضارب في الموقع" : "طلب تسجيل عقار جديد",
+                body,
+                new { property_id = propertyId, request_no = requestNo, has_location_conflict = locationConflicts.Count > 0 },
                 ct);
         }
 
@@ -112,6 +121,7 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
             {
                 ComputedAreaSqm = validation.ComputedAreaSqm,
                 AreaDiffPct = validation.AreaDiffPct,
+                LocationConflicts = locationConflicts,
             },
         };
     }
@@ -195,6 +205,9 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
         view.BoundaryPolygon = await GetBoundaryPolygonGeoJsonAsync(id, ct);
         view.HasActiveDispute = await db.PropertyDisputes.AsNoTracking()
             .AnyAsync(d => d.PropertyId == id && d.Status == "active", ct);
+        // Geometric "تضارب في الموقع": parcels this one overlaps by a real area.
+        view.LocationConflicts = await LocationConflictsForPropertyAsync(id, ct);
+        view.HasLocationConflict = view.LocationConflicts.Count > 0;
         return view;
     }
 
@@ -268,6 +281,9 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
         view.BoundaryPolygon = await GetBoundaryPolygonGeoJsonAsync(id, ct);
         view.HasActiveDispute = await db.PropertyDisputes.AsNoTracking()
             .AnyAsync(d => d.PropertyId == id && d.Status == "active", ct);
+        // Redrawing changes the geometry — recompute the overlap warning.
+        view.LocationConflicts = await LocationConflictsForPropertyAsync(id, ct);
+        view.HasLocationConflict = view.LocationConflicts.Count > 0;
         return view;
     }
 
@@ -375,6 +391,63 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
             });
         }
         return rows;
+    }
+
+    // ----- Location conflict (soft overlap / double-registration) -----
+    // Mirrors dbo.find_property_location_conflicts (045): registered/live parcels
+    // whose polygon overlaps @wkt by a REAL area (> 1 m²), so two parcels merely
+    // sharing a boundary line (area 0) are NOT reported. overlap_pct is relative
+    // to the SUBMITTED polygon's area. @excludeId omits the parcel itself.
+    private async Task<IReadOnlyList<PropertyOverlap>> LocationConflictsForWktAsync(
+        string wkt, Guid? excludeId, CancellationToken ct)
+    {
+        var rows = new List<PropertyOverlap>();
+        var conn = (SqlConnection)db.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            DECLARE @poly geography = geography::STGeomFromText(@wkt, 4326);
+            SELECT q.id, q.property_code, q.parcel_number,
+                   ROUND(CAST(q.boundary_polygon.STIntersection(@poly).STArea() AS DECIMAL(18,6))
+                         / NULLIF(CAST(@poly.STArea() AS DECIMAL(18,6)), 0) * 100.0, 2) AS overlap_pct
+            FROM properties q
+            WHERE (@exclude IS NULL OR q.id <> @exclude)
+              AND q.boundary_polygon IS NOT NULL
+              AND q.status IN (N'pending', N'under_review', N'needs_clarification',
+                               N'approved', N'minted', N'transferred', N'frozen')
+              AND q.boundary_polygon.STIntersects(@poly) = 1
+              AND q.boundary_polygon.STIntersection(@poly).STArea() > 1.0
+            ORDER BY overlap_pct DESC;";
+        cmd.Parameters.Add(new SqlParameter("@wkt", SqlDbType.NVarChar, -1) { Value = wkt });
+        cmd.Parameters.Add(new SqlParameter("@exclude", SqlDbType.UniqueIdentifier)
+            { Value = (object?)excludeId ?? DBNull.Value });
+
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        while (await r.ReadAsync(ct))
+        {
+            rows.Add(new PropertyOverlap
+            {
+                PropertyId = r.GetGuid(0),
+                PropertyCode = r.IsDBNull(1) ? null : r.GetString(1),
+                ParcelNumber = r.IsDBNull(2) ? null : r.GetString(2),
+                OverlapPct = r.IsDBNull(3) ? null : r.GetDecimal(3),
+            });
+        }
+        return rows;
+    }
+
+    // Conflicts for an already-stored parcel (reads its own polygon as WKT).
+    private async Task<IReadOnlyList<PropertyOverlap>> LocationConflictsForPropertyAsync(Guid id, CancellationToken ct)
+    {
+        var conn = (SqlConnection)db.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "SELECT boundary_polygon.STAsText() FROM properties WHERE id = @id AND boundary_polygon IS NOT NULL;";
+        cmd.Parameters.Add(new SqlParameter("@id", SqlDbType.UniqueIdentifier) { Value = id });
+        var wkt = await cmd.ExecuteScalarAsync(ct) as string;
+        if (string.IsNullOrWhiteSpace(wkt)) return Array.Empty<PropertyOverlap>();
+        return await LocationConflictsForWktAsync(wkt, excludeId: id, ct);
     }
 
     // ----- Nearby -----

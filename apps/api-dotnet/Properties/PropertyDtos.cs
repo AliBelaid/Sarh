@@ -141,6 +141,14 @@ public sealed class PropertyView
     // false in list responses. An active encumbrance blocks sale + mint.
     public bool HasActiveDispute { get; set; }
 
+    // True when this parcel's polygon overlaps another registered/live parcel
+    // by a real area (a possible double-registration / "بيع الأرض لأكثر من حد").
+    // Derived geometrically (CLAUDE.md #3 forbids a hard block), populated on
+    // the detail read; the reviewer decides. The overlapping parcels are listed
+    // in LocationConflicts so the review banner can name them.
+    public bool HasLocationConflict { get; set; }
+    public IReadOnlyList<PropertyOverlap> LocationConflicts { get; set; } = Array.Empty<PropertyOverlap>();
+
     public static PropertyView From(Property p) => new()
     {
         Id = p.Id,
@@ -217,6 +225,11 @@ public sealed class ValidationResult
 {
     public decimal ComputedAreaSqm { get; init; }
     public decimal? AreaDiffPct { get; init; }
+    // Registered/live parcels the submitted polygon overlaps by a real area.
+    // A non-empty list is a soft "تضارب في الموقع" warning (NOT a rejection) —
+    // the request is still created and the reviewer is alerted. An exact-centroid
+    // duplicate is a separate HARD 409 (handled before this point).
+    public IReadOnlyList<PropertyOverlap> LocationConflicts { get; init; } = Array.Empty<PropertyOverlap>();
 }
 
 public sealed class NearbyResult

@@ -14,6 +14,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import * as L from 'leaflet';
 import { PropertiesService } from '@core/properties.service';
+import { MapService, ParcelFeature } from '@core/map.service';
 import type { Property, ReviewDecision } from '@sarh/shared-types';
 import { PROPERTY_STATUS, PROPERTY_TYPE, REGIONS, REGION_CENTROIDS, LIBYA_CENTER } from '../../../shared/status-pills';
 import { Dispute, DisputesService } from '../disputes.service';
@@ -78,6 +79,19 @@ const DOC_LABELS: Record<string, string> = {
             إدارة الحجوزات والنزاعات ←
           </a>
         </div>
+
+        @if (p.has_location_conflict) {
+          <div class="conflict-banner">
+            <span class="conflict-mark">⚠</span>
+            <div class="conflict-text">
+              <strong>تضارب في الموقع — تتداخل حدود هذه الأرض مع قطعة مسجّلة أخرى (احتمال بيع الأرض لأكثر من شخص).</strong>
+              @for (c of conflicts(); track c.property_id) {
+                <p>• {{ c.property_code ?? (c.parcel_number ? 'قطعة ' + c.parcel_number : 'قطعة غير مرقّمة') }} — نسبة التداخل ≈ {{ c.overlap_pct != null ? (c.overlap_pct | number: '1.0-1') + '%' : '—' }}</p>
+              }
+              <p class="conflict-hint">القطع المتداخلة مميّزة باللون الأحمر على الخريطة. راجع المخطّط قبل الاعتماد.</p>
+            </div>
+          </div>
+        }
 
         <div class="grid">
           <!-- Hero / details -->
@@ -289,6 +303,12 @@ const DOC_LABELS: Record<string, string> = {
     .manage-link { align-self: center; padding: 8px 14px; border: 1px solid var(--rule); border-radius: 99px; background: var(--paper); color: var(--ink); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: all .15s; }
     .manage-link:hover { border-color: var(--accent); color: var(--accent); }
 
+    .conflict-banner { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; padding: 12px 16px; background: rgba(220,38,38,0.06); border: 1.5px solid rgba(220,38,38,0.4); border-radius: 10px; }
+    .conflict-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #DC2626; color: #fff; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+    .conflict-text strong { display: block; font-size: 12.5px; color: #b91c1c; margin-bottom: 4px; }
+    .conflict-text p { margin: 2px 0; font-size: 11.5px; color: var(--ink); }
+    .conflict-text .conflict-hint { color: var(--muted); margin-top: 6px; }
+
     .map { width: 100%; height: 280px; border-radius: 10px; overflow: hidden; border: 1px solid var(--rule); margin-bottom: 8px; }
     .hint { font-size: 11.5px; color: var(--muted); margin: 0; }
     .edit-boundary {
@@ -370,6 +390,7 @@ export class OfficerReviewPage implements OnDestroy {
   @Input() id?: string;
 
   private readonly api = inject(PropertiesService);
+  private readonly mapApi = inject(MapService);
   private readonly disputesApi = inject(DisputesService);
   private readonly router = inject(Router);
 
@@ -405,6 +426,13 @@ export class OfficerReviewPage implements OnDestroy {
   readonly disputes = signal<Dispute[]>([]);
   readonly activeDisputes = computed(() => this.disputes().filter((d) => d.status === 'active'));
 
+  // Neighbouring parcels drawn under the parcel-under-review so the reviewer can
+  // eyeball overlaps ("شوف كل البوليقونات"). The ones this parcel actually
+  // overlaps (server-computed) are highlighted red.
+  readonly neighbors = signal<ParcelFeature[]>([]);
+  readonly conflicts = computed(() => this.property()?.location_conflicts ?? []);
+  private neighborLayer?: L.LayerGroup;
+
   readonly docs = signal<DocVM[]>([]);
   readonly docsLoading = signal(false);
   private objectUrls: string[] = [];
@@ -414,9 +442,15 @@ export class OfficerReviewPage implements OnDestroy {
   async ngOnInit(): Promise<void> {
     if (!this.id) { this.error.set('معرّف العقار غير صالح.'); this.loading.set(false); return; }
     try {
-      this.property.set(await this.api.get(this.id));
+      const prop = await this.api.get(this.id);
+      this.property.set(prop);
       void this.loadDocuments(this.id);
       this.disputesApi.list(this.id).then((d) => this.disputes.set(d)).catch(() => { /* non-fatal */ });
+      // Pull every parcel in the region so the reviewer sees the surroundings
+      // and any overlap. Non-fatal: the single parcel still renders without it.
+      this.mapApi.officerMap(prop.region_id ?? undefined)
+        .then((fc) => { this.neighbors.set(fc.features ?? []); this.renderNeighbors(); })
+        .catch(() => { /* keep the lone parcel */ });
     } catch (e) {
       const err = e as { error?: { error?: { message_ar?: string } } };
       this.error.set(err.error?.error?.message_ar ?? 'تعذّر تحميل العقار.');
@@ -510,6 +544,43 @@ export class OfficerReviewPage implements OnDestroy {
     return new Date(iso).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   }
 
+  // Paints the other parcels in the region as context. The ones THIS parcel
+  // overlaps (server-computed location_conflicts) are red; the rest are a faint
+  // grey backdrop. Re-runnable: clears its own layer first so it can fire from
+  // both initMap (map ready first) and the officerMap fetch (neighbors first).
+  private renderNeighbors(): void {
+    if (!this.map) return;
+    const me = this.property();
+    if (!me) return;
+
+    this.neighborLayer?.remove();
+    this.neighborLayer = L.layerGroup().addTo(this.map);
+
+    const conflictIds = new Set(this.conflicts().map((c) => c.property_id));
+
+    for (const f of this.neighbors()) {
+      if (f.properties.id === me.id) continue; // skip the parcel under review
+      const ring = f.geometry?.coordinates?.[0];
+      if (!ring || ring.length < 3) continue;
+      const latlngs = ring.map(([lng, lat]) => [lat, lng] as [number, number]);
+      const isConflict = conflictIds.has(f.properties.id) || f.properties.has_location_conflict;
+      L.polygon(latlngs, {
+        color: isConflict ? '#DC2626' : '#94a3b8',
+        weight: isConflict ? 2.5 : 1,
+        dashArray: isConflict ? '6 5' : undefined,
+        fillColor: isConflict ? '#DC2626' : '#94a3b8',
+        fillOpacity: isConflict ? 0.22 : 0.05,
+      })
+        .addTo(this.neighborLayer)
+        .bindPopup(
+          `<div style="direction:rtl;text-align:right;font-family:'IBM Plex Sans Arabic',system-ui;font-size:12px;">
+             <b>${f.properties.property_code ?? f.properties.parcel_number ?? 'قطعة'}</b>
+             ${isConflict ? '<br><span style="color:#b91c1c;font-weight:700;">⚠ تتداخل مع الأرض قيد المراجعة</span>' : ''}
+           </div>`,
+        );
+    }
+  }
+
   private initMap(): void {
     if (!this.mapEl || this.map) return;
     const p = this.property();
@@ -524,6 +595,9 @@ export class OfficerReviewPage implements OnDestroy {
     // fit/zoom — the boot is deferred a tick precisely so this reads non-zero.
     this.map.invalidateSize();
 
+    // Draw neighbouring parcels (if already fetched) UNDER the parcel-under-review.
+    this.renderNeighbors();
+
     // Draw the real parcel boundary when the API returned it; otherwise fall
     // back to a marker at the region centroid.
     const ring = p.boundary_polygon?.coordinates?.[0];
@@ -532,6 +606,7 @@ export class OfficerReviewPage implements OnDestroy {
       const poly = L.polygon(latlngs, {
         color: '#0891B2', weight: 2, fillColor: '#0891B2', fillOpacity: 0.18,
       }).addTo(this.map);
+      poly.bringToFront();
       latlngs.forEach((ll, i) => {
         L.circleMarker(ll, { radius: 5, color: '#0F172A', weight: 2, fillColor: '#F97316', fillOpacity: 1 })
           .addTo(this.map!)

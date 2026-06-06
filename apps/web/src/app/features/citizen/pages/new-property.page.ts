@@ -17,6 +17,7 @@ import { firstValueFrom } from 'rxjs';
 import * as L from 'leaflet';
 import { API_BASE } from '@core/api-config';
 import { UploadsService, UploadResult } from '@core/uploads.service';
+import { MapService } from '@core/map.service';
 import { REGIONS } from '../../../shared/status-pills';
 
 // A file already uploaded to storage, ready to attach to the submission.
@@ -403,6 +404,7 @@ export class NewPropertyPage implements AfterViewInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly uploads = inject(UploadsService);
+  private readonly mapApi = inject(MapService);
 
   @ViewChild('mapEl', { static: true }) mapEl!: ElementRef<HTMLDivElement>;
 
@@ -534,6 +536,28 @@ export class NewPropertyPage implements AfterViewInit, OnDestroy {
     }).addTo(this.map);
     this.markerLayer.addTo(this.map);
     this.map.on('click', (e: L.LeafletMouseEvent) => this.addPoint(e.latlng));
+
+    // Backdrop of already-registered parcels so the citizen can avoid drawing
+    // over occupied land (the deed-issued public feed — no auth, no owner PII).
+    this.loadRegisteredBackdrop();
+  }
+
+  // Faint grey outlines of registered parcels. Best-effort: a failure here must
+  // never block drawing, so errors are swallowed.
+  private async loadRegisteredBackdrop(): Promise<void> {
+    try {
+      const fc = await this.mapApi.publicMap();
+      if (!this.map) return;
+      for (const f of fc.features ?? []) {
+        const ring = f.geometry?.coordinates?.[0];
+        if (!ring || ring.length < 3) continue;
+        const latlngs = ring.map(([lng, lat]) => [lat, lng] as [number, number]);
+        L.polygon(latlngs, {
+          color: '#94a3b8', weight: 1, fillColor: '#94a3b8', fillOpacity: 0.06,
+          interactive: false, // let clicks fall through to the draw handler
+        }).addTo(this.map);
+      }
+    } catch { /* drawing still works without the backdrop */ }
   }
 
   ngOnDestroy(): void { this.map?.remove(); }

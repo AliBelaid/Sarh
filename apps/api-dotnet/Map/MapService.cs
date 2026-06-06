@@ -57,6 +57,7 @@ public sealed class MapService(SarhDbContext db)
         var oArea = r.GetOrdinal("area_sqm");
         var oUpdated = r.GetOrdinal("updated_at");
         var oDispute = r.GetOrdinal("has_active_dispute");
+        var oConflict = r.GetOrdinal("has_location_conflict");
         var oMapStatus = r.GetOrdinal("map_status");
         var oLng = r.GetOrdinal("lng");
         var oLat = r.GetOrdinal("lat");
@@ -96,6 +97,7 @@ public sealed class MapService(SarhDbContext db)
                     AreaSqm = r.IsDBNull(oArea) ? null : r.GetDecimal(oArea),
                     UpdatedAt = r.GetDateTimeOffset(oUpdated),
                     HasActiveDispute = r.GetBoolean(oDispute),
+                    HasLocationConflict = r.GetBoolean(oConflict),
                     Lng = r.IsDBNull(oLng) ? 0 : r.GetDouble(oLng),
                     Lat = r.IsDBNull(oLat) ? 0 : r.GetDouble(oLat),
                 },

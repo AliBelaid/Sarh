@@ -106,10 +106,15 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       const latlngs = ring.map(([lng, lat]) => [lat, lng] as L.LatLngTuple);
       const meta = mapStatusMeta(f.properties.map_status);
 
+      // A location conflict (overlapping another parcel) overrides the normal
+      // outline with a bold red dashed stroke so it reads as a problem at a
+      // glance, regardless of the underlying map_status colour.
+      const conflict = f.properties.has_location_conflict === true;
       const poly = L.polygon(latlngs, {
-        color: meta.color,
-        weight: 2,
-        fillColor: meta.color,
+        color: conflict ? '#DC2626' : meta.color,
+        weight: conflict ? 3 : 2,
+        dashArray: conflict ? '6 5' : undefined,
+        fillColor: conflict ? '#DC2626' : meta.color,
         fillOpacity: 0.28,
       })
         .bindPopup(this.popupHtml(f))
@@ -150,16 +155,17 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   private applySelection(): void {
     for (const [id, poly] of this.polygons) {
-      const meta = mapStatusMeta(
-        this.features.find((f) => f.properties.id === id)?.properties.map_status ?? 'pending',
-      );
+      const props = this.features.find((f) => f.properties.id === id)?.properties;
+      const meta = mapStatusMeta(props?.map_status ?? 'pending');
+      const conflict = props?.has_location_conflict === true;
       const on = id === this.selectedId;
       poly.setStyle({
-        weight: on ? 4 : 2,
+        weight: on ? 4 : conflict ? 3 : 2,
         fillOpacity: on ? 0.45 : 0.28,
-        color: meta.color,
+        dashArray: conflict ? '6 5' : undefined,
+        color: conflict ? '#DC2626' : meta.color,
       });
-      if (on) poly.bringToFront();
+      if (on || conflict) poly.bringToFront();
     }
   }
 
@@ -179,6 +185,7 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
           <span style="display:inline-block; padding:2px 9px; border-radius:99px; font-size:10.5px; color:#fff; background:${meta.color};">
             ${meta.ar}</span>
         </div>
+        ${p.has_location_conflict ? `<div style="margin-top:7px; padding:4px 8px; border-radius:7px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; font-size:10.5px; font-weight:600;">⚠ تضارب في الموقع — تتداخل مع قطعة أخرى</div>` : ''}
         <div style="font-size:10px; color:#94a3b8; margin-top:7px;">آخر تحديث: ${updated}</div>
       </div>`;
   }

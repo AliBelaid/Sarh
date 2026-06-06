@@ -38,6 +38,10 @@ public sealed class MapFeatureProps
     public decimal? AreaSqm { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
     public bool HasActiveDispute { get; init; }
+    // True when this parcel's polygon overlaps another live parcel by a real
+    // area (possible double-registration). Derived in property_map_features (045);
+    // independent of MapStatus so the client can paint a distinct conflict outline.
+    public bool HasLocationConflict { get; init; }
     // Marker anchor (centroid). Handy for label/pin placement without the
     // client re-deriving it from the polygon ring.
     public double Lng { get; init; }
