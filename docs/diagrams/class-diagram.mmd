@@ -102,6 +102,32 @@ classDiagram
         +DateTimeOffset TransferredAt
     }
 
+    class PropertyDispute {
+        +Guid Id
+        +Guid PropertyId
+        +DisputeType DisputeType "judicial_seizure/certified_mortgage/inheritance_dispute/waqf/precautionary_seizure"
+        +string CaseNumber
+        +string IssuingAuthority
+        +DisputeStatus Status "active/lifted"
+        +Guid RecordedByOfficerId
+        +Guid LiftedByOfficerId
+    }
+
+    class DisputesService {
+        +AssertNoActiveDisputeAsync(propertyId) void
+        +ListAsync(propertyId) List~PropertyDispute~
+        +RecordAsync(propertyId, dto, officerId) PropertyDispute
+        +LiftAsync(disputeId, officerId) PropertyDispute
+    }
+
+    class Office {
+        +int Id
+        +string Code
+        +string NameAr
+        +OfficeType OfficeType "registry/id_issuance/headquarters/mixed"
+        +int RegionId
+    }
+
     class BlockchainService {
         -string RpcUrl
         -string ContractAddress
@@ -220,6 +246,10 @@ classDiagram
     Property --> Document : attachments
     Property --> PropertyNft : tokenised as
     Property --> OwnershipHistory : transfer chain
+    Property --> PropertyDispute : encumbered by
+    DisputesService --> PropertyDispute : manages
+    DepartmentManager ..> DisputesService : checks before mint
+    DigitalIdCard --> Office : issued at
     PropertyNft --> OwnershipHistory : transfers
     PropertyNft --> SsiCredential : linked VC
     BlockchainService --> SmartContract : calls

@@ -11,6 +11,8 @@ erDiagram
     regions             ||--o{ citizens              : "scope"
     regions             ||--o{ officers              : "scope"
     regions             ||--o{ municipalities        : "parent"
+    regions             ||--o{ offices               : "located in"
+    offices             ||--o{ digital_id_cards      : "printed at"
     digital_id_cards    ||--|| nfc_card_secrets      : "secrets"
     digital_id_cards    ||--o{ id_issuance_history   : "events"
     ssi_wallets         ||--o{ ssi_credentials       : "issued"
@@ -19,6 +21,7 @@ erDiagram
         UNIQUEIDENTIFIER id                  PK
         NVARCHAR         email               UK
         NVARCHAR         encrypted_password
+        UNIQUEIDENTIFIER officer_id          FK,UK
         NVARCHAR_MAX     raw_app_meta_data   "JSON"
         DATETIMEOFFSET   email_confirmed_at
         DATETIMEOFFSET   last_sign_in_at
@@ -66,9 +69,19 @@ erDiagram
         BIGINT           last_nfc_counter
         NVARCHAR         did                      UK
         UNIQUEIDENTIFIER issued_by_officer_id     FK
+        INT              issued_at_office_id      FK
         DATETIMEOFFSET   issued_at
         DATETIMEOFFSET   expires_at
         NVARCHAR         status                   "active/revoked/expired/lost/frozen"
+    }
+    offices {
+        INT              id                  PK
+        NVARCHAR         code                UK
+        NVARCHAR         name_ar
+        NVARCHAR         office_type         "registry/id_issuance/headquarters/mixed"
+        INT              region_id           FK
+        INT              municipality_id     FK
+        BIT              is_active
     }
     nfc_card_secrets {
         UNIQUEIDENTIFIER id                       PK

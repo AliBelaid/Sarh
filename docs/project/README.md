@@ -18,6 +18,8 @@
 | ٣ | البنية والتصميم | [03-architecture-and-design.ar.md](03-architecture-and-design.ar.md) | المعمارية، الوحدات، قاعدة البيانات، تدفّقات العمل، نموذج الأمان، الخرائط. |
 | ٤–٥ | التنفيذ والاختبار | [04-05-implementation-and-testing.ar.md](04-05-implementation-and-testing.ar.md) | بيئة العمل، البنية البرمجية، الخوارزميات، التحديات، خطة وأنواع الاختبارات، UAT. |
 | ٦ | النتائج والخاتمة | [06-conclusion.ar.md](06-conclusion.ar.md) | تحقيق الأهداف، التحديات، الأعمال المستقبلية، الخلاصة. |
+| ٧ | مراجعة: البلوكتشين والمخططات | [07-blockchain-erd-class-review.ar.md](07-blockchain-erd-class-review.ar.md) | المخطط المفاهيمي + المنطقي (UML) + مخطط الفئات، وشرح ومرجعية كود اعتماد الأرض على البلوكتشين (سكّ NFT). PDF: `Sarh-Blockchain-ERD-Review.pdf`. |
+| ٨ | توثيق النمذجة (كامل) | [08-data-and-class-models.ar.md](08-data-and-class-models.ar.md) | المخطط المفاهيمي + المنطقي (UML) + مخطط الفئات + **قاموس بيانات كامل** لكل الجداول + مصفوفة تتبّع. PDF: `Sarh-Data-Class-Models.pdf`. |
 
 ## مصادر مرجعية داخل المستودع
 
