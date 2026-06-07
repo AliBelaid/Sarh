@@ -20,15 +20,19 @@ erDiagram
     officers            ||--o{ digital_id_cards      : "issuer"
     officers            ||--o{ property_nfts         : "minter"
     officers            ||--o{ review_comments       : "author"
+    officers            ||--o{ property_disputes     : "recorder"
 
     regions             ||--o{ citizens              : "scope"
     regions             ||--o{ officers              : "scope"
     regions             ||--o{ properties            : "scope"
     regions             ||--o{ municipalities        : "parent"
+    regions             ||--o{ offices               : "located in"
+    offices             ||--o{ digital_id_cards      : "printed at"
 
     properties          ||--o{ registration_requests : "request"
     properties          ||--o{ property_documents    : "attachments"
     properties          ||--o{ review_comments       : "comments"
+    properties          ||--o{ property_disputes     : "encumbrances"
     properties          ||--o| property_nfts         : "tokenised"
     properties          ||--o{ ownership_history     : "chain"
 
@@ -42,6 +46,7 @@ erDiagram
         UNIQUEIDENTIFIER id                  PK
         NVARCHAR         email               UK
         NVARCHAR         encrypted_password
+        UNIQUEIDENTIFIER officer_id          FK,UK
         DATETIMEOFFSET   email_confirmed_at
         DATETIMEOFFSET   last_sign_in_at
         NVARCHAR_MAX     raw_app_meta_data   "JSON"
@@ -118,7 +123,8 @@ erDiagram
         NVARCHAR         address_ar
         GEOGRAPHY        location_point
         GEOGRAPHY        boundary_polygon
-        DECIMAL          area_sqm
+        DECIMAL          area_sqm                 "computed STArea()"
+        DECIMAL          documented_area_sqm      "area per paper deed"
         NVARCHAR         status                   "draft/pending/under_review/approved/rejected/minted/transferred/frozen"
         DATETIMEOFFSET   submitted_at
         DATETIMEOFFSET   reviewed_at
@@ -126,6 +132,8 @@ erDiagram
         UNIQUEIDENTIFIER approved_by_manager_id   FK
         DATETIMEOFFSET   final_approved_at
         NVARCHAR         approval_decree_no
+        NVARCHAR         volume_number            "old paper register"
+        NVARCHAR         page_number              "old paper register"
         NVARCHAR         deed_pdf_path
         CHAR             deed_signed_hash
         NVARCHAR         vc_credential_id
@@ -174,6 +182,7 @@ erDiagram
         NVARCHAR_MAX     did_doc                  "JSON"
         NVARCHAR         wallet_endpoint
         UNIQUEIDENTIFIER issued_by_officer_id     FK
+        INT              issued_at_office_id      FK
         DATETIMEOFFSET   issued_at
         DATETIMEOFFSET   expires_at
         NVARCHAR         status                   "active/frozen/lost/expired/revoked"
@@ -278,4 +287,35 @@ erDiagram
         UNIQUEIDENTIFIER recorded_by_officer_id   FK
         DATETIMEOFFSET   transferred_at
         DATETIMEOFFSET   created_at
+    }
+
+    property_disputes {
+        UNIQUEIDENTIFIER id                       PK
+        UNIQUEIDENTIFIER property_id              FK
+        NVARCHAR         dispute_type             "judicial_seizure/certified_mortgage/inheritance_dispute/waqf/precautionary_seizure/other"
+        NVARCHAR         case_number
+        NVARCHAR         issuing_authority
+        DATE             start_date
+        DATE             end_date
+        NVARCHAR         status                   "active/lifted"
+        NVARCHAR_MAX     notes
+        UNIQUEIDENTIFIER recorded_by_officer_id   FK
+        UNIQUEIDENTIFIER lifted_by_officer_id     FK
+        DATETIMEOFFSET   lifted_at
+        DATETIMEOFFSET   created_at
+        DATETIMEOFFSET   updated_at
+    }
+
+    offices {
+        INT              id                  PK "IDENTITY"
+        NVARCHAR         code                UK
+        NVARCHAR         name_ar
+        NVARCHAR         name_en
+        NVARCHAR         office_type         "registry/id_issuance/headquarters/mixed"
+        INT              region_id           FK
+        INT              municipality_id     FK
+        NVARCHAR         address_ar
+        BIT              is_active
+        DATETIMEOFFSET   created_at
+        DATETIMEOFFSET   updated_at
     }

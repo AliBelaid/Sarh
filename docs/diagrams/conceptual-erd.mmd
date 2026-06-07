@@ -22,6 +22,7 @@ flowchart TB
     OH[OWNERSHIP_HISTORY]
     Tx[BLOCKCHAIN_TX]
     SC[SMART_CONTRACT]
+    Dispute[PROPERTY_DISPUTE<br/>seizure / mortgage / waqf]
     Region[REGION]
     Notif[NOTIFICATION]
     Audit[AUDIT_ENTRY]
@@ -44,6 +45,7 @@ flowchart TB
     R_minted{{minted via}}
     R_governs{{governed by}}
     R_chain{{transfer chain}}
+    R_encumber{{encumbered by}}
     R_scope_c{{scopes}}
     R_scope_p{{scopes}}
     R_scope_o{{scopes}}
@@ -66,6 +68,7 @@ flowchart TB
     Property --- R_attaches --- Document
     Property --- R_produces --- Deed
     Property --- R_chain --- OH
+    Property --- R_encumber ---|0..N| Dispute
     Property -.->|tokenised as| NFT
 
     Request --- Property
@@ -102,3 +105,5 @@ flowchart TB
     A_role((role)) --- Officer
     A_dept((department)) --- Manager
     A_rcode((code)) --- Region
+    A_disp((dispute_type)) --- Dispute
+    A_dstat((status active/lifted)) --- Dispute
