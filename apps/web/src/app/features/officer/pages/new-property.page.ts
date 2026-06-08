@@ -106,6 +106,13 @@ interface SubmitResponse {
         }
       </div>
 
+      @if (!selected()) {
+        <div class="hint-banner">
+          <span class="hint-ico">i</span>
+          ابحث عن المواطن صاحب الحق واخترهُ أولاً، ثم تُفعَّل حقول تسجيل العقار أدناه.
+        </div>
+      }
+
       <form class="layout" (ngSubmit)="submit()" [class.disabled]="!selected()">
         <div class="form">
           <div class="card">
@@ -418,6 +425,9 @@ interface SubmitResponse {
     .counter .dot.ok { background: var(--good); }
     .counter .ok-text { color: var(--good); font-weight: 600; }
     .counter .muted { color: var(--muted); }
+
+    .hint-banner { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 11px 15px; border-radius: 10px; background: rgba(8,145,178,0.08); border: 1px solid rgba(8,145,178,0.25); color: #0e7490; font-size: 12.5px; font-weight: 600; }
+    .hint-ico { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--good); color: #fff; font-size: 11px; font-weight: 800; font-style: italic; }
 
     .banner { padding: 10px 14px; border-radius: 8px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 8px; }
     .banner.err { background: #fff5f5; color: var(--warn); border: 1px solid #fecaca; }

@@ -22,8 +22,11 @@ public class CitizensController(CitizensService svc, SarhDbContext db, StorageSe
     public Task<CitizenView> Create([FromBody] CreateCitizenDto dto, CancellationToken ct)
         => svc.CreateAsync(dto, User.RequireUser(), ct);
 
+    // department_manager included so the officer-side "register property" page
+    // (which admits managers) can search for the owner citizen — without it the
+    // picker returns nothing and the form stays locked.
     [HttpGet]
-    [OfficerOnly("id_issuer", "registry_officer", "super_admin", "auditor", "reviewer")]
+    [OfficerOnly("id_issuer", "registry_officer", "super_admin", "auditor", "reviewer", "department_manager")]
     public Task<CursorPage<CitizenView>> List([FromQuery] ListCitizensQuery filters, CancellationToken ct)
         => svc.ListAsync(filters, User.RequireUser(), ct);
 

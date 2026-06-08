@@ -65,6 +65,9 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.initMap();
     this.viewReady = true;
     this.render();
+    // The flex/grid host can finish sizing a tick after init; without this
+    // Leaflet keeps a 0-height canvas and the map paints blank/grey.
+    setTimeout(() => this.map?.invalidateSize(), 0);
   }
 
   ngOnChanges(changes: SimpleChanges): void {

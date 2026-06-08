@@ -20,19 +20,14 @@ public sealed class MapService(SarhDbContext db)
 
     public Task<MapFeatureCollection> OfficerMapAsync(CurrentUser actor, int? regionId, CancellationToken ct)
     {
-        // Region-scoped roles can only see their own region — mirror the rule
-        // PropertiesService.ListAsync enforces. super_admin/auditor/manager
-        // may pass an optional region filter (or see all).
-        int? scope = regionId;
-        if (actor.Role is "registry_officer" or "reviewer" or "id_issuer")
-        {
-            if (actor.RegionId is null)
-                throw SarhException.Forbidden("الموظف غير مرتبط بمنطقة محدّدة.");
-            if (regionId is not null && regionId != actor.RegionId)
-                throw SarhException.Forbidden("لا يمكنك عرض عقارات من خارج منطقتك.");
-            scope = actor.RegionId;
-        }
-        return BuildAsync(isPublic: false, regionId: scope, ct);
+        // Product decision: the in-app parcel map shows EVERY live parcel across
+        // ALL regions to any authenticated user (public attributes only — no
+        // owner / national number leaves here). region_id stays an OPTIONAL
+        // narrowing filter; it is no longer force-scoped to the actor's own
+        // region, so even a region-unassigned reviewer sees the full country
+        // map instead of a Forbidden error.
+        _ = actor; // actor kept for audit/signature parity; scope is no longer role-gated.
+        return BuildAsync(isPublic: false, regionId: regionId, ct);
     }
 
     private async Task<MapFeatureCollection> BuildAsync(bool isPublic, int? regionId, CancellationToken ct)
@@ -58,7 +53,11 @@ public sealed class MapService(SarhDbContext db)
         var oUpdated = r.GetOrdinal("updated_at");
         var oDispute = r.GetOrdinal("has_active_dispute");
         var oConflict = r.GetOrdinal("has_location_conflict");
-        var oConflictKind = r.GetOrdinal("conflict_kind");
+        // Tolerate an older proc build that predates migration 046 (e.g. when a
+        // numbered migration was baseline-skipped on an incremental dev DB, the
+        // live proc may not yet return conflict_kind). Degrade to "none" rather
+        // than throwing IndexOutOfRangeException → 500 on the whole map feed.
+        var oConflictKind = SafeOrdinal(r, "conflict_kind");
         var oMapStatus = r.GetOrdinal("map_status");
         var oLng = r.GetOrdinal("lng");
         var oLat = r.GetOrdinal("lat");
@@ -99,7 +98,7 @@ public sealed class MapService(SarhDbContext db)
                     UpdatedAt = r.GetDateTimeOffset(oUpdated),
                     HasActiveDispute = r.GetBoolean(oDispute),
                     HasLocationConflict = r.GetBoolean(oConflict),
-                    ConflictKind = r.IsDBNull(oConflictKind) ? "none" : r.GetString(oConflictKind),
+                    ConflictKind = oConflictKind < 0 || r.IsDBNull(oConflictKind) ? "none" : r.GetString(oConflictKind),
                     Lng = r.IsDBNull(oLng) ? 0 : r.GetDouble(oLng),
                     Lat = r.IsDBNull(oLat) ? 0 : r.GetDouble(oLat),
                 },
@@ -107,5 +106,13 @@ public sealed class MapService(SarhDbContext db)
         }
 
         return new MapFeatureCollection { Features = features };
+    }
+
+    // GetOrdinal that returns -1 instead of throwing when a column is absent
+    // from the result set (lets the feed survive a partially-migrated proc).
+    private static int SafeOrdinal(SqlDataReader r, string name)
+    {
+        try { return r.GetOrdinal(name); }
+        catch (IndexOutOfRangeException) { return -1; }
     }
 }

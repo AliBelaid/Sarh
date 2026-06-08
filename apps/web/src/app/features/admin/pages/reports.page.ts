@@ -13,6 +13,9 @@ interface SummaryResponse {
   total_properties: number; approved_properties: number; pending_properties: number;
   rejected_properties: number; total_citizens: number; active_cards: number; active_officers: number;
 }
+// In-workflow statuses = an "active" registration transaction (not yet a final
+// deed). These sort to the top of the recent-transactions feed.
+const ACTIVE_STATUSES = new Set(['pending', 'under_review', 'needs_clarification', 'frozen']);
 
 @Component({
   selector: 'app-admin-reports',
@@ -108,6 +111,29 @@ interface SummaryResponse {
               </div>
             }
           </div>
+        }
+      </div>
+
+      <!-- Active transactions — recent registration transactions, in-workflow first -->
+      <div class="card wide activity-card">
+        <div class="activity-head">
+          <h2>المعاملات النشطة</h2>
+          <span class="activity-sub">أحدث معاملات تسجيل العقارات — قيد الإجراء أولاً ({{ activeCount() }} نشطة)</span>
+        </div>
+        @if (recentTransactions().length === 0) {
+          <p class="empty-line">لا معاملات بعد.</p>
+        } @else {
+          <ul class="activity-list">
+            @for (p of recentTransactions(); track p.id) {
+              <li class="activity-row">
+                <span class="act-badge" [style.background]="statusColor(p.status)">{{ statusLabel(p.status) }}</span>
+                <span class="act-code mono" dir="ltr">{{ p.property_code ?? p.parcel_number ?? '—' }}</span>
+                <span class="act-entity">{{ typeLabel(p.property_type) }}</span>
+                <span class="act-actor">· {{ regionName(p.region_id) }}</span>
+                <span class="act-time mono" dir="ltr">{{ txnDate(p.submitted_at) }}</span>
+              </li>
+            }
+          </ul>
         }
       </div>
 
@@ -247,6 +273,20 @@ interface SummaryResponse {
     .bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
     .dot { width: 8px; height: 8px; border-radius: 50%; }
 
+    /* ── Recent activity ── */
+    .activity-card { margin-bottom: 14px; }
+    .activity-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+    .activity-head h2 { font-size: 14px; margin: 0; padding: 0; border: 0; color: var(--ink); }
+    .activity-sub { font-size: 11.5px; color: var(--muted); }
+    .activity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+    .activity-row { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px dashed var(--rule); font-size: 12.5px; }
+    .activity-row:last-child { border-bottom: 0; }
+    .act-badge { padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; color: #fff; background: #64748b; white-space: nowrap; }
+    .act-code { font-weight: 700; color: var(--ink); font-size: 12px; }
+    .act-entity { color: var(--ink); font-weight: 600; }
+    .act-actor { color: var(--muted); }
+    .act-time { margin-inline-start: auto; color: var(--muted); font-size: 11.5px; }
+
     .empty-line { color: var(--muted); font-size: 13px; margin: 0; padding: 12px 0; }
     .spin { width: 16px; height: 16px; border: 2.5px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -261,6 +301,23 @@ export class AdminReportsPage implements OnInit {
   readonly summary = signal<SummaryResponse | null>(null);
   readonly properties = signal<Property[]>([]);
   readonly trends = signal<TrendsResponse | null>(null);
+
+  // Active transactions feed — most-recent registration transactions, with
+  // in-workflow ("active") ones sorted ahead of finalised deeds. Derived from
+  // the property list already fetched for the breakdowns (no extra request).
+  readonly recentTransactions = computed(() =>
+    [...this.properties()]
+      .sort((a, b) => {
+        const aActive = ACTIVE_STATUSES.has(a.status) ? 1 : 0;
+        const bActive = ACTIVE_STATUSES.has(b.status) ? 1 : 0;
+        if (aActive !== bActive) return bActive - aActive;
+        return (b.submitted_at ?? '').localeCompare(a.submitted_at ?? '');
+      })
+      .slice(0, 12),
+  );
+  readonly activeCount = computed(() =>
+    this.properties().filter((p) => ACTIVE_STATUSES.has(p.status)).length,
+  );
 
   readonly typeBreakdown   = computed(() => this.bucket(this.properties().map((p) => p.property_type)));
   readonly statusBreakdown = computed(() => this.bucket(this.properties().map((p) => p.status)));
@@ -308,7 +365,7 @@ export class AdminReportsPage implements OnInit {
     try {
       const [sum, p, t] = await Promise.all([
         firstValueFrom(this.http.get<SummaryResponse>(`${API_BASE}/reports/summary`)),
-        this.props.list({ limit: 200 }),
+        this.props.list({ limit: 100 }), // backend caps limit at 100 — 200 → 400 → whole page stayed empty
         firstValueFrom(this.http.get<TrendsResponse>(`${API_BASE}/reports/trends?days=30`)),
       ]);
       this.summary.set(sum);
@@ -364,6 +421,15 @@ export class AdminReportsPage implements OnInit {
     a.download = `sarh_report_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  regionName(id: number | null | undefined): string {
+    if (id == null) return '—';
+    return REGIONS[id] ?? `منطقة ${id}`;
+  }
+  txnDate(iso: string | null | undefined): string {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
   typeLabel(t: string)   { return PROPERTY_TYPE[t] ?? t; }

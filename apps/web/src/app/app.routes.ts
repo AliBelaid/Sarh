@@ -102,10 +102,10 @@ export const APP_ROUTES: Routes = [
           import('./features/officer/pages/queue.page').then((m) => m.OfficerQueuePage),
       },
       {
-        // Officer cadastral map — all in-region parcels coloured by legal
-        // status. Property/admin roles only — id_issuer is excluded.
+        // In-app cadastral map — every live parcel across all regions, coloured
+        // by legal status. Open to ANY authenticated user (parent authGuard is
+        // enough — no role gate); backend feed exposes public attributes only.
         path: 'map',
-        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES, ...ADMIN_ROLES])],
         loadComponent: () =>
           import('./features/officer/pages/map.page').then((m) => m.OfficerMapPage),
       },

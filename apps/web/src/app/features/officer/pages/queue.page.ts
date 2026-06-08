@@ -45,7 +45,7 @@ const QUEUE_STATUSES: PropertyStatus[] = ['pending', 'under_review', 'needs_clar
                     (click)="setStatus(s)">{{ statusLabel(s) }}</button>
           }
         </div>
-        <select class="type" [(ngModel)]="typeFilter" (ngModelChange)="onTypeChange()">
+        <select class="type" [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)">
           <option value="">كل الأنواع</option>
           <option value="residential">سكني</option>
           <option value="agricultural">زراعي</option>
@@ -244,11 +244,13 @@ export class OfficerQueuePage implements OnInit {
   readonly loading = signal(false);
   readonly bulkBusy = signal(false);
   readonly error = signal<string | null>(null);
-  typeFilter: PropertyType | '' = '';
+  // Signal (not a plain field): the `filtered` computed only re-runs when a
+  // signal it reads changes, so a plain field here would never re-filter.
+  readonly typeFilter = signal<PropertyType | ''>('');
   selected = new Set<string>();
 
   readonly filtered = computed(() => {
-    const t = this.typeFilter;
+    const t = this.typeFilter();
     if (!t) return this.items();
     return this.items().filter((p) => p.property_type === t);
   });
@@ -263,8 +265,6 @@ export class OfficerQueuePage implements OnInit {
     this.status.set(s);
     void this.reload();
   }
-
-  onTypeChange(): void { /* local filter via computed */ }
 
   async reload(): Promise<void> {
     this.loading.set(true);

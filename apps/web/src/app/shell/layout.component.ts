@@ -34,9 +34,9 @@ const NAV: NavItem[] = [
   // Officer / reviewer
   { ar: 'قائمة المراجعة', en: 'Review queue',  path: '/app/queue',     icon: 'queue',     roles: ['registry_officer', 'reviewer', 'super_admin'], group: 'main' },
   { ar: 'الاعتمادات',    en: 'Approvals',     path: '/app/approvals', icon: 'approvals', roles: ['registry_officer', 'reviewer', 'super_admin'], group: 'main' },
-  // Officer cadastral map — parcels coloured by legal status. id_issuer is
-  // deliberately excluded: their job is digital-ID issuance, not the cadastre.
-  { ar: 'خريطة العقارات', en: 'Parcel map',   path: '/app/map',       icon: 'map',       roles: ['registry_officer', 'reviewer', 'department_manager', 'super_admin', 'auditor'], group: 'main' },
+  // In-app cadastral map — parcels coloured by legal status. Open to every
+  // authenticated role (citizens included) so anyone can browse the cadastre.
+  { ar: 'خريطة العقارات', en: 'Parcel map',   path: '/app/map',       icon: 'map',       roles: ALL_ROLES, group: 'main' },
   // Officer-side property registration (on behalf of a citizen).
   { ar: 'تسجيل عقار',    en: 'Register property', path: '/app/properties/new', icon: 'properties', roles: ['registry_officer', 'reviewer', 'department_manager', 'super_admin'], group: 'main' },
 

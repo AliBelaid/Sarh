@@ -18,13 +18,13 @@ public class PropertiesController(
     PropertiesService svc, ReviewService review, LicenseService license,
     MapService map, StorageService storageReader) : ControllerBase
 {
-    // Officer map feed — every live parcel in the actor's region scope
-    // (region-scoped roles see only their own region; admins/managers may
-    // pass ?region_id=). Includes parcels still in the workflow so an officer
-    // sees pending requests (yellow) alongside issued deeds. PUBLIC attributes
-    // only — no owner / national number leaves here either.
+    // In-app parcel map feed — every live parcel across ALL regions, including
+    // ones still in the workflow so pending requests (yellow) show alongside
+    // issued deeds. PUBLIC attributes only — no owner / national number leaves
+    // here. Open to ANY authenticated user (just [Authorize], no role gate):
+    // citizens and every officer role can view the cadastre. ?region_id= is an
+    // optional narrowing filter.
     [HttpGet("map")]
-    [OfficerOnly("registry_officer", "reviewer", "department_manager", "super_admin", "auditor", "id_issuer")]
     public Task<MapFeatureCollection> Map([FromQuery(Name = "region_id")] int? regionId, CancellationToken ct)
         => map.OfficerMapAsync(User.RequireUser(), regionId, ct);
 
