@@ -40,9 +40,9 @@ const NAV: NavItem[] = [
   // Officer-side property registration (on behalf of a citizen).
   { ar: 'تسجيل عقار',    en: 'Register property', path: '/app/properties/new', icon: 'properties', roles: ['registry_officer', 'reviewer', 'department_manager', 'super_admin'], group: 'main' },
 
-  // Final approvals — property licence (NFT) minting. Office-side property
-  // roles only; id_issuer (digital-ID only) does not see it.
-  { ar: 'الاعتمادات النهائية', en: 'Final approvals', path: '/app/manager/queue', icon: 'nft', roles: ['registry_officer', 'reviewer', 'department_manager', 'super_admin'], group: 'main' },
+  // Final approvals — property licence (NFT) minting. Admin/manager only
+  // (department_manager + super_admin); officers and reviewers no longer mint.
+  { ar: 'الاعتمادات النهائية', en: 'Final approvals', path: '/app/manager/queue', icon: 'nft', roles: ['department_manager', 'super_admin'], group: 'main' },
 
   // ID issuer
   { ar: 'محطة الإصدار',   en: 'Issue station', path: '/app/issue',       icon: 'issue',      roles: ['id_issuer', 'super_admin'], group: 'main' },

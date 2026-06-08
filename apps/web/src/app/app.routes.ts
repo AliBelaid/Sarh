@@ -138,19 +138,18 @@ export const APP_ROUTES: Routes = [
       },
 
       // ---- Final-approval (NFT licence mint) -------------------------
-      // Originally manager-only; backend now accepts any authenticated role
-      // (LicenseService enforces region scope for officers + ownership for
-      // citizens). Office-side staff get the page in their sidebar;
-      // citizens reach final-approve through their own property detail.
+      // Admin/manager only — department_manager + super_admin. Registry
+      // officers, reviewers and citizens cannot final-approve; the backend
+      // [OfficerOnly] on /final-approve enforces the same restriction.
       {
         path: 'manager/queue',
-        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES])],
+        canActivate: [roleGuard([...MANAGER_ROLES])],
         loadComponent: () =>
           import('./features/manager/pages/manager-queue.page').then((m) => m.ManagerQueuePage),
       },
       {
         path: 'manager/approve/:id',
-        canActivate: [roleGuard([...OFFICER_ROLES, ...MANAGER_ROLES])],
+        canActivate: [roleGuard([...MANAGER_ROLES])],
         loadComponent: () =>
           import('./features/manager/pages/manager-approve.page').then((m) => m.ManagerApprovePage),
       },

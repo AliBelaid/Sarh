@@ -78,10 +78,11 @@ public class PropertiesController(
         => review.ReviewAsync(id, dto, User.RequireUser(), ct);
 
     // Final approval — mints the on-chain NFT licence on top of an
-    // officer-approved property. Originally department_manager/super_admin
-    // only; opened to any authenticated role per product decision. The
-    // service enforces region scope for officers and ownership for citizens.
+    // officer-approved property. Restricted to department_manager/super_admin
+    // (admin/manager): registry officers, reviewers and citizens can no longer
+    // self-mint. The service still enforces region scope for the manager.
     [HttpPost("{id:guid}/final-approve")]
+    [OfficerOnly("department_manager", "super_admin")]
     [Audit(Action = AuditActions.Approve, Entity = "properties", EntityIdFrom = "property.id")]
     public Task<LicenseResult> FinalApprove(Guid id, [FromBody] FinalApproveDto dto, CancellationToken ct)
         => license.FinalApproveAsync(id, dto, User.RequireUser(), ct);
