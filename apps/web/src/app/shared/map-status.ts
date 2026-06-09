@@ -8,7 +8,8 @@
 //   🔴 disputed  — active court seizure / lien / waqf → no dealing allowed
 //   🟡 pending   — still in the registration workflow (officer map only)
 //   🔵 public    — deed issued, governmental / public-utility ownership
-export type MapStatus = 'clear' | 'disputed' | 'pending' | 'public';
+//   ⚫ frozen    — temporarily suspended (officer map only)
+export type MapStatus = 'clear' | 'disputed' | 'pending' | 'public' | 'frozen';
 
 export interface MapStatusMeta {
   ar: string;
@@ -45,6 +46,12 @@ export const MAP_STATUS: Record<MapStatus, MapStatusMeta> = {
     fill: 'rgba(37, 99, 235, 0.28)',
     hint: 'ملكية حكومية أو مرفق عام.',
   },
+  frozen: {
+    ar: 'مجمّد',
+    color: '#6b7280',
+    fill: 'rgba(107, 114, 128, 0.28)',
+    hint: 'مجمّد مؤقتاً — موقوف عن التصرّف.',
+  },
 };
 
 export function mapStatusMeta(s: string): MapStatusMeta {
@@ -52,4 +59,4 @@ export function mapStatusMeta(s: string): MapStatusMeta {
 }
 
 // Order the legend / filter chips are rendered in.
-export const MAP_STATUS_ORDER: MapStatus[] = ['clear', 'disputed', 'pending', 'public'];
+export const MAP_STATUS_ORDER: MapStatus[] = ['clear', 'disputed', 'pending', 'public', 'frozen'];

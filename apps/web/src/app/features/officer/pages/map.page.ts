@@ -42,6 +42,10 @@ import { ParcelMapComponent } from '../../../shared/parcel-map.component';
         <div class="filters">
           <input class="search" type="search" [ngModel]="search()" (ngModelChange)="search.set($event)"
             placeholder="ابحث برقم العقار أو القطعة…" />
+          <select class="region-sel" [ngModel]="region()" (ngModelChange)="setRegion($event)">
+            <option [ngValue]="''">كل المناطق</option>
+            @for (r of regionList; track r.id) { <option [ngValue]="r.id">{{ r.name }}</option> }
+          </select>
           <div class="chips">
             <button class="chip" [class.on]="filter() === ''" (click)="setFilter('')">الكل</button>
             @for (s of statusOrder; track s) {
@@ -143,6 +147,8 @@ import { ParcelMapComponent } from '../../../shared/parcel-map.component';
     .filters { padding: 12px 20px; border-bottom: 1px solid var(--rule); }
     .search { width: 100%; box-sizing: border-box; padding: 9px 12px; font-size: 13px; background: #fff; border: 1px solid var(--rule); border-radius: 8px; font-family: inherit; }
     .search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,.12); }
+    .region-sel { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 8px 10px; font-size: 12.5px; background: #fff; border: 1px solid var(--rule); border-radius: 8px; font-family: inherit; color: var(--ink); }
+    .region-sel:focus { outline: none; border-color: var(--accent); }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
     .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: #fff; border: 1px solid var(--rule); border-radius: 99px; font-size: 11.5px; color: var(--muted); cursor: pointer; font-family: inherit; transition: all .12s; }
     .chip:hover { border-color: var(--c, var(--ink)); color: var(--c, var(--ink)); }
@@ -212,8 +218,10 @@ export class OfficerMapPage implements OnInit {
   readonly selected = signal<ParcelFeature | null>(null);
   readonly filter = signal<MapStatus | ''>('');
   readonly search = signal('');
+  readonly region = signal<number | ''>('');
 
   readonly statusOrder = MAP_STATUS_ORDER;
+  readonly regionList = Object.entries(REGIONS).map(([id, name]) => ({ id: +id, name }));
 
   readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -234,6 +242,7 @@ export class OfficerMapPage implements OnInit {
 
   async reload(): Promise<void> { await this.fetch(); }
   setFilter(s: MapStatus | ''): void { this.filter.set(s); }
+  setRegion(r: number | ''): void { this.region.set(r); void this.fetch(); }
 
   select(f: ParcelFeature | null): void {
     this.selected.set(f);
@@ -255,7 +264,7 @@ export class OfficerMapPage implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const res = await this.api.officerMap();
+      const res = await this.api.officerMap(this.region() === '' ? undefined : (this.region() as number));
       this.features.set(res.features ?? []);
     } catch {
       this.error.set('تعذّر تحميل الخريطة.');

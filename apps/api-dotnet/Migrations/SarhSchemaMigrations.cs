@@ -411,3 +411,11 @@ public partial class M047_PublicMapConflictScope : Migration
     protected override void Up(MigrationBuilder b) => SqlMigrationRunner.Apply(b, "047_public_map_conflict_scope.sql");
     protected override void Down(MigrationBuilder b) { }
 }
+
+[DbContext(typeof(SarhDbContext))]
+[Migration("20240101000048_048_frozen_map_status")]
+public partial class M048_FrozenMapStatus : Migration
+{
+    protected override void Up(MigrationBuilder b) => SqlMigrationRunner.Apply(b, "048_frozen_map_status.sql");
+    protected override void Down(MigrationBuilder b) { }
+}

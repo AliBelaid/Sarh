@@ -457,11 +457,15 @@ export class OfficerReviewPage implements OnDestroy {
       this.property.set(prop);
       void this.loadDocuments(this.id);
       this.disputesApi.list(this.id).then((d) => this.disputes.set(d)).catch(() => { /* non-fatal */ });
-      // Pull every parcel in the region so the reviewer sees the surroundings
-      // and any overlap. Non-fatal: the single parcel still renders without it.
-      this.mapApi.officerMap(prop.region_id ?? undefined)
-        .then((fc) => { this.neighbors.set(fc.features ?? []); this.renderNeighbors(); })
-        .catch(() => { /* keep the lone parcel */ });
+      // Pull every parcel in THIS parcel's region so the reviewer sees the
+      // surroundings and any overlap. Skip entirely when the parcel has no
+      // region — officerMap(undefined) would pull the whole national cadastre
+      // into this small review map. Non-fatal: the lone parcel still renders.
+      if (prop.region_id != null) {
+        this.mapApi.officerMap(prop.region_id)
+          .then((fc) => { this.neighbors.set(fc.features ?? []); this.renderNeighbors(); })
+          .catch(() => { /* keep the lone parcel */ });
+      }
     } catch (e) {
       const err = e as { error?: { error?: { message_ar?: string } } };
       this.error.set(err.error?.error?.message_ar ?? 'تعذّر تحميل العقار.');

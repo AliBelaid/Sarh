@@ -69,6 +69,10 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private layer?: L.LayerGroup;
   private polygons = new Map<string, L.Polygon>();
   private viewReady = false;
+  // The parcel-id set the map last auto-fitted to. We only re-fit when this
+  // changes, so a reload/re-render doesn't yank the user's pan/zoom or a
+  // focus()-driven fly-to away.
+  private lastFitKey = '';
 
   ngAfterViewInit(): void {
     this.initMap();
@@ -166,9 +170,14 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
 
     if (allBounds.length > 0) {
-      try {
-        this.map.fitBounds(allBounds as L.LatLngBoundsLiteral, { padding: [50, 50], maxZoom: 15 });
-      } catch { /* single point */ }
+      // Only auto-fit when the SET of parcels changes; re-fitting on every
+      // render would override a user's pan/zoom or a focus() fly-to.
+      const fitKey = this.features.map((f) => f.properties.id).sort().join(',');
+      if (fitKey !== this.lastFitKey) {
+        this.lastFitKey = fitKey;
+        const bounds = L.latLngBounds(allBounds as L.LatLngTuple[]);
+        if (bounds.isValid()) this.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      }
     }
     this.applySelection();
   }

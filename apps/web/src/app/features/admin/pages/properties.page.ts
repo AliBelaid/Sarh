@@ -131,6 +131,9 @@ const TYPE_LABEL: Record<string, string> = {
                 <dt>سبب الرفض</dt><dd>{{ p.rejection_reason }}</dd>
               }
             </dl>
+            @if (!selectedHasFeature()) {
+              <p class="no-geo">لا توجد حدود مرسومة لهذا العقار لعرضها على الخريطة.</p>
+            }
           </div>
         }
 
@@ -315,6 +318,7 @@ const TYPE_LABEL: Record<string, string> = {
     }
     .detail dt { color: var(--muted); }
     .detail dd { margin: 0; color: var(--ink); word-break: break-word; }
+    .no-geo { margin: 12px 0 0; font-size: 11.5px; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 8px 10px; }
 
     .banner {
       position: absolute;
@@ -377,6 +381,14 @@ export class AdminPropertiesPage implements OnInit {
   readonly mapFeatures = computed(() => {
     const ids = new Set(this.filtered().map((p) => p.id));
     return this.allFeatures().filter((f) => ids.has(f.properties.id));
+  });
+
+  // True when the selected property actually has a drawn boundary on the map.
+  // Some statuses (draft/rejected) have no polygon, so focusing them no-ops —
+  // we show a note instead of silently doing nothing.
+  readonly selectedHasFeature = computed(() => {
+    const id = this.selected()?.id;
+    return !!id && this.allFeatures().some((f) => f.properties.id === id);
   });
 
   async ngOnInit(): Promise<void> {
