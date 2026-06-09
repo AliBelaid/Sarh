@@ -1,9 +1,6 @@
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
-  OnDestroy,
   OnInit,
   ViewChild,
   computed,
@@ -12,11 +9,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import * as L from 'leaflet';
-import { addBaseTileLayer } from '../../../shared/base-tile-layer';
 import { PropertiesService } from '@core/properties.service';
+import { MapService, type ParcelFeature } from '@core/map.service';
+import { ParcelMapComponent } from '../../../shared/parcel-map.component';
 import type { Property, PropertyStatus } from '@sarh/shared-types';
-import { REGIONS, REGION_CENTROIDS, LIBYA_CENTER } from '../../../shared/status-pills';
+import { REGIONS } from '../../../shared/status-pills';
 
 const STATUS_LABEL: Record<string, { ar: string; color: string }> = {
   draft:                { ar: 'مسودة',          color: '#94a3b8' },
@@ -41,7 +38,7 @@ const TYPE_LABEL: Record<string, string> = {
   selector: 'app-admin-properties',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ParcelMapComponent],
   template: `
     <div class="layout">
 
@@ -103,7 +100,13 @@ const TYPE_LABEL: Record<string, string> = {
       </aside>
 
       <div class="map-area">
-        <div #mapEl class="map"></div>
+        <app-parcel-map
+          #parcelMap
+          class="map"
+          [features]="mapFeatures()"
+          [selectedId]="selected()?.id ?? null"
+          (parcelClick)="onParcelClick($event)"
+        ></app-parcel-map>
 
         @if (selected(); as p) {
           <div class="detail">
@@ -272,7 +275,7 @@ const TYPE_LABEL: Record<string, string> = {
       border-radius: 14px;
       overflow: hidden;
     }
-    .map { width: 100%; height: 100%; }
+    .map { display: block; width: 100%; height: 100%; }
 
     .detail {
       position: absolute;
@@ -337,10 +340,11 @@ const TYPE_LABEL: Record<string, string> = {
     }
   `],
 })
-export class AdminPropertiesPage implements OnInit, AfterViewInit, OnDestroy {
+export class AdminPropertiesPage implements OnInit {
   private readonly api = inject(PropertiesService);
+  private readonly mapApi = inject(MapService);
 
-  @ViewChild('mapEl', { static: true }) mapEl!: ElementRef<HTMLDivElement>;
+  @ViewChild('parcelMap') parcelMap?: ParcelMapComponent;
 
   readonly statusOrder: PropertyStatus[] = [
     'pending', 'under_review', 'needs_clarification', 'approved', 'rejected',
@@ -365,44 +369,40 @@ export class AdminPropertiesPage implements OnInit, AfterViewInit, OnDestroy {
     );
   });
 
-  private map?: L.Map;
-  private markers = new Map<string, L.Marker>();
-  private markersLayer?: L.LayerGroup;
+  // Real cadastral geometry (boundary polygons + conflict flags) from the
+  // officer map feed. We draw only the parcels matching the current filtered
+  // list so the map and the sidebar stay in lock-step. Parcels with no saved
+  // polygon simply don't paint (same rule as the officer/public maps).
+  private readonly allFeatures = signal<ParcelFeature[]>([]);
+  readonly mapFeatures = computed(() => {
+    const ids = new Set(this.filtered().map((p) => p.id));
+    return this.allFeatures().filter((f) => ids.has(f.properties.id));
+  });
 
   async ngOnInit(): Promise<void> {
     await this.fetch();
   }
 
-  ngAfterViewInit(): void {
-    this.initMap();
-    this.renderMarkers();
-  }
-
-  ngOnDestroy(): void {
-    this.map?.remove();
-  }
-
   async reload(): Promise<void> {
     await this.fetch();
-    this.renderMarkers();
   }
 
   setStatus(s: PropertyStatus | ''): void {
     this.status.set(s);
-    void this.fetch().then(() => this.renderMarkers());
+    void this.fetch();
   }
 
-  onSearch(): void {
-    this.renderMarkers();
-  }
+  onSearch(): void { /* filtered() + mapFeatures() recompute reactively */ }
 
   select(p: Property | null): void {
     this.selected.set(p);
-    if (p && this.map) {
-      const c = this.centroidFor(p);
-      this.map.flyTo([c.lat, c.lng], 13, { duration: 0.6 });
-      this.markers.get(p.id)?.openPopup();
-    }
+    if (p) this.parcelMap?.focus(p.id);
+  }
+
+  // A polygon click on the map selects its property in the list + detail panel.
+  onParcelClick(f: ParcelFeature): void {
+    const p = this.properties().find((x) => x.id === f.properties.id);
+    if (p) this.selected.set(p);
   }
 
   // ── Helpers ─────────────────────────────────────────────────────
@@ -433,89 +433,21 @@ export class AdminPropertiesPage implements OnInit, AfterViewInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const res = await this.api.list({ status: this.status() || undefined, limit: 100 });
-      this.properties.set(res.items);
-    } catch (e) {
+      // List drives the sidebar; the cadastral feed supplies real boundary
+      // geometry + conflict flags so the admin map shows the same polygons,
+      // status colours and red overlap outlines as the officer cadastral map.
+      const [list, map] = await Promise.all([
+        this.api.list({ status: this.status() || undefined, limit: 100 }),
+        this.mapApi.officerMap(),
+      ]);
+      this.properties.set(list.items);
+      this.allFeatures.set(map.features ?? []);
+    } catch {
       this.error.set('تعذّر تحميل العقارات.');
       this.properties.set([]);
+      this.allFeatures.set([]);
     } finally {
       this.loading.set(false);
     }
-  }
-
-  private initMap(): void {
-    if (this.map) return;
-    this.map = L.map(this.mapEl.nativeElement, {
-      center: [27.0, 17.0], // Libya center-ish
-      zoom: 6,
-      zoomControl: true,
-      attributionControl: true,
-    });
-    addBaseTileLayer(this.map);
-
-    this.markersLayer = L.layerGroup().addTo(this.map);
-  }
-
-  private renderMarkers(): void {
-    if (!this.map || !this.markersLayer) return;
-    this.markersLayer.clearLayers();
-    this.markers.clear();
-    const items = this.filtered();
-    if (items.length === 0) return;
-
-    const bounds: L.LatLngExpression[] = [];
-    for (const p of items) {
-      const c = this.centroidFor(p);
-      const color = this.statusLabel(p.status).color;
-      const icon = L.divIcon({
-        className: 'sj-marker',
-        html: `<div style="
-          width: 16px; height: 16px;
-          background: ${color};
-          border: 2.5px solid #fff;
-          border-radius: 50%;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-        "></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-      });
-      const m = L.marker([c.lat, c.lng], { icon })
-        .bindPopup(
-          `<div style="font-family: 'IBM Plex Sans Arabic', system-ui; min-width: 180px;">
-             <div style="font-weight:700; font-size:13px; color:#0F172A;">${p.property_code ?? '—'}</div>
-             <div style="font-size:11.5px; color:#64748B; margin-top:2px;">
-               ${this.typeLabel(p.property_type)} · ${this.regionLabel(p.region_id)}
-             </div>
-             <div style="margin-top:6px;">
-               <span style="display:inline-block; padding:2px 8px; border-radius:99px; font-size:10.5px; color:#fff; background:${color};">
-                 ${this.statusLabel(p.status).ar}
-               </span>
-             </div>
-           </div>`,
-        )
-        .on('click', () => this.selected.set(p));
-      m.addTo(this.markersLayer);
-      this.markers.set(p.id, m);
-      bounds.push([c.lat, c.lng]);
-    }
-
-    if (bounds.length > 0) {
-      try { this.map.fitBounds(bounds as L.LatLngBoundsLiteral, { padding: [40, 40], maxZoom: 8 }); } catch { /* one point */ }
-    }
-  }
-
-  private centroidFor(p: Property): { lat: number; lng: number } {
-    const base = (p.region_id != null ? REGION_CENTROIDS[p.region_id] : undefined) ?? LIBYA_CENTER;
-    // Deterministic small jitter so markers in the same region don't stack.
-    const seed = this.hash(p.id);
-    const dx = ((seed % 1000) / 1000 - 0.5) * 0.2; // ~±0.1°
-    const dy = (((seed >> 10) % 1000) / 1000 - 0.5) * 0.2;
-    return { lat: base.lat + dy, lng: base.lng + dx };
-  }
-
-  private hash(s: string): number {
-    let h = 5381;
-    for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
-    return Math.abs(h);
   }
 }
