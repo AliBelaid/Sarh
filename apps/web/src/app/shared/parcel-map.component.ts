@@ -147,7 +147,10 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.polygons.set(f.properties.id, poly);
       latlngs.forEach((p) => allBounds.push(p));
 
-      if (this.showLabels && f.properties.property_code) {
+      // Guard the (0,0) sentinel: MapService defaults a null centroid to 0, and
+      // a label marker at lat/lng 0 would strand an interactive pin in the ocean
+      // off West Africa. The polygon still draws from its ring either way.
+      if (this.showLabels && f.properties.property_code && f.properties.lat && f.properties.lng) {
         const label = L.marker([f.properties.lat, f.properties.lng], {
           interactive: true,
           icon: L.divIcon({
