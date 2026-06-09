@@ -42,7 +42,12 @@ public sealed class NftLicenseView
     public string? PropertyCode { get; init; }
     public Guid? OwnerCitizenId { get; init; }
 
-    public static NftLicenseView From(PropertyNft n, string? propertyCode, Guid? ownerCitizenId) => new()
+    // True when the system cannot really mint (no deployed contract + signing
+    // key) → this licence's chain artifacts (contract/tx/token) are simulated,
+    // not on any real chain. The UI badges it and hides the dead explorer links.
+    public bool Simulated { get; init; }
+
+    public static NftLicenseView From(PropertyNft n, string? propertyCode, Guid? ownerCitizenId, bool simulated) => new()
     {
         Id = n.Id,
         PropertyId = n.PropertyId,
@@ -61,6 +66,7 @@ public sealed class NftLicenseView
         Status = n.Status,
         PropertyCode = propertyCode,
         OwnerCitizenId = ownerCitizenId,
+        Simulated = simulated,
     };
 }
 
@@ -115,7 +121,7 @@ public sealed class NftsService(SarhDbContext db, IBlockchainService chain, IIpf
 
         return new CursorPage<NftLicenseView>
         {
-            Items = rows.Select(x => NftLicenseView.From(x.n, x.p.PropertyCode, x.p.OwnerCitizenId)).ToList(),
+            Items = rows.Select(x => NftLicenseView.From(x.n, x.p.PropertyCode, x.p.OwnerCitizenId, !chain.CanSign)).ToList(),
             NextCursor = nextCursor,
         };
     }
@@ -136,7 +142,7 @@ public sealed class NftsService(SarhDbContext db, IBlockchainService chain, IIpf
                           orderby n.MintedAt descending
                           select new { n, p }).ToListAsync(ct);
 
-        return rows.Select(x => NftLicenseView.From(x.n, x.p.PropertyCode, x.p.OwnerCitizenId)).ToList();
+        return rows.Select(x => NftLicenseView.From(x.n, x.p.PropertyCode, x.p.OwnerCitizenId, !chain.CanSign)).ToList();
     }
 
     public async Task<NftLicenseView> GetByIdAsync(Guid id, CurrentUser actor, CancellationToken ct)
@@ -156,7 +162,7 @@ public sealed class NftsService(SarhDbContext db, IBlockchainService chain, IIpf
             throw SarhException.Forbidden("الرخصة خارج منطقتك.");
         }
 
-        return NftLicenseView.From(row.n, row.p.PropertyCode, row.p.OwnerCitizenId);
+        return NftLicenseView.From(row.n, row.p.PropertyCode, row.p.OwnerCitizenId, !chain.CanSign);
     }
 
     // Live "verify on chain" for one licence: RPC health + ownerOf + mint-tx

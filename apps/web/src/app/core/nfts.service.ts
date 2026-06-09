@@ -9,6 +9,9 @@ import { API_BASE } from './api-config';
 export interface NftLicenseView extends PropertyNft {
   property_code: string | null;
   owner_citizen_id: string | null;
+  // True when minted in the standard/simulation flow (no real contract
+  // deployed). The UI badges it and hides the dead block-explorer links.
+  simulated: boolean;
 }
 
 export interface ListNftsResponse {

@@ -403,3 +403,11 @@ public partial class M046_PropertyConflictKind : Migration
     protected override void Up(MigrationBuilder b) => SqlMigrationRunner.Apply(b, "046_property_conflict_kind.sql");
     protected override void Down(MigrationBuilder b) { }
 }
+
+[DbContext(typeof(SarhDbContext))]
+[Migration("20240101000047_047_public_map_conflict_scope")]
+public partial class M047_PublicMapConflictScope : Migration
+{
+    protected override void Up(MigrationBuilder b) => SqlMigrationRunner.Apply(b, "047_public_map_conflict_scope.sql");
+    protected override void Down(MigrationBuilder b) { }
+}

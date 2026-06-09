@@ -83,7 +83,11 @@ const TABS: Array<{ key: Tab; ar: string }> = [
                   <td><span class="badge" [style.background]="status(n.status).color">{{ status(n.status).ar }}</span></td>
                   <td class="actions-cell">
                     <a [routerLink]="['/app/nft-licences', n.id]" class="link">تفاصيل ←</a>
-                    <a [href]="explorerTxUrl(n)" target="_blank" rel="noopener" class="link muted-link">المعاملة ↗</a>
+                    @if (n.simulated) {
+                      <span class="sim-tag" style="display:inline-block;padding:2px 8px;border-radius:99px;background:#fff7ed;border:1px solid #fed7aa;color:#b45309;font-size:10px;font-weight:700;">محاكاة</span>
+                    } @else {
+                      <a [href]="explorerTxUrl(n)" target="_blank" rel="noopener" class="link muted-link">المعاملة ↗</a>
+                    }
                   </td>
                 </tr>
               }

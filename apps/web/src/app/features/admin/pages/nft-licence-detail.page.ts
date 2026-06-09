@@ -110,7 +110,12 @@ const REASON_TONE: Record<TransferReason, string> = {
         <!-- Chain artifacts KV -->
         <div class="grid">
           <div class="panel">
-            <h2 class="panel-title">بيانات السلسلة</h2>
+            <h2 class="panel-title">بيانات السلسلة
+              @if (n.simulated) { <span class="sim-chip">وضع المحاكاة</span> }
+            </h2>
+            @if (n.simulated) {
+              <p class="sim-note">هذه الرخصة صادرة في الوضع القياسي (محاكاة) — القيم أدناه مولّدة محلياً ولا توجد على شبكة بلوكتشين حقيقية، لذا روابط المستكشف غير متاحة.</p>
+            }
             <dl>
               <dt>عقد الذكاء (Contract)</dt>
               <dd class="mono small" dir="ltr">{{ n.contract_address }}</dd>
@@ -130,8 +135,10 @@ const REASON_TONE: Record<TransferReason, string> = {
                 @if (chainChecking()) { <span class="spin sm"></span> جارٍ الفحص… }
                 @else { <span aria-hidden="true">⛓</span> تحقّق من السلسلة }
               </button>
-              <a [href]="explorerTxUrl(n)" target="_blank" rel="noopener" class="link-btn ghost">المعاملة على المستكشف ↗</a>
-              <a [href]="explorerTokenUrl(n)" target="_blank" rel="noopener" class="link-btn ghost">صفحة الرمز ↗</a>
+              @if (!n.simulated) {
+                <a [href]="explorerTxUrl(n)" target="_blank" rel="noopener" class="link-btn ghost">المعاملة على المستكشف ↗</a>
+                <a [href]="explorerTokenUrl(n)" target="_blank" rel="noopener" class="link-btn ghost">صفحة الرمز ↗</a>
+              }
               <a [href]="metadataUrl(n)" target="_blank" rel="noopener" class="link-btn ghost">metadata.json ↗</a>
             </div>
           </div>
@@ -190,10 +197,10 @@ const REASON_TONE: Record<TransferReason, string> = {
             } @else if (chainCheckError(); as err) {
               <div class="banner err"><span class="banner-mark">!</span>{{ err }}</div>
             } @else if (chainCheck(); as cc) {
-              @if (cc.mode === 'stub') {
+              @if (cc.mode === 'stub' || !cc.contract_configured) {
                 <div class="banner warn">
                   <span class="banner-mark warn">i</span>
-                  هذه الرخصة صادرة في وضع المحاكاة (Stub) — القيم محاكاة محلياً ولا توجد على شبكة حقيقية. فعّل الوضع الحقيقي لإجراء فحص فعلي.
+                  هذه الرخصة صادرة في الوضع القياسي (محاكاة) — لا يوجد عقد ذكي منشور، فالقيم مولّدة محلياً ولا توجد على شبكة حقيقية. انشر عقداً واضبط مفتاح سكّ لإجراء فحص فعلي.
                 </div>
               }
               <dl class="chain-kv">
@@ -354,6 +361,8 @@ const REASON_TONE: Record<TransferReason, string> = {
 
     .panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 22px; }
     .panel-title { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+    .sim-chip { display: inline-block; margin-inline-start: 8px; padding: 2px 9px; border-radius: 99px; background: #F97316; color: #fff; font-size: 10.5px; font-weight: 700; vertical-align: middle; }
+    .sim-note { font-size: 11.5px; color: #9a3412; background: #fff8ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 8px 10px; margin: 0 0 12px; line-height: 1.6; }
 
     dl { display: grid; grid-template-columns: 200px 1fr; gap: 12px 16px; margin: 0; }
     dt { font-size: 11.5px; color: var(--muted); align-self: center; }
@@ -621,7 +630,7 @@ export class AdminNftLicenceDetailPage implements OnInit {
 
   // Single-line verdict pill summarising the check.
   verdict(cc: ChainCheckResult): { ar: string; color: string } {
-    if (cc.mode === 'stub') return { ar: 'وضع المحاكاة', color: '#F97316' };
+    if (cc.mode === 'stub' || !cc.contract_configured) return { ar: 'وضع المحاكاة', color: '#F97316' };
     if (!cc.rpc_connected) return { ar: 'تعذّر الاتصال بالشبكة', color: '#DC2626' };
     if (cc.token_exists_on_chain && cc.owner_matches && cc.tx_succeeded) return { ar: 'موثَّق على السلسلة', color: '#0891B2' };
     if (cc.token_exists_on_chain) return { ar: 'موجود على السلسلة', color: '#0891B2' };
