@@ -15,11 +15,36 @@ public sealed class StubBlockchainService(IOptions<BlockchainOptions> opts) : IB
 {
     private readonly BlockchainOptions _opts = opts.Value;
 
+    public string Mode => "stub";
+    public bool CanSign => false;
     public string Network => _opts.Network;
     public string Standard => _opts.Standard;
     public string ContractAddress => string.IsNullOrWhiteSpace(_opts.ContractAddress)
         ? $"0x{HashHex($"sarh-stub-contract:{_opts.Network}", 40)}"
         : _opts.ContractAddress;
+
+    // No real RPC behind the stub. Report a synthetic "connected" status so
+    // the UI renders sensibly, but flag Mode=stub so it's never mistaken for
+    // a live chain. Block number tracks ~12-sec blocks like MintAsync.
+    public Task<ChainStatus> GetStatusAsync(CancellationToken ct) => Task.FromResult(new ChainStatus
+    {
+        Mode = "stub",
+        Network = Network,
+        Standard = Standard,
+        ContractAddress = ContractAddress,
+        ContractConfigured = !string.IsNullOrWhiteSpace(_opts.ContractAddress),
+        CanSign = false,
+        Connected = true,
+        ChainId = _opts.EffectiveChainId,
+        LatestBlock = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 12,
+        GasPriceGwei = "0",
+        RpcHost = "stub (in-process)",
+        Error = null,
+    });
+
+    // Stub hashes never exist on a real node.
+    public Task<ChainTxStatus?> GetTxStatusAsync(string txHash, CancellationToken ct)
+        => Task.FromResult<ChainTxStatus?>(new ChainTxStatus { TxHash = txHash, Found = false });
 
     public Task<MintReceipt> MintAsync(MintRequest req, CancellationToken ct)
     {

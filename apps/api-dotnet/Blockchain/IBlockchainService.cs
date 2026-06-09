@@ -7,11 +7,27 @@ namespace Sarh.Api.Blockchain;
 // Both produce the same MintReceipt shape so callers don't branch on mode.
 public interface IBlockchainService
 {
+    // "stub" or "real" — lets the UI/check endpoint label the source of truth.
+    string Mode { get; }
+
+    // True when a real on-chain write is possible (contract + key configured).
+    // False → mints are simulated (deterministic fakes, not on any real chain).
+    bool CanSign { get; }
+
     // The active network label baked into property_nfts.network. Exposed
     // so the service layer can record it without re-reading config.
     string Network { get; }
     string Standard { get; }
     string ContractAddress { get; }
+
+    // Live RPC health: reachable? chain id, latest block, gas price. Used by
+    // the "verify on chain" endpoint. Never throws — failures land in
+    // ChainStatus.Error so the UI can show a red banner instead of a 500.
+    Task<ChainStatus> GetStatusAsync(CancellationToken ct);
+
+    // Looks up a transaction receipt. Null when the hash is unknown to the
+    // node (e.g. a stub-fabricated hash, or a tx not yet mined).
+    Task<ChainTxStatus?> GetTxStatusAsync(string txHash, CancellationToken ct);
 
     Task<MintReceipt> MintAsync(MintRequest request, CancellationToken ct);
 
@@ -28,6 +44,32 @@ public interface IBlockchainService
     // Block-explorer link helpers (UI convenience).
     string ExplorerTxUrl(string txHash);
     string ExplorerTokenUrl(string tokenId);
+}
+
+// Live snapshot of the configured chain. Connected=false + Error set when
+// the RPC is unreachable or the key is invalid.
+public sealed class ChainStatus
+{
+    public required string Mode { get; init; }       // "stub" | "real"
+    public required string Network { get; init; }
+    public required string Standard { get; init; }
+    public required string ContractAddress { get; init; }
+    public required bool ContractConfigured { get; init; }
+    public required bool CanSign { get; init; }      // mint/transfer possible
+    public required bool Connected { get; init; }
+    public long? ChainId { get; init; }
+    public long? LatestBlock { get; init; }
+    public string? GasPriceGwei { get; init; }
+    public string? RpcHost { get; init; }            // host only — no api key
+    public string? Error { get; init; }
+}
+
+public sealed class ChainTxStatus
+{
+    public required string TxHash { get; init; }
+    public required bool Found { get; init; }
+    public long? BlockNumber { get; init; }
+    public bool? Succeeded { get; init; }            // receipt.status == 1
 }
 
 public sealed class MintRequest

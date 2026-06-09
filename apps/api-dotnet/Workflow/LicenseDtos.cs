@@ -20,6 +20,11 @@ public sealed class LicenseResult
     public required string ExplorerTxUrl { get; init; }
     public required string ExplorerTokenUrl { get; init; }
     public required string MetadataGatewayUrl { get; init; }
+
+    // True when the mint was simulated (no contract/key configured) — the
+    // tx hash is a deterministic fake and will NOT resolve on a block explorer.
+    // The UI uses this to avoid showing a dead "view on explorer" link.
+    public bool Simulated { get; init; }
 }
 
 public sealed class NftView

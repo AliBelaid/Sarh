@@ -159,10 +159,20 @@ type StepKey = typeof STEPS[number]['key'];
               <div>تم سكّ الرخصة بنجاح. رقم الرمز:
                 <span class="mono">{{ r.nft.token_id }}</span>.
               </div>
-              <div class="links">
-                <a [href]="r.explorer_tx_url" target="_blank" rel="noopener">عرض المعاملة على المستكشف ↗</a>
-                <a [href]="r.metadata_gateway_url" target="_blank" rel="noopener">metadata.json ↗</a>
-              </div>
+              @if (r.simulated) {
+                <div class="sim-note">
+                  ⚠ تمّ السكّ في وضع المحاكاة (لم يُضبط عقد على السلسلة بعد) — رقم المعاملة تجريبي ولن يظهر على المستكشف.
+                  لإصدار حقيقي على Sepolia: انشر العقد واضبط <span class="mono">ContractAddress</span>.
+                </div>
+                <div class="links">
+                  <a [href]="r.metadata_gateway_url" target="_blank" rel="noopener">metadata.json ↗</a>
+                </div>
+              } @else {
+                <div class="links">
+                  <a [href]="r.explorer_tx_url" target="_blank" rel="noopener">عرض المعاملة على المستكشف ↗</a>
+                  <a [href]="r.metadata_gateway_url" target="_blank" rel="noopener">metadata.json ↗</a>
+                </div>
+              }
             </div>
           </div>
         }
@@ -297,6 +307,7 @@ type StepKey = typeof STEPS[number]['key'];
     .banner-mark.ok { background: #16a34a; }
     .banner .links { display: flex; gap: 14px; margin-top: 6px; flex-wrap: wrap; }
     .banner .links a { color: inherit; text-decoration: underline; font-weight: 600; }
+    .sim-note { margin-top: 6px; padding: 8px 10px; background: #fff8ed; border: 1px solid #fed7aa; border-radius: 8px; color: #9a3412; font-size: 11.5px; line-height: 1.6; }
 
     .empty { padding: 60px 24px; text-align: center; color: var(--muted); background: var(--paper); border: 1px dashed var(--rule); border-radius: 14px; }
     .empty p { font-size: 13px; margin: 0 0 14px; }

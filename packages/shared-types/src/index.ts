@@ -230,4 +230,7 @@ export interface LicenseResult {
   explorer_tx_url: string;
   explorer_token_url: string;
   metadata_gateway_url: string;
+  // True when the mint was simulated (no contract/key) — the tx hash is a
+  // deterministic fake that won't resolve on a block explorer.
+  simulated: boolean;
 }

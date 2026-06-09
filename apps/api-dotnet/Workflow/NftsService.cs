@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sarh.Api.Auth;
+using Sarh.Api.Blockchain;
 using Sarh.Api.Common;
 using Sarh.Api.Common.Errors;
 using Sarh.Api.Data;
@@ -66,7 +67,7 @@ public sealed class NftLicenseView
 // Read-only ledger of NFT licences. Writes go through LicenseService
 // (mint) or the future TransferService; this surface is for admin /
 // auditor browsing.
-public sealed class NftsService(SarhDbContext db)
+public sealed class NftsService(SarhDbContext db, IBlockchainService chain, IIpfsService ipfs)
 {
     public async Task<CursorPage<NftLicenseView>> ListAsync(ListNftsQuery q, CurrentUser actor, CancellationToken ct)
     {
@@ -156,6 +157,75 @@ public sealed class NftsService(SarhDbContext db)
         }
 
         return NftLicenseView.From(row.n, row.p.PropertyCode, row.p.OwnerCitizenId);
+    }
+
+    // Live "verify on chain" for one licence: RPC health + ownerOf + mint-tx
+    // receipt, all read against the configured network. Never mutates state.
+    // In stub mode the RPC fields are synthetic and TokenExistsOnChain is false
+    // (a stub-fabricated hash is, correctly, not on any real chain).
+    public async Task<ChainCheckResult> ChainCheckAsync(Guid id, CurrentUser actor, CancellationToken ct)
+    {
+        if (actor.OfficerId is null) throw SarhException.Forbidden();
+
+        var row = await (from n in db.PropertyNfts.AsNoTracking()
+                         join p in db.Properties.AsNoTracking() on n.PropertyId equals p.Id
+                         where n.Id == id
+                         select new { n, p }).FirstOrDefaultAsync(ct)
+            ?? throw SarhException.NotFound("الرخصة", "NFT licence");
+
+        if (actor.Role is not ("super_admin" or "auditor")
+            && actor.RegionId is int aRegion
+            && row.p.RegionId != aRegion)
+        {
+            throw SarhException.Forbidden("الرخصة خارج منطقتك.");
+        }
+
+        var nft = row.n;
+
+        // RPC health is independent of the token reads — fetch first so a
+        // dead RPC still yields a useful (Connected=false) result.
+        var status = await chain.GetStatusAsync(ct);
+
+        string? onChainOwner = null;
+        ChainTxStatus? tx = null;
+        if (status.Connected)
+        {
+            try { onChainOwner = await chain.OwnerOfAsync(nft.TokenId, ct); } catch { /* surfaced as token-not-found */ }
+            try { tx = await chain.GetTxStatusAsync(nft.MintTxHash, ct); } catch { /* surfaced as tx-not-found */ }
+        }
+
+        bool? ownerMatches = onChainOwner is null
+            ? null
+            : string.Equals(onChainOwner, nft.OwnerAddress, StringComparison.OrdinalIgnoreCase);
+
+        return new ChainCheckResult
+        {
+            Mode = status.Mode,
+            Network = status.Network,
+            Standard = status.Standard,
+            ChainId = status.ChainId,
+            RpcConnected = status.Connected,
+            RpcHost = status.RpcHost,
+            RpcError = status.Error,
+            LatestBlock = status.LatestBlock,
+            GasPriceGwei = status.GasPriceGwei,
+            ContractAddress = status.ContractAddress,
+            ContractConfigured = status.ContractConfigured,
+            CanSign = status.CanSign,
+            TokenId = nft.TokenId,
+            RecordedOwnerAddress = nft.OwnerAddress ?? "",
+            OnChainOwner = onChainOwner,
+            TokenExistsOnChain = status.Connected ? onChainOwner is not null : null,
+            OwnerMatches = ownerMatches,
+            MintTxHash = nft.MintTxHash,
+            TxFound = tx?.Found,
+            TxBlockNumber = tx?.BlockNumber,
+            TxSucceeded = tx?.Succeeded,
+            ExplorerTxUrl = chain.ExplorerTxUrl(nft.MintTxHash),
+            ExplorerTokenUrl = chain.ExplorerTokenUrl(nft.TokenId),
+            MetadataUri = ipfs.GatewayUrlFor(nft.MetadataUri),
+            CheckedAt = DateTimeOffset.UtcNow,
+        };
     }
 
     // Ownership timeline for a single NFT — append-only chain from the

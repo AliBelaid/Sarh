@@ -6,6 +6,7 @@ import { AuthService } from '@core/auth.service';
 import { CitizensService, type Citizen } from '@core/citizens.service';
 import {
   NftsService,
+  type ChainCheckResult,
   type NftLicenseView,
   type OwnershipEvent,
   type TransferableReason,
@@ -125,7 +126,11 @@ const REASON_TONE: Record<TransferReason, string> = {
               <dd class="mono small" dir="ltr">{{ shorten(n.metadata_sha256, 24) }}</dd>
             </dl>
             <div class="links">
-              <a [href]="explorerTxUrl(n)" target="_blank" rel="noopener" class="link-btn">المعاملة على المستكشف ↗</a>
+              <button type="button" class="link-btn chain-verify" (click)="runChainCheck(n.id)" [disabled]="chainChecking()">
+                @if (chainChecking()) { <span class="spin sm"></span> جارٍ الفحص… }
+                @else { <span aria-hidden="true">⛓</span> تحقّق من السلسلة }
+              </button>
+              <a [href]="explorerTxUrl(n)" target="_blank" rel="noopener" class="link-btn ghost">المعاملة على المستكشف ↗</a>
               <a [href]="explorerTokenUrl(n)" target="_blank" rel="noopener" class="link-btn ghost">صفحة الرمز ↗</a>
               <a [href]="metadataUrl(n)" target="_blank" rel="noopener" class="link-btn ghost">metadata.json ↗</a>
             </div>
@@ -170,6 +175,87 @@ const REASON_TONE: Record<TransferReason, string> = {
             }
           </div>
         </div>
+
+        @if (chainCheckOpen()) {
+          <div class="panel chain-panel">
+            <div class="chain-head">
+              <h2 class="panel-title chain-title">التحقق المباشر من السلسلة</h2>
+              @if (chainCheck(); as cc) {
+                <span class="verdict" [style.background]="verdict(cc).color">{{ verdict(cc).ar }}</span>
+              }
+            </div>
+
+            @if (chainChecking()) {
+              <div class="chain-loading"><div class="spin"></div><p>جارٍ الاتصال بالشبكة…</p></div>
+            } @else if (chainCheckError(); as err) {
+              <div class="banner err"><span class="banner-mark">!</span>{{ err }}</div>
+            } @else if (chainCheck(); as cc) {
+              @if (cc.mode === 'stub') {
+                <div class="banner warn">
+                  <span class="banner-mark warn">i</span>
+                  هذه الرخصة صادرة في وضع المحاكاة (Stub) — القيم محاكاة محلياً ولا توجد على شبكة حقيقية. فعّل الوضع الحقيقي لإجراء فحص فعلي.
+                </div>
+              }
+              <dl class="chain-kv">
+                <dt>حالة الاتصال (RPC)</dt>
+                <dd>
+                  <span class="pill" [style.background]="cc.rpc_connected ? 'var(--good)' : 'var(--warn)'">
+                    {{ cc.rpc_connected ? 'متصل' : 'غير متصل' }}
+                  </span>
+                  @if (cc.rpc_host) { <span class="muted mono small">· {{ cc.rpc_host }}</span> }
+                </dd>
+
+                @if (cc.rpc_error) {
+                  <dt>سبب التعذّر</dt>
+                  <dd class="mono small warn-text" dir="ltr">{{ cc.rpc_error }}</dd>
+                }
+
+                <dt>الشبكة</dt>
+                <dd>{{ networkLabel(cc.network) }} <span class="muted mono small">· chainId {{ cc.chain_id ?? '—' }}</span></dd>
+
+                <dt>أحدث كتلة</dt>
+                <dd class="mono">{{ cc.latest_block ?? '—' }}</dd>
+
+                <dt>سعر الغاز</dt>
+                <dd class="mono small">{{ cc.gas_price_gwei ?? '—' }} Gwei</dd>
+
+                <dt>عنوان العقد</dt>
+                <dd class="mono small" dir="ltr">
+                  {{ cc.contract_address || '—' }}
+                  @if (!cc.contract_configured) { <span class="pill grey">غير مضبوط</span> }
+                </dd>
+
+                <dt>السكّ متاح (مفتاح + عقد)</dt>
+                <dd><span class="pill" [style.background]="boolTone(cc.can_sign)">{{ boolAr(cc.can_sign) }}</span></dd>
+
+                <dt>الرمز موجود على السلسلة</dt>
+                <dd><span class="pill" [style.background]="boolTone(cc.token_exists_on_chain)">{{ boolAr(cc.token_exists_on_chain) }}</span></dd>
+
+                <dt>المالك على السلسلة</dt>
+                <dd class="mono small" dir="ltr">{{ cc.on_chain_owner ?? '—' }}</dd>
+
+                <dt>تطابق المالك مع السجل</dt>
+                <dd><span class="pill" [style.background]="boolTone(cc.owner_matches)">{{ boolAr(cc.owner_matches) }}</span></dd>
+
+                <dt>معاملة السكّ موجودة</dt>
+                <dd>
+                  <span class="pill" [style.background]="boolTone(cc.tx_found)">{{ boolAr(cc.tx_found) }}</span>
+                  @if (cc.tx_found) {
+                    <span class="pill" [style.background]="boolTone(cc.tx_succeeded)">{{ cc.tx_succeeded ? 'ناجحة' : 'فاشلة' }}</span>
+                    @if (cc.tx_block_number != null) { <span class="muted mono small">· كتلة {{ cc.tx_block_number }}</span> }
+                  }
+                </dd>
+              </dl>
+
+              <div class="links">
+                @if (cc.tx_found) {
+                  <a [href]="cc.explorer_tx_url" target="_blank" rel="noopener" class="link-btn">المعاملة على المستكشف ↗</a>
+                }
+                <span class="checked-at muted small">آخر فحص: {{ longDate(cc.checked_at) }}</span>
+              </div>
+            }
+          </div>
+        }
 
         @if (modalOpen()) {
           <div class="modal-backdrop" (click)="closeTransfer()">
@@ -281,6 +367,26 @@ const REASON_TONE: Record<TransferReason, string> = {
     .link-btn:hover { transform: translateY(-1px); }
     .link-btn.ghost { background: transparent; border: 1px solid var(--rule); color: var(--ink); }
     .link-btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .link-btn.chain-verify { display: inline-flex; align-items: center; gap: 6px; border: 0; cursor: pointer; font-family: inherit; }
+    .link-btn.chain-verify:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Live chain-check panel */
+    .chain-panel { margin-top: 16px; }
+    .chain-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .chain-title { border-bottom: 0; margin: 0; padding: 0; }
+    .verdict { display: inline-block; padding: 5px 14px; border-radius: 99px; font-size: 11.5px; font-weight: 700; color: #fff; }
+    .chain-loading { padding: 28px; text-align: center; color: var(--muted); }
+    .chain-loading p { font-size: 12.5px; margin: 6px 0 0; }
+    .chain-kv { display: grid; grid-template-columns: 220px 1fr; gap: 11px 16px; margin: 16px 0 0; }
+    .chain-kv dt { font-size: 11.5px; color: var(--muted); align-self: center; }
+    .chain-kv dd { font-size: 12.5px; font-weight: 600; color: var(--ink); margin: 0; align-self: center; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; word-break: break-all; }
+    @media (max-width: 600px) { .chain-kv { grid-template-columns: 1fr; gap: 4px 0; } }
+    .pill { display: inline-block; padding: 3px 10px; border-radius: 99px; color: #fff; font-size: 11px; font-weight: 700; }
+    .pill.grey { background: #94a3b8; }
+    .warn-text { color: var(--warn); }
+    .checked-at { align-self: center; }
+    .banner.warn { background: #fff8ed; color: #9a3412; border: 1px solid #fed7aa; line-height: 1.6; }
+    .banner-mark.warn { background: var(--accent); }
 
     /* Timeline */
     .timeline { list-style: none; padding: 0; margin: 0; position: relative; }
@@ -373,6 +479,12 @@ export class AdminNftLicenceDetailPage implements OnInit {
   readonly nft = signal<NftLicenseView | null>(null);
   readonly history = signal<OwnershipEvent[]>([]);
   readonly loading = signal(true);
+
+  // Live chain-check state.
+  readonly chainCheckOpen = signal(false);
+  readonly chainChecking = signal(false);
+  readonly chainCheck = signal<ChainCheckResult | null>(null);
+  readonly chainCheckError = signal<string | null>(null);
 
   // Transfer modal state.
   readonly transferOptions = TRANSFER_OPTIONS;
@@ -491,6 +603,33 @@ export class AdminNftLicenceDetailPage implements OnInit {
       this.transferring.set(false);
     }
   }
+
+  // ── Live chain check ─────────────────────────────────────────
+  async runChainCheck(id: string): Promise<void> {
+    this.chainCheckOpen.set(true);
+    this.chainChecking.set(true);
+    this.chainCheckError.set(null);
+    try {
+      this.chainCheck.set(await this.api.chainCheck(id));
+    } catch (e: unknown) {
+      const err = e as { error?: { error?: { message_ar?: string } } };
+      this.chainCheckError.set(err.error?.error?.message_ar ?? 'تعذّر الفحص على السلسلة.');
+    } finally {
+      this.chainChecking.set(false);
+    }
+  }
+
+  // Single-line verdict pill summarising the check.
+  verdict(cc: ChainCheckResult): { ar: string; color: string } {
+    if (cc.mode === 'stub') return { ar: 'وضع المحاكاة', color: '#F97316' };
+    if (!cc.rpc_connected) return { ar: 'تعذّر الاتصال بالشبكة', color: '#DC2626' };
+    if (cc.token_exists_on_chain && cc.owner_matches && cc.tx_succeeded) return { ar: 'موثَّق على السلسلة', color: '#0891B2' };
+    if (cc.token_exists_on_chain) return { ar: 'موجود على السلسلة', color: '#0891B2' };
+    return { ar: 'غير موجود على السلسلة', color: '#DC2626' };
+  }
+
+  boolAr(b: boolean | null): string { return b === null || b === undefined ? '—' : (b ? 'نعم' : 'لا'); }
+  boolTone(b: boolean | null): string { return b === null || b === undefined ? '#94a3b8' : (b ? 'var(--good)' : 'var(--warn)'); }
 
   fullName(c: Citizen): string {
     return [c.first_name_ar, c.father_name_ar, c.grandfather_name_ar, c.family_name_ar]

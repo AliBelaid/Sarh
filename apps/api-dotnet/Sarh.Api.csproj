@@ -14,6 +14,10 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
+    <!-- Real on-chain mint/transfer/read for the Sepolia (and any EVM) path.
+         Bound by EthereumBlockchainService; only exercised when
+         Sarh:Blockchain:Mode is "real"/"ethereum". -->
+    <PackageReference Include="Nethereum.Web3" Version="4.29.0" />
     <PackageReference Include="QuestPDF" Version="2024.7.3" />
     <PackageReference Include="QRCoder" Version="1.6.0" />
     <!-- Detached CMS/PKCS#7 deed signatures (SignedCms/CmsSigner). Type-forwarded

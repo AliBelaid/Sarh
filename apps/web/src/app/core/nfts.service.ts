@@ -48,6 +48,12 @@ export class NftsService {
     return firstValueFrom(this.http.get<OwnershipEvent[]>(`${API_BASE}/property-nfts/${id}/history`));
   }
 
+  // Live on-chain verification: RPC reachability + ownerOf + mint-tx receipt
+  // against the configured network. Backend: GET /property-nfts/:id/chain-check.
+  chainCheck(id: string): Promise<ChainCheckResult> {
+    return firstValueFrom(this.http.get<ChainCheckResult>(`${API_BASE}/property-nfts/${id}/chain-check`));
+  }
+
   // Citizen-scoped: returns licences owned by the authenticated citizen.
   // Backend: GET /api/v1/me/nft-licences (Controllers/MeController.cs).
   mine(): Promise<NftLicenseView[]> {
@@ -90,4 +96,37 @@ export interface TransferResult {
   property: { id: string; status: string; owner_citizen_id: string };
   event: OwnershipEvent;
   explorer_tx_url: string;
+}
+
+// Live "verify on chain" result for one licence (snake_case from the API).
+export interface ChainCheckResult {
+  mode: 'real' | 'stub';
+  network: string;
+  standard: string;
+  chain_id: number | null;
+  rpc_connected: boolean;
+  rpc_host: string | null;
+  rpc_error: string | null;
+  latest_block: number | null;
+  gas_price_gwei: string | null;
+
+  contract_address: string;
+  contract_configured: boolean;
+  can_sign: boolean;
+
+  token_id: string;
+  recorded_owner_address: string;
+  on_chain_owner: string | null;
+  token_exists_on_chain: boolean | null;
+  owner_matches: boolean | null;
+
+  mint_tx_hash: string;
+  tx_found: boolean | null;
+  tx_block_number: number | null;
+  tx_succeeded: boolean | null;
+
+  explorer_tx_url: string;
+  explorer_token_url: string;
+  metadata_uri: string;
+  checked_at: string;
 }

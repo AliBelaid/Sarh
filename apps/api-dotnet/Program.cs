@@ -12,6 +12,61 @@ var builder = WebApplication.CreateBuilder(args);
 // the rest of bootstrap reads them.
 Sarh.Api.Common.EnvBootstrap.ApplyEnvOverrides(builder.Configuration);
 
+// One-off helper: wrap a raw minter private key with KMS_MASTER_KEY so the
+// blob can be pasted into Sarh:Blockchain:MinterPrivateKeyEnc. Usage:
+//   dotnet run -- --encrypt-minter-key 0x<rawhex>
+if (args.Length >= 2 && args[0] == "--encrypt-minter-key")
+{
+    var master = Sarh.Api.Blockchain.KmsCrypto.MasterKeyFromConfig(builder.Configuration);
+    Console.WriteLine(Sarh.Api.Blockchain.KmsCrypto.Encrypt(master, args[1].Trim()));
+    return;
+}
+
+// Generate a fresh EVM keypair for the minter wallet. Fund the printed
+// ADDRESS from a Sepolia faucet, then use PRIVATE_KEY in Sarh:Blockchain.
+//   dotnet run -- --new-minter-wallet
+if (args.Length >= 1 && args[0] == "--new-minter-wallet")
+{
+    var key = Nethereum.Signer.EthECKey.GenerateKey();
+    Console.WriteLine("ADDRESS=" + key.GetPublicAddress());
+    Console.WriteLine("PRIVATE_KEY=0x" + Convert.ToHexString(key.GetPrivateKeyAsBytes()).ToLowerInvariant());
+    return;
+}
+
+// Deploy the SarhPropertyLicense contract using the configured minter key +
+// RpcUrl, then print the address to paste into Sarh:Blockchain:ContractAddress.
+// Requires the wallet to be funded with gas.
+//   dotnet run -- --deploy-contract [path-to-.bin]
+if (args.Length >= 1 && args[0] == "--deploy-contract")
+{
+    var bc = builder.Configuration.GetSection(Sarh.Api.Blockchain.BlockchainOptions.SectionName)
+        .Get<Sarh.Api.Blockchain.BlockchainOptions>() ?? new Sarh.Api.Blockchain.BlockchainOptions();
+    var pk = !string.IsNullOrWhiteSpace(bc.MinterPrivateKey)
+        ? bc.MinterPrivateKey.Trim()
+        : (!string.IsNullOrWhiteSpace(bc.MinterPrivateKeyEnc)
+            ? Sarh.Api.Blockchain.KmsCrypto.Decrypt(Sarh.Api.Blockchain.KmsCrypto.MasterKeyFromConfig(builder.Configuration), bc.MinterPrivateKeyEnc)
+            : "");
+    if (string.IsNullOrWhiteSpace(pk)) { Console.WriteLine("ERROR: set Sarh:Blockchain:MinterPrivateKey (or ...Enc) first."); return; }
+
+    var binPath = args.Length >= 2 ? args[1]
+        : Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "infra", "blockchain", "build", "SarhPropertyLicense_sol_SarhPropertyLicense.bin");
+    if (!File.Exists(binPath)) { Console.WriteLine($"ERROR: bytecode not found at {binPath}. Compile first (see infra/blockchain)."); return; }
+    var bytecode = File.ReadAllText(binPath).Trim();
+    if (!bytecode.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) bytecode = "0x" + bytecode;
+    var abiPath = binPath[..^4] + ".abi";
+    var abi = File.Exists(abiPath) ? File.ReadAllText(abiPath).Trim() : "[]";
+
+    var account = new Nethereum.Web3.Accounts.Account(pk, bc.EffectiveChainId);
+    var web3 = new Nethereum.Web3.Web3(account, bc.RpcUrl);
+    var bal = await web3.Eth.GetBalance.SendRequestAsync(account.Address);
+    Console.WriteLine($"Deploying from {account.Address} (balance {Nethereum.Util.UnitConversion.Convert.FromWei(bal.Value):0.######} ETH) to {bc.Network} chainId {bc.EffectiveChainId}…");
+    if (bal.Value == 0) { Console.WriteLine($"ERROR: wallet {account.Address} has 0 ETH — fund it from a Sepolia faucet first."); return; }
+    var receipt = await web3.Eth.DeployContract.SendRequestAndWaitForReceiptAsync(abi, bytecode, account.Address, new Nethereum.Hex.HexTypes.HexBigInteger(2_000_000));
+    Console.WriteLine("CONTRACT_ADDRESS=" + receipt.ContractAddress);
+    Console.WriteLine("DEPLOY_TX=" + receipt.TransactionHash);
+    return;
+}
+
 // JSON: snake_case keys, ignore null on write (parity with NestJS responses).
 builder.Services.AddControllers(o =>
     {
@@ -115,13 +170,22 @@ builder.Services.AddScoped<Sarh.Api.Nfc.NfcKeyStoreService>();
 builder.Services.AddScoped<Sarh.Api.Nfc.NfcService>();
 builder.Services.AddSingleton<Sarh.Api.Storage.StorageService>();
 
-// Blockchain + IPFS — stub by default. To go live, set Sarh:Blockchain:Mode
-// to "ethereum" and add Nethereum.Web3 + a real IIpfsService impl.
+// Blockchain + IPFS. Mode "stub" → deterministic in-process fake (default).
+// Mode "real"/"ethereum" → EthereumBlockchainService (Nethereum) against the
+// configured RpcUrl; reads work with just the URL, writes also need
+// ContractAddress + a minter key. IPFS stays stubbed (local-FS) for now.
 builder.Services.Configure<Sarh.Api.Blockchain.BlockchainOptions>(
     builder.Configuration.GetSection(Sarh.Api.Blockchain.BlockchainOptions.SectionName));
 builder.Services.Configure<Sarh.Api.Blockchain.IpfsOptions>(
     builder.Configuration.GetSection(Sarh.Api.Blockchain.IpfsOptions.SectionName));
-builder.Services.AddSingleton<Sarh.Api.Blockchain.IBlockchainService, Sarh.Api.Blockchain.StubBlockchainService>();
+
+var blockchainOptions = builder.Configuration
+    .GetSection(Sarh.Api.Blockchain.BlockchainOptions.SectionName)
+    .Get<Sarh.Api.Blockchain.BlockchainOptions>() ?? new Sarh.Api.Blockchain.BlockchainOptions();
+if (blockchainOptions.IsReal)
+    builder.Services.AddSingleton<Sarh.Api.Blockchain.IBlockchainService, Sarh.Api.Blockchain.EthereumBlockchainService>();
+else
+    builder.Services.AddSingleton<Sarh.Api.Blockchain.IBlockchainService, Sarh.Api.Blockchain.StubBlockchainService>();
 builder.Services.AddSingleton<Sarh.Api.Blockchain.IIpfsService, Sarh.Api.Blockchain.StubIpfsService>();
 
 // SSI (Hyperledger Aries / ACA-Py) — placeholder issuer by default. Set
@@ -187,6 +251,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
         o.Events = new JwtBearerEvents
         {
+            // SignalR can't set the Authorization header on the WebSocket/SSE
+            // handshake, so its JS client passes the JWT as ?access_token=…
+            // Pull it in for /hubs requests so hub auth works like REST.
+            OnMessageReceived = ctx =>
+            {
+                var accessToken = ctx.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken)
+                    && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                {
+                    ctx.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            },
             OnChallenge = ctx =>
             {
                 ctx.HandleResponse();

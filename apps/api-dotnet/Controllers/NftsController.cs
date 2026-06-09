@@ -27,6 +27,13 @@ public class NftsController(NftsService svc, TransferService transferSvc) : Cont
     public Task<List<OwnershipEventView>> History(Guid id, CancellationToken ct)
         => svc.ListHistoryAsync(id, User.RequireUser(), ct);
 
+    // Live on-chain verification for one licence: RPC reachability, ownerOf,
+    // and the mint-tx receipt against the configured network. Read-only.
+    [HttpGet("{id:guid}/chain-check")]
+    [OfficerOnly("super_admin", "auditor", "registry_officer", "reviewer", "department_manager")]
+    public Task<ChainCheckResult> ChainCheck(Guid id, CancellationToken ct)
+        => svc.ChainCheckAsync(id, User.RequireUser(), ct);
+
     // Re-assigns the NFT to a different citizen. Updates ownership_history,
     // property_nfts, and properties.owner_citizen_id atomically (DB side);
     // the chain call is best-effort against the registry's records.
