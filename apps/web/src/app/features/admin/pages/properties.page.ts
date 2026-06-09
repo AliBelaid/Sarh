@@ -13,6 +13,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
+import { addBaseTileLayer } from '../../../shared/base-tile-layer';
 import { PropertiesService } from '@core/properties.service';
 import type { Property, PropertyStatus } from '@sarh/shared-types';
 import { REGIONS, REGION_CENTROIDS, LIBYA_CENTER } from '../../../shared/status-pills';
@@ -450,10 +451,7 @@ export class AdminPropertiesPage implements OnInit, AfterViewInit, OnDestroy {
       zoomControl: true,
       attributionControl: true,
     });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(this.map);
+    addBaseTileLayer(this.map);
 
     this.markersLayer = L.layerGroup().addTo(this.map);
   }

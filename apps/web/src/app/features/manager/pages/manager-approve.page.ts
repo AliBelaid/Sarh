@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import * as L from 'leaflet';
+import { addBaseTileLayer } from '../../../shared/base-tile-layer';
 import { PropertiesService } from '@core/properties.service';
 import { CitizensService, type Citizen } from '@core/citizens.service';
 import type { LicenseResult, Property } from '@sarh/shared-types';
@@ -387,10 +388,7 @@ export class ManagerApprovePage implements OnInit, OnDestroy {
     const p = this.property();
     if (!p) return;
     this.map = L.map(this.mapEl.nativeElement, { center: [27.0, 17.0], zoom: 6, zoomControl: true });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(this.map);
+    addBaseTileLayer(this.map);
 
     const ring = p.boundary_polygon?.coordinates?.[0];
     if (ring && ring.length >= 3) {

@@ -15,6 +15,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import * as L from 'leaflet';
+import { addBaseTileLayer } from '../../../shared/base-tile-layer';
 import { API_BASE } from '@core/api-config';
 import { CitizensService, type Citizen } from '@core/citizens.service';
 import { UploadsService, UploadResult } from '@core/uploads.service';
@@ -576,10 +577,7 @@ export class OfficerNewPropertyPage implements AfterViewInit, OnDestroy {
       zoom: 12,
       zoomControl: true,
     });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(this.map);
+    addBaseTileLayer(this.map);
     this.markerLayer.addTo(this.map);
     this.map.on('click', (e: L.LeafletMouseEvent) => this.addPoint(e.latlng));
   }

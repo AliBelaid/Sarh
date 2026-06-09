@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import * as L from 'leaflet';
+import { addBaseTileLayer } from '../../../shared/base-tile-layer';
 import { PropertiesService } from '@core/properties.service';
 import { MapService, ParcelFeature } from '@core/map.service';
 import type { Property, ReviewDecision } from '@sarh/shared-types';
@@ -604,10 +605,7 @@ export class OfficerReviewPage implements OnDestroy {
     const p = this.property();
     if (!p) return;
     this.map = L.map(this.mapEl.nativeElement, { center: [27.0, 17.0], zoom: 6, zoomControl: true });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(this.map);
+    addBaseTileLayer(this.map);
 
     // Make sure Leaflet has the container's real (laid-out) size before we
     // fit/zoom — the boot is deferred a tick precisely so this reads non-zero.

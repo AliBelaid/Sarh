@@ -12,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import * as L from 'leaflet';
+import { addBaseTileLayer } from '../../../shared/base-tile-layer';
 import { PropertiesService } from '@core/properties.service';
 import type { Property } from '@sarh/shared-types';
 import { PROPERTY_TYPE, REGIONS } from '../../../shared/status-pills';
@@ -208,9 +209,7 @@ export class OfficerBoundaryEditPage implements OnInit, OnDestroy {
   private bootMap(): void {
     if (this.map || !this.mapEl) return;
     this.map = L.map(this.mapEl.nativeElement, { center: [32.8872, 13.1913], zoom: 13, zoomControl: true });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(this.map);
+    addBaseTileLayer(this.map);
     this.markerLayer.addTo(this.map);
     this.map.on('click', (e: L.LeafletMouseEvent) => this.addPoint(e.latlng));
     // Container is laid out by now (boot is deferred a tick), but invalidate

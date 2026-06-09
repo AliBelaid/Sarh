@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
+import { addBaseTileLayer } from './base-tile-layer';
 import type { ParcelFeature, ParcelProps } from '@core/map.service';
 import { mapStatusMeta } from './map-status';
 import { PROPERTY_TYPE } from './status-pills';
@@ -97,10 +98,7 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       zoomControl: true,
       attributionControl: true,
     });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(this.map);
+    addBaseTileLayer(this.map);
     this.layer = L.layerGroup().addTo(this.map);
   }
 
