@@ -84,7 +84,7 @@ const TABS: Array<{ key: Tab; ar: string }> = [
                   <td class="actions-cell">
                     <a [routerLink]="['/app/nft-licences', n.id]" class="link">تفاصيل ←</a>
                     @if (n.simulated) {
-                      <span class="sim-tag" style="display:inline-block;padding:2px 8px;border-radius:99px;background:#fff7ed;border:1px solid #fed7aa;color:#b45309;font-size:10px;font-weight:700;">محاكاة</span>
+                      <span class="sim-tag">محاكاة</span>
                     } @else {
                       <a [href]="explorerTxUrl(n)" target="_blank" rel="noopener" class="link muted-link">المعاملة ↗</a>
                     }
@@ -147,6 +147,7 @@ const TABS: Array<{ key: Tab; ar: string }> = [
     .link { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 12px; }
     .link:hover { color: var(--accent); }
     .link.muted-link { color: var(--muted); margin-inline-start: 12px; }
+    .sim-tag { display: inline-block; margin-inline-start: 12px; padding: 2px 8px; border-radius: 99px; background: #fff7ed; border: 1px solid #fed7aa; color: #b45309; font-size: 10px; font-weight: 700; }
     .actions-cell { white-space: nowrap; }
 
     .more { display: flex; justify-content: center; margin-top: 14px; }
