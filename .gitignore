@@ -31,6 +31,8 @@ obj/
 !.env.example
 *.pem
 *.key
+# Local dev secrets override (minter private key etc.) — never commit
+apps/api-dotnet/appsettings.Development.json
 
 # Flutter / Dart
 .dart_tool/
