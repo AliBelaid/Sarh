@@ -17,9 +17,10 @@ import { ParcelMapComponent } from '../../../shared/parcel-map.component';
 
 // Officer cadastral map ("خريطة العقارات"). Unlike the public map it includes
 // parcels still in the workflow (pending → yellow) so a registry officer can
-// see the full picture of their region. Each parcel links through to its
-// review screen and its legal-disputes (encumbrance) screen. Backend scopes
-// the feed to the officer's region automatically.
+// see the full picture. Each parcel links through to its review screen and its
+// legal-disputes (encumbrance) screen. The feed returns every live parcel
+// across ALL regions (public attributes only); region is an optional narrowing
+// filter, not a server-enforced scope.
 @Component({
   selector: 'app-officer-map',
   standalone: true,

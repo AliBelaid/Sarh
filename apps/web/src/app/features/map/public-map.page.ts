@@ -146,7 +146,7 @@ import { ParcelMapComponent } from '../../shared/parcel-map.component';
     .spin { width: 28px; height: 28px; border: 3px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .banner {
-      position: absolute; bottom: 18px; inset-inline-start: 50%; transform: translateX(50%);
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
       z-index: 600; padding: 9px 16px; border-radius: 8px; font-size: 12.5px;
       background: #fff; border: 1px solid var(--rule); color: var(--muted);
       box-shadow: 0 6px 16px rgba(0,0,0,.1);

@@ -37,6 +37,13 @@ public sealed class EthereumBlockchainService : IBlockchainService
     // simulated artifacts instead of a 503, while reads still hit the real RPC.
     private readonly StubBlockchainService _simFallback;
 
+    // Live reads must fail fast. On a network that blocks/throttles the RPC host
+    // (e.g. parts of Libya block external hosts — the same reason OSM tiles were
+    // unreachable), Nethereum's default HttpClient hangs ~100s, which would
+    // freeze the "تحقّق من السلسلة" request and the NFT page. Cap each read so it
+    // degrades to "not connected" within a few seconds instead.
+    private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(6);
+
     public EthereumBlockchainService(
         IOptions<BlockchainOptions> opts,
         IConfiguration config,
@@ -80,9 +87,9 @@ public sealed class EthereumBlockchainService : IBlockchainService
             if (string.IsNullOrWhiteSpace(_opts.RpcUrl))
                 throw new InvalidOperationException("RpcUrl is not configured.");
 
-            var chainId = await _read.Eth.ChainId.SendRequestAsync();
-            var block = await _read.Eth.Blocks.GetBlockNumber.SendRequestAsync();
-            var gasWei = await _read.Eth.GasPrice.SendRequestAsync();
+            var chainId = await _read.Eth.ChainId.SendRequestAsync().WaitAsync(ReadTimeout, ct);
+            var block = await _read.Eth.Blocks.GetBlockNumber.SendRequestAsync().WaitAsync(ReadTimeout, ct);
+            var gasWei = await _read.Eth.GasPrice.SendRequestAsync().WaitAsync(ReadTimeout, ct);
             var gwei = UnitConversion.Convert.FromWei(gasWei.Value, UnitConversion.EthUnit.Gwei);
 
             return new ChainStatus
@@ -126,7 +133,7 @@ public sealed class EthereumBlockchainService : IBlockchainService
             return new ChainTxStatus { TxHash = txHash, Found = false };
         try
         {
-            var receipt = await _read.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(txHash);
+            var receipt = await _read.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(txHash).WaitAsync(ReadTimeout, ct);
             if (receipt is null)
                 return new ChainTxStatus { TxHash = txHash, Found = false };
             return new ChainTxStatus
@@ -153,7 +160,8 @@ public sealed class EthereumBlockchainService : IBlockchainService
         try
         {
             var handler = _read.Eth.GetContractQueryHandler<OwnerOfFunction>();
-            return await handler.QueryAsync<string>(_opts.ContractAddress, new OwnerOfFunction { TokenId = tid });
+            return await handler.QueryAsync<string>(_opts.ContractAddress, new OwnerOfFunction { TokenId = tid })
+                .WaitAsync(ReadTimeout, ct);
         }
         catch (Exception ex)
         {
