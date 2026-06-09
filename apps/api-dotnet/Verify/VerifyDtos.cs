@@ -72,6 +72,11 @@ public sealed class PublicNftView
     public required string ExplorerTokenUrl { get; init; }
     public DateTimeOffset MintedAt { get; init; }
     public required string Status { get; init; }
+    // True when the licence was minted in the standard/simulation flow (no real
+    // contract deployed) → the chain artifacts (tx/contract/token) are simulated
+    // and not on any real chain. The public verify page then hides the dead
+    // block-explorer link instead of 404-ing the verifier to Etherscan.
+    public bool Simulated { get; init; }
     // True when the live on-chain owner matches the registry's recorded
     // owner_did (i.e. nothing has been transferred out-of-band). False
     // means an off-registry transfer has happened that the registry hasn't

@@ -19,6 +19,7 @@ interface NftView {
   explorer_token_url: string;
   minted_at: string;
   status: string;
+  simulated: boolean;
   on_chain_owner_matches: boolean | null;
   on_chain_owner_address: string | null;
 }
@@ -164,7 +165,8 @@ interface DeedView {
                     <div class="nft-top">
                       <div>
                         <div class="nft-band">PROPERTY LICENCE · NFT</div>
-                        <div class="nft-title">رخصة عقارية رقمية موثَّقة على البلوكتشين</div>
+                        <div class="nft-title">{{ nft.simulated ? 'رخصة عقارية رقمية' : 'رخصة عقارية رقمية موثَّقة على البلوكتشين' }}</div>
+                        @if (nft.simulated) { <div class="nft-sim">وضع المحاكاة — لم تُسجَّل على شبكة حقيقية</div> }
                       </div>
                       <div class="seal">ص</div>
                     </div>
@@ -186,6 +188,9 @@ interface DeedView {
                 </div>
 
                 <h2 class="nft-h">التحقّق من السلسلة</h2>
+                @if (nft.simulated) {
+                  <p class="nft-sim-note">⚠ هذه الرخصة صادرة في الوضع القياسي (محاكاة): المُعرّفات أدناه مولّدة محلياً ولم تُسجَّل على شبكة بلوكتشين حقيقية، لذلك لا يتوفّر رابط للمستكشف.</p>
+                }
                 <dl class="nft-dl">
                   <dt>المعاملة (tx hash)</dt>
                   <dd class="mono small" dir="ltr">{{ shortHex(nft.mint_tx_hash) }}</dd>
@@ -206,9 +211,11 @@ interface DeedView {
                 </dl>
 
                 <div class="nft-links">
-                  <a [href]="nft.explorer_tx_url" target="_blank" rel="noopener" class="link-btn">
-                    عرض المعاملة على المستكشف ↗
-                  </a>
+                  @if (!nft.simulated) {
+                    <a [href]="nft.explorer_tx_url" target="_blank" rel="noopener" class="link-btn">
+                      عرض المعاملة على المستكشف ↗
+                    </a>
+                  }
                   <a [href]="nft.metadata_gateway_url" target="_blank" rel="noopener" class="link-btn ghost">
                     metadata.json (IPFS) ↗
                   </a>
@@ -339,6 +346,8 @@ interface DeedView {
     .nft-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
     .nft-band { font-size: 10px; letter-spacing: 0.22em; color: var(--accent); }
     .nft-title { font-size: 18px; font-weight: 700; margin-top: 4px; }
+    .nft-sim { display: inline-block; margin-top: 6px; padding: 2px 10px; border-radius: 99px; background: rgba(249,115,22,.9); color: #0F172A; font-size: 10.5px; font-weight: 700; }
+    .nft-sim-note { margin: 0; padding: 12px 26px; font-size: 11.5px; color: #9a3412; background: #fff8ed; border-bottom: 1px solid #fed7aa; line-height: 1.6; }
     .seal { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #C2410C); color: var(--primary); display: grid; place-items: center; font-weight: 800; font-size: 22px; flex-shrink: 0; }
     .nft-bottom { display: flex; gap: 28px; flex-wrap: wrap; }
     .nft-bottom .lbl { font-size: 8.5px; letter-spacing: 0.16em; color: var(--accent); text-transform: uppercase; }

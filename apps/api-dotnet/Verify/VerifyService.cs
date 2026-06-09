@@ -107,6 +107,7 @@ public sealed class VerifyService(
                 ExplorerTokenUrl = chain.ExplorerTokenUrl(nft.TokenId),
                 MintedAt = nft.MintedAt,
                 Status = nft.Status,
+                Simulated = !chain.CanSign,
                 OnChainOwnerMatches = matches,
                 OnChainOwnerAddress = onChainOwner,
             };
