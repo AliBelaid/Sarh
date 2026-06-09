@@ -19,11 +19,19 @@ import { mapStatusMeta } from './map-status';
 import { PROPERTY_TYPE } from './status-pills';
 
 // Outline colour for a conflicting parcel, or null when it has no conflict.
-// Red = ownership conflict (overlaps an issued parcel, خلل في الملكية);
-// orange = location conflict (two not-yet-approved parcels overlapping).
+// Product decision: ANY overlap with an existing parcel — whether that parcel
+// is already issued (ownership_conflict, خلل في الملكية) or still pending
+// (location_conflict, تضارب في الموقع) — is painted RED so a clash with an
+// existing property always reads as a problem at a glance. The popup text still
+// distinguishes which of the two kinds it is.
 function conflictOutline(p: ParcelProps): string | null {
-  if (p.conflict_kind === 'ownership_conflict') return '#DC2626';
-  if (p.conflict_kind === 'location_conflict' || p.has_location_conflict) return '#EA580C';
+  if (
+    p.conflict_kind === 'ownership_conflict' ||
+    p.conflict_kind === 'location_conflict' ||
+    p.has_location_conflict
+  ) {
+    return '#DC2626';
+  }
   return null;
 }
 

@@ -51,14 +51,17 @@ public sealed class MapService(SarhDbContext db)
         var oRegion = r.GetOrdinal("region_id");
         var oArea = r.GetOrdinal("area_sqm");
         var oUpdated = r.GetOrdinal("updated_at");
-        var oDispute = r.GetOrdinal("has_active_dispute");
-        var oConflict = r.GetOrdinal("has_location_conflict");
-        // Tolerate an older proc build that predates migration 046 (e.g. when a
-        // numbered migration was baseline-skipped on an incremental dev DB, the
-        // live proc may not yet return conflict_kind). Degrade to "none" rather
-        // than throwing IndexOutOfRangeException → 500 on the whole map feed.
+        // Derived columns added by later migrations (has_active_dispute=043,
+        // has_location_conflict=045, conflict_kind=046, map_status=043). Resolve
+        // every one of them with SafeOrdinal so a partially-migrated proc — e.g.
+        // when a numbered migration was baseline-skipped on an incremental dev DB
+        // and the live proc predates 045/046 — degrades gracefully (dispute/
+        // conflict→false, kind→"none", status→"pending") instead of throwing
+        // IndexOutOfRangeException → 500 → a totally BLANK map on that PC.
+        var oDispute = SafeOrdinal(r, "has_active_dispute");
+        var oConflict = SafeOrdinal(r, "has_location_conflict");
         var oConflictKind = SafeOrdinal(r, "conflict_kind");
-        var oMapStatus = r.GetOrdinal("map_status");
+        var oMapStatus = SafeOrdinal(r, "map_status");
         var oLng = r.GetOrdinal("lng");
         var oLat = r.GetOrdinal("lat");
         var oGeo = r.GetOrdinal("boundary_polygon_geojson");
@@ -92,12 +95,12 @@ public sealed class MapService(SarhDbContext db)
                     ParcelNumber = r.IsDBNull(oParcel) ? null : r.GetString(oParcel),
                     PropertyType = r.GetString(oType),
                     Status = r.GetString(oStatus),
-                    MapStatus = r.GetString(oMapStatus),
+                    MapStatus = oMapStatus < 0 || r.IsDBNull(oMapStatus) ? "pending" : r.GetString(oMapStatus),
                     RegionId = r.IsDBNull(oRegion) ? null : r.GetInt32(oRegion),
                     AreaSqm = r.IsDBNull(oArea) ? null : r.GetDecimal(oArea),
                     UpdatedAt = r.GetDateTimeOffset(oUpdated),
-                    HasActiveDispute = r.GetBoolean(oDispute),
-                    HasLocationConflict = r.GetBoolean(oConflict),
+                    HasActiveDispute = oDispute >= 0 && !r.IsDBNull(oDispute) && r.GetBoolean(oDispute),
+                    HasLocationConflict = oConflict >= 0 && !r.IsDBNull(oConflict) && r.GetBoolean(oConflict),
                     ConflictKind = oConflictKind < 0 || r.IsDBNull(oConflictKind) ? "none" : r.GetString(oConflictKind),
                     Lng = r.IsDBNull(oLng) ? 0 : r.GetDouble(oLng),
                     Lat = r.IsDBNull(oLat) ? 0 : r.GetDouble(oLat),
