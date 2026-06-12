@@ -44,6 +44,18 @@ public interface IBlockchainService
     // Block-explorer link helpers (UI convenience).
     string ExplorerTxUrl(string txHash);
     string ExplorerTokenUrl(string tokenId);
+
+    // A recorded licence is "simulated" when its mint is NOT on the currently
+    // configured real contract — i.e. signing is impossible (stub mode), no real
+    // contract is configured, or the licence was minted earlier against a
+    // different (stub / older) contract. This is a PER-NFT check, so once the
+    // system is switched to a real chain the old stub-minted licences are still
+    // flagged simulated and the UI keeps hiding their dead explorer links
+    // instead of pointing at transactions that never existed on-chain.
+    bool IsSimulatedMint(string? mintContractAddress) =>
+        !CanSign
+        || string.IsNullOrWhiteSpace(ContractAddress)
+        || !string.Equals(mintContractAddress, ContractAddress, StringComparison.OrdinalIgnoreCase);
 }
 
 // Live snapshot of the configured chain. Connected=false + Error set when

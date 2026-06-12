@@ -121,7 +121,7 @@ public sealed class NftsService(SarhDbContext db, IBlockchainService chain, IIpf
 
         return new CursorPage<NftLicenseView>
         {
-            Items = rows.Select(x => NftLicenseView.From(x.n, x.p.PropertyCode, x.p.OwnerCitizenId, !chain.CanSign)).ToList(),
+            Items = rows.Select(x => NftLicenseView.From(x.n, x.p.PropertyCode, x.p.OwnerCitizenId, chain.IsSimulatedMint(x.n.ContractAddress))).ToList(),
             NextCursor = nextCursor,
         };
     }
@@ -142,7 +142,7 @@ public sealed class NftsService(SarhDbContext db, IBlockchainService chain, IIpf
                           orderby n.MintedAt descending
                           select new { n, p }).ToListAsync(ct);
 
-        return rows.Select(x => NftLicenseView.From(x.n, x.p.PropertyCode, x.p.OwnerCitizenId, !chain.CanSign)).ToList();
+        return rows.Select(x => NftLicenseView.From(x.n, x.p.PropertyCode, x.p.OwnerCitizenId, chain.IsSimulatedMint(x.n.ContractAddress))).ToList();
     }
 
     public async Task<NftLicenseView> GetByIdAsync(Guid id, CurrentUser actor, CancellationToken ct)
@@ -162,7 +162,7 @@ public sealed class NftsService(SarhDbContext db, IBlockchainService chain, IIpf
             throw SarhException.Forbidden("الرخصة خارج منطقتك.");
         }
 
-        return NftLicenseView.From(row.n, row.p.PropertyCode, row.p.OwnerCitizenId, !chain.CanSign);
+        return NftLicenseView.From(row.n, row.p.PropertyCode, row.p.OwnerCitizenId, chain.IsSimulatedMint(row.n.ContractAddress));
     }
 
     // Live "verify on chain" for one licence: RPC health + ownerOf + mint-tx

@@ -205,7 +205,7 @@ public sealed class LicenseService(
             ExplorerTxUrl = chain.ExplorerTxUrl(nft.MintTxHash),
             ExplorerTokenUrl = chain.ExplorerTokenUrl(nft.TokenId),
             MetadataGatewayUrl = ipfs.GatewayUrlFor(nft.MetadataUri),
-            Simulated = !chain.CanSign,
+            Simulated = chain.IsSimulatedMint(nft.ContractAddress),
         };
     }
 

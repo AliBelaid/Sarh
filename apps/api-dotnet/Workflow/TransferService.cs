@@ -180,7 +180,7 @@ public sealed class TransferService(
 
         return new TransferResult
         {
-            Nft = NftLicenseView.From(nft, property.PropertyCode, property.OwnerCitizenId, !chain.CanSign),
+            Nft = NftLicenseView.From(nft, property.PropertyCode, property.OwnerCitizenId, chain.IsSimulatedMint(nft.ContractAddress)),
             Property = Properties.PropertyView.From(property),
             Event = new OwnershipEventView
             {
