@@ -7,6 +7,7 @@ import { SarhRole } from '@core/auth.types';
 import { CitizensService } from '@core/citizens.service';
 import { PropertiesService } from '@core/properties.service';
 import { DigitalIdCardsService } from '@core/digital-id-cards.service';
+import { DemoDataService } from '@core/demo-data.service';
 
 interface Tile {
   ar: string;
@@ -160,6 +161,24 @@ interface Kpi {
           </a>
         }
       </div>
+
+      @if (isSuperAdmin()) {
+        <div class="demo-panel">
+          <div class="demo-head">
+            <div>
+              <h3>البيانات التجريبية</h3>
+              <p>أدوات للعروض والاختبار: إعادة تعيين البيانات إلى الحالة القياسية، تفريغها، أو تصدير الحالة الحالية إلى ملف البذور.</p>
+            </div>
+            <span class="demo-counts mono">{{ propertyCount() }} عقار · {{ citizenCount() }} مواطن</span>
+          </div>
+          <div class="demo-actions">
+            <button class="db-btn reset" (click)="demoReset()" [disabled]="demoBusy()">إعادة تعيين</button>
+            <button class="db-btn warn" (click)="demoTruncate()" [disabled]="demoBusy()">تفريغ البيانات</button>
+            <button class="db-btn" (click)="demoExport()" [disabled]="demoBusy()">تصدير الحالة الحالية</button>
+            @if (demoMsg(); as m) { <span class="db-msg" [class.err]="demoErr()">{{ m }}</span> }
+          </div>
+        </div>
+      }
     </section>
   `,
   styles: [`
@@ -291,6 +310,29 @@ interface Kpi {
       .hero h1 { font-size: 22px; }
       .kpi-row { grid-template-columns: repeat(2, 1fr); }
     }
+
+    /* ── Demo data panel (super_admin only) ───────────────── */
+    .demo-panel {
+      margin-top: 28px; padding: 20px 22px;
+      background: var(--paper); border: 1px dashed var(--rule); border-radius: 14px;
+    }
+    .demo-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .demo-head h3 { font-size: 15px; font-weight: 700; margin: 0 0 4px; color: var(--ink); }
+    .demo-head p { font-size: 12.5px; color: var(--muted); margin: 0; max-width: 620px; line-height: 1.6; }
+    .demo-counts { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+    .demo-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .db-btn {
+      padding: 9px 16px; border-radius: 9px; font-family: inherit; font-size: 12.5px; font-weight: 700;
+      cursor: pointer; background: #fff; border: 1px solid var(--rule); color: var(--ink); transition: all .15s;
+    }
+    .db-btn:hover:not(:disabled) { border-color: var(--primary); }
+    .db-btn.reset { background: var(--primary); color: var(--accent); border-color: var(--primary); }
+    .db-btn.reset:hover:not(:disabled) { background: var(--accent); color: var(--primary); }
+    .db-btn.warn { color: var(--warn); border-color: #fecaca; }
+    .db-btn.warn:hover:not(:disabled) { background: #fff5f5; border-color: var(--warn); }
+    .db-btn:disabled { opacity: .55; cursor: default; }
+    .db-msg { font-size: 12px; color: var(--good); font-weight: 600; }
+    .db-msg.err { color: var(--warn); }
   `],
 })
 export class DashboardPage implements OnInit {
@@ -298,11 +340,18 @@ export class DashboardPage implements OnInit {
   private readonly citizensApi = inject(CitizensService);
   private readonly propertiesApi = inject(PropertiesService);
   private readonly cardsApi = inject(DigitalIdCardsService);
+  private readonly demo = inject(DemoDataService);
 
   readonly citizenCount = signal(0);
   readonly propertyCount = signal(0);
   readonly cardCount = signal(0);
   readonly pendingCount = signal(0);
+
+  readonly demoBusy = signal(false);
+  readonly demoMsg = signal<string | null>(null);
+  readonly demoErr = signal(false);
+
+  readonly isSuperAdmin = computed(() => this.auth.user()?.role === 'super_admin');
 
   readonly visibleTiles = computed(() => {
     const role = this.auth.user()?.role;
@@ -366,6 +415,39 @@ export class DashboardPage implements OnInit {
         this.cardCount.set((cards as any).total ?? cards.items.length);
       }
     } catch { /* stats are best-effort */ }
+  }
+
+  // ── Demo-data admin actions ───────────────────────────────
+  async demoReset(): Promise<void> {
+    if (!confirm('إعادة تعيين البيانات التجريبية إلى الحالة القياسية؟ سيتم استبدال بيانات العرض (يُحتفظ بالحساب الإداري والبيانات الحقيقية على السلسلة).')) return;
+    await this.runDemo(() => this.demo.reset(), 'تمت إعادة التعيين بنجاح.');
+  }
+
+  async demoTruncate(): Promise<void> {
+    if (!confirm('تفريغ البيانات التجريبية؟ يُحتفظ بالحساب الإداري والبيانات الحقيقية المرتبطة بالسلسلة.')) return;
+    await this.runDemo(() => this.demo.truncate(), 'تم تفريغ البيانات التجريبية.');
+  }
+
+  async demoExport(): Promise<void> {
+    await this.runDemo(() => this.demo.export(), 'تم تصدير الحالة الحالية إلى ملف البذور.');
+  }
+
+  private async runDemo(op: () => Promise<unknown>, okMsg: string): Promise<void> {
+    if (this.demoBusy()) return;
+    this.demoBusy.set(true);
+    this.demoErr.set(false);
+    this.demoMsg.set(null);
+    try {
+      await op();
+      this.demoErr.set(false);
+      this.demoMsg.set(okMsg);
+      await this.ngOnInit(); // refresh KPI counts
+    } catch (e: any) {
+      this.demoErr.set(true);
+      this.demoMsg.set(e?.error?.error?.message_ar ?? 'تعذّرت العملية. حاول مجدداً.');
+    } finally {
+      this.demoBusy.set(false);
+    }
   }
 
   readonly greetingPrefix = computed(() => {

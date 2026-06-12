@@ -44,4 +44,15 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <!--
+    The portable demo dataset (citizens, properties, cards, logins, …). Loaded
+    by DbSeeder on dev startup and by POST /api/v1/demo-data/load on a fresh
+    box. Copied next to the binary so it ships in a published build too.
+  -->
+  <ItemGroup>
+    <Content Update="Data\DemoData\seed-data.json" Condition="Exists('Data\DemoData\seed-data.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

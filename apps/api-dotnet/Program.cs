@@ -206,6 +206,7 @@ else
 }
 
 builder.Services.AddScoped<Sarh.Api.Map.MapService>();
+builder.Services.AddScoped<Sarh.Api.Data.DemoData.DemoDataService>();
 builder.Services.AddScoped<Sarh.Api.Verify.VerifyService>();
 builder.Services.AddScoped<Sarh.Api.Audit.AuditService>();
 builder.Services.AddScoped<Sarh.Api.Audit.AuditActionFilter>();
@@ -340,6 +341,18 @@ var app = builder.Build();
             return; // provisioning command — don't start the web host
         }
     }
+}
+
+// One-off: snapshot the live DB into Data/DemoData/seed-data.json so the file
+// committed to the repo reflects the current dataset. Run with:
+//   dotnet run -- --export-demo-data
+if (args.Contains("--export-demo-data"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var demo = scope.ServiceProvider.GetRequiredService<Sarh.Api.Data.DemoData.DemoDataService>();
+    var total = await demo.ExportToFileAsync(CancellationToken.None);
+    Console.WriteLine($"Exported {total} row(s) to {demo.SeedFilePath()}");
+    return;
 }
 
 app.UseMiddleware<SarhExceptionMiddleware>();

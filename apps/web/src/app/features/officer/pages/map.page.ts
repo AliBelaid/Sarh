@@ -11,6 +11,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MapService, type ParcelFeature } from '@core/map.service';
+import { AuthService } from '@core/auth.service';
 import { MAP_STATUS_ORDER, mapStatusMeta, type MapStatus } from '../../../shared/map-status';
 import { PROPERTY_TYPE, PROPERTY_STATUS, REGIONS } from '../../../shared/status-pills';
 import { ParcelMapComponent } from '../../../shared/parcel-map.component';
@@ -87,6 +88,7 @@ import { ParcelMapComponent } from '../../../shared/parcel-map.component';
           #parcelMap
           [features]="filtered()"
           [selectedId]="selected()?.properties?.id ?? null"
+          [popupLink]="finalApproveLink"
           (parcelClick)="select($event)"
         ></app-parcel-map>
 
@@ -122,6 +124,9 @@ import { ParcelMapComponent } from '../../../shared/parcel-map.component';
               <a class="act" [routerLink]="['/app/review', f.properties.id]">فتح المراجعة</a>
               <a class="act ghost" [routerLink]="['/app/properties', f.properties.id, 'boundary']">تعديل الحدود</a>
             </div>
+            @if (canFinalApprove()) {
+              <a class="act final" [routerLink]="['/app/manager/approve', f.properties.id]">الملف والاعتماد النهائي ←</a>
+            }
             <a class="dispute-link" [routerLink]="['/app/disputes', f.properties.id]">إدارة النزاعات القانونية ←</a>
           </div>
         }
@@ -193,6 +198,8 @@ import { ParcelMapComponent } from '../../../shared/parcel-map.component';
     .act:hover { background: var(--accent); color: var(--primary); }
     .act.ghost { background: transparent; border: 1px solid var(--rule); color: var(--ink); }
     .act.ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .act.final { display: block; margin-top: 8px; background: var(--good); color: #fff; }
+    .act.final:hover { background: #06748f; color: #fff; }
     .dispute-link { display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--warn); text-decoration: none; }
     .dispute-link:hover { text-decoration: underline; }
 
@@ -210,7 +217,22 @@ import { ParcelMapComponent } from '../../../shared/parcel-map.component';
 })
 export class OfficerMapPage implements OnInit {
   private readonly api = inject(MapService);
+  private readonly auth = inject(AuthService);
   @ViewChild('parcelMap') parcelMap?: ParcelMapComponent;
+
+  // Final approval (NFT licence mint) is department_manager / super_admin only —
+  // mirrors the /app/manager/approve route guard and the backend [OfficerOnly].
+  readonly canFinalApprove = computed(() => {
+    const r = this.auth.user()?.role;
+    return r === 'department_manager' || r === 'super_admin';
+  });
+
+  // Popup deep-link to a parcel's final-approval profile (only for roles that
+  // can act on it). Passed into the shared map; null hides the link.
+  readonly finalApproveLink = (f: ParcelFeature): { href: string; text: string } | null =>
+    this.canFinalApprove()
+      ? { href: `/app/manager/approve/${f.properties.id}`, text: 'الاعتماد النهائي' }
+      : null;
 
   readonly features = signal<ParcelFeature[]>([]);
   readonly loading = signal(false);

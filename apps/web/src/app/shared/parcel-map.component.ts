@@ -62,6 +62,10 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() showLabels = true;
   // The currently-selected parcel id (highlights its polygon).
   @Input() selectedId: string | null = null;
+  // Optional: render a navigation link inside each parcel popup (e.g. "open the
+  // property's final-approval profile"). Return null to omit the link for a
+  // given parcel. Host supplies the href so the shared map stays surface-agnostic.
+  @Input() popupLink: ((f: ParcelFeature) => { href: string; text: string } | null) | null = null;
 
   @Output() readonly parcelClick = new EventEmitter<ParcelFeature>();
 
@@ -210,6 +214,12 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     const updated = p.updated_at
       ? new Date(p.updated_at).toLocaleDateString('ar-LY', { year: 'numeric', month: 'short', day: 'numeric' })
       : '—';
+    const link = this.popupLink?.(f) ?? null;
+    const linkHtml = link
+      ? `<a href="${link.href}" style="display:block; margin-top:9px; padding:7px 10px; border-radius:8px;
+           background:#0F172A; color:#F97316; font-size:11.5px; font-weight:700; text-align:center;
+           text-decoration:none; font-family:'IBM Plex Sans Arabic',system-ui;">${link.text} ←</a>`
+      : '';
     return `<div style="min-width:190px; font-family:'IBM Plex Sans Arabic',system-ui; direction:rtl; text-align:right;">
         <div style="font-weight:700; font-size:13px; color:#0F172A; font-family:'JetBrains Mono',monospace;">
           ${p.property_code ?? '—'}</div>
@@ -224,6 +234,7 @@ export class ParcelMapComponent implements AfterViewInit, OnChanges, OnDestroy {
           ? `<div style="margin-top:7px; padding:4px 8px; border-radius:7px; background:#fff7ed; border:1px solid #fed7aa; color:#b45309; font-size:10.5px; font-weight:600;">⚠ تضارب في الموقع — تتداخل مع قطعة غير معتمدة</div>`
           : ''}
         <div style="font-size:10px; color:#94a3b8; margin-top:7px;">آخر تحديث: ${updated}</div>
+        ${linkHtml}
       </div>`;
   }
 }

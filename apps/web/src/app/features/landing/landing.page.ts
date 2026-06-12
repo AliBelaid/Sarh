@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { DemoDataService } from '@core/demo-data.service';
 
 @Component({
   selector: 'app-landing',
@@ -9,6 +10,38 @@ import { RouterLink } from '@angular/router';
   imports: [CommonModule, RouterLink],
   template: `
     <div class="page">
+      @if (canLoad()) {
+        <div class="demo-bar">
+          <div class="demo-bar-inner">
+            <span class="demo-msg">
+              <span class="demo-tag">أوّل تشغيل</span>
+              قاعدة البيانات فارغة — حمّل البيانات التجريبية (مواطنون، عقارات، هويّات، حسابات دخول) لتجربة المنصّة فوراً بدون أي إعداد.
+            </span>
+            <button class="btn-primary demo-btn" (click)="loadDemo()" [disabled]="loading()">
+              {{ loading() ? '…جارٍ التحميل' : 'تحميل البيانات التجريبية ←' }}
+            </button>
+          </div>
+        </div>
+      }
+      @if (loaded()) {
+        <div class="demo-bar ok">
+          <div class="demo-bar-inner">
+            <span class="demo-msg">
+              <span class="demo-tag ok">تم</span>
+              تم تحميل البيانات التجريبية بنجاح. سجّل الدخول بـ
+              <code>admin@sarh.ly</code> · <code>Demo!12345</code>
+            </span>
+            <a class="btn-primary demo-btn" routerLink="/login">تسجيل الدخول ←</a>
+          </div>
+        </div>
+      }
+      @if (loadError()) {
+        <div class="demo-bar err">
+          <div class="demo-bar-inner">
+            <span class="demo-msg">⚠ {{ loadError() }}</span>
+          </div>
+        </div>
+      }
       <header class="nav">
         <div class="nav-inner">
           <a class="brand" routerLink="/">
@@ -346,6 +379,27 @@ import { RouterLink } from '@angular/router';
     :host { display: block; background: #FFFFFF; color: var(--ink); }
     .page { background: #FFFFFF; }
 
+    /* First-run demo-data bar — only shown when the DB is empty. */
+    .demo-bar { background: var(--primary); color: #fff; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .demo-bar.ok { background: var(--good); }
+    .demo-bar.err { background: var(--warn); }
+    .demo-bar-inner {
+      max-width: 1200px; margin: 0 auto; padding: 11px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    }
+    .demo-msg { font-size: 13px; line-height: 1.6; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .demo-tag {
+      display: inline-block; padding: 2px 9px; border-radius: 999px;
+      background: var(--accent); color: var(--primary); font-size: 10.5px; font-weight: 800;
+    }
+    .demo-tag.ok { background: #fff; color: var(--good); }
+    .demo-msg code {
+      font-family: 'JetBrains Mono', monospace; font-size: 11.5px; direction: ltr;
+      background: rgba(255,255,255,.16); padding: 2px 7px; border-radius: 5px;
+    }
+    .demo-btn { white-space: nowrap; }
+    .demo-btn:disabled { opacity: .65; cursor: default; }
+
     .nav { position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, 0.92); backdrop-filter: saturate(140%) blur(8px); border-bottom: 1px solid var(--rule); }
     .nav-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 28px; }
 
@@ -524,4 +578,38 @@ import { RouterLink } from '@angular/router';
     }
   `],
 })
-export class LandingPage {}
+export class LandingPage implements OnInit {
+  private readonly demo = inject(DemoDataService);
+
+  readonly canLoad = signal(false);
+  readonly loading = signal(false);
+  readonly loaded = signal(false);
+  readonly loadError = signal<string | null>(null);
+
+  async ngOnInit(): Promise<void> {
+    // Best-effort: if the API is down or already populated, just hide the bar.
+    try {
+      const s = await this.demo.status();
+      this.canLoad.set(s.can_load);
+    } catch {
+      this.canLoad.set(false);
+    }
+  }
+
+  async loadDemo(): Promise<void> {
+    if (this.loading()) return;
+    this.loading.set(true);
+    this.loadError.set(null);
+    try {
+      await this.demo.load();
+      this.canLoad.set(false);
+      this.loaded.set(true);
+    } catch (e: any) {
+      this.loadError.set(
+        e?.error?.error?.message_ar ?? 'تعذّر تحميل البيانات التجريبية. تأكّد أن الخادم يعمل وحاول مجدداً.',
+      );
+    } finally {
+      this.loading.set(false);
+    }
+  }
+}
