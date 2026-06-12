@@ -164,7 +164,12 @@ public sealed class DemoDataService
             var n = 0;
             foreach (var row in rows)
             {
-                var present = cols.Where(c => row.ContainsKey(c.Name)).ToList();
+                // auth_users.officer_id ⇄ officers.auth_user_id is a circular FK.
+                // Insert auth_users with officer_id left NULL; it's set in a
+                // fix-up pass below once officers exist.
+                var present = cols.Where(c => row.ContainsKey(c.Name)
+                    && !(table == "auth_users" && c.Name.Equals("officer_id", StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
                 if (present.Count == 0) continue;
 
                 var colParts = new List<string>(present.Count);
@@ -206,6 +211,26 @@ public sealed class DemoDataService
             }
             inserted[table] = n;
             if (n > 0) _log.LogInformation("DemoData: inserted {N} row(s) into {Table}.", n, table);
+        }
+
+        // Fix-up pass: now that both sides of the auth_users ⇄ officers circular FK
+        // exist, set the officer_id we deferred during insert.
+        if (ds.Tables.TryGetValue("auth_users", out var authRows))
+        {
+            foreach (var row in authRows)
+            {
+                var oid = row.GetValueOrDefault("officer_id");
+                var id = row.GetValueOrDefault("id");
+                if (IsNull(oid) || IsNull(id)) continue;
+                if (!Guid.TryParse(AsString(oid), out var oidGuid) || !Guid.TryParse(AsString(id), out var idGuid)) continue;
+                await _db.Database.ExecuteSqlRawAsync(
+                    "UPDATE [auth_users] SET [officer_id] = @oid WHERE [id] = @id AND EXISTS (SELECT 1 FROM officers WHERE id = @oid)",
+                    new object[]
+                    {
+                        new SqlParameter("@oid", SqlDbType.UniqueIdentifier) { Value = oidGuid },
+                        new SqlParameter("@id", SqlDbType.UniqueIdentifier) { Value = idGuid },
+                    }, ct);
+            }
         }
         return inserted;
     }
@@ -250,6 +275,18 @@ public sealed class DemoDataService
         var fks = await GetReferencingFksAsync(conn, ct); // core table → its children
 
         var deleted = new Dictionary<string, int>();
+
+        // Break the auth_users.officer_id back-reference for demo officers (a
+        // nullable convenience link). Without this the circular auth_users ⇄
+        // officers FK mutually shields both rows and neither would be deleted.
+        // The admin officer is excluded from ids[], so admin keeps its link.
+        if (ids["officers"].Count > 0)
+        {
+            var op = ids["officers"].Select((g, i) =>
+                new SqlParameter($"@o{i}", SqlDbType.UniqueIdentifier) { Value = g }).ToList();
+            var unlinkSql = $"UPDATE [auth_users] SET [officer_id] = NULL WHERE [officer_id] IN ({string.Join(", ", op.Select(p => p.ParameterName))})";
+            await _db.Database.ExecuteSqlRawAsync(unlinkSql, op.Cast<object>().ToArray(), ct);
+        }
 
         // Pass A — clear the deletable workflow child tables that hang off demo
         // properties / cards / citizens (documents, requests, comments, disputes,

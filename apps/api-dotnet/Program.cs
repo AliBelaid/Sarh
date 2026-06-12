@@ -317,7 +317,10 @@ var app = builder.Build();
         try
         {
             var migrationConn = Sarh.Api.Data.MigrationConnection.Resolve(app.Configuration);
-            await Sarh.Api.Data.EfDatabaseBootstrapper.RunAsync(migrationConn, migrationLogger);
+            // When false, the demo-seed migrations are skipped on a fresh build so the
+            // DB comes up empty (data then comes from the DbSeeder / landing load button).
+            var seedDemoViaMigrations = app.Configuration.GetValue("Sarh:SeedDemoViaMigrations", true);
+            await Sarh.Api.Data.EfDatabaseBootstrapper.RunAsync(migrationConn, migrationLogger, seedDemoViaMigrations);
         }
         catch (Exception ex)
         {

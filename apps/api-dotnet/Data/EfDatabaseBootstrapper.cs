@@ -55,7 +55,25 @@ public static class EfDatabaseBootstrapper
         @"\b(CREATE|ALTER)\s+DATABASE\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    public static async Task RunAsync(string migrationConnectionString, ILogger logger, CancellationToken ct = default)
+    // Migrations whose ONLY job is to insert demo rows. When the caller opts out
+    // (Sarh:SeedDemoViaMigrations=false) these are recorded as applied but their
+    // INSERTs are not run, so a fresh database comes up empty and the demo
+    // dataset is supplied instead by the DbSeeder / the landing "load demo data"
+    // button (apps/api-dotnet/Data/DemoData/seed-data.json). 016_seed_regions is
+    // deliberately NOT here — regions are lookup data the app needs to function.
+    private static readonly HashSet<string> DemoSeedFiles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "024_seed_demo.sql",
+        "026_seed_demo_officer.sql",
+        "029_seed_mock_data.sql",
+        "033_seed_card_pins.sql",
+        "034_seed_expanded_demo.sql",
+        "044_seed_map_demo.sql",
+    };
+
+    public static async Task RunAsync(
+        string migrationConnectionString, ILogger logger,
+        bool seedDemoViaMigrations = true, CancellationToken ct = default)
     {
         var dbName = new SqlConnectionStringBuilder(migrationConnectionString).InitialCatalog;
         if (string.IsNullOrWhiteSpace(dbName))
@@ -102,6 +120,14 @@ public static class EfDatabaseBootstrapper
 
         foreach (var m in pending)
         {
+            if (!seedDemoViaMigrations && DemoSeedFiles.Contains(m.SqlFile))
+            {
+                // Record as applied without running the INSERTs — the schema stays
+                // empty so the first-run "load demo data" flow has something to do.
+                await InsertHistoryAsync(conn, m.Id, ct);
+                logger.LogInformation("  skipped demo-seed {Id} (Sarh:SeedDemoViaMigrations=false)", m.Id);
+                continue;
+            }
             await ApplySqlFileAsync(conn, m.SqlFile, ct);
             await InsertHistoryAsync(conn, m.Id, ct);
             logger.LogInformation("  applied {Id}", m.Id);
