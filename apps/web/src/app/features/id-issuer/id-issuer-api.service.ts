@@ -47,6 +47,9 @@ export interface CardIssueResponse {
     kms_key_id: string;
   };
   sun_url_template: string;
+  // Initial mobile-app PIN for the new card — shown once to the officer to hand
+  // to the citizen so they can sign in to the Sarh app.
+  pin: string;
 }
 
 export interface NfcEncodeBody {

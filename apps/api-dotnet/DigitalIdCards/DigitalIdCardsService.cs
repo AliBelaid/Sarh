@@ -124,6 +124,11 @@ public sealed partial class DigitalIdCardsService(
             Status = "active",
             LastNfcCounter = 0,
         };
+        // Give the brand-new card an initial mobile PIN so the holder can sign in
+        // immediately (without this, PinHash stays null and sign-in-with-pin
+        // always fails for a just-issued card). Returned once to the issuing
+        // officer to relay to the citizen; only the bcrypt hash persists.
+        var pin = AssignNewPin(card);
         db.DigitalIdCards.Add(card);
 
         try { await db.SaveChangesAsync(ct); }
@@ -170,6 +175,7 @@ public sealed partial class DigitalIdCardsService(
                 KmsKeyId = NfcKeyStoreService.LocalKmsKeyId,
             },
             SunUrlTemplate = SunUrlTemplate(),
+            Pin = pin,
         };
     }
 
@@ -221,6 +227,9 @@ public sealed partial class DigitalIdCardsService(
             Status = "active",
             LastNfcCounter = 0,
         };
+        // A reissued card is a fresh card and needs its own PIN, otherwise the
+        // holder can't sign in after a reissue.
+        var pin = AssignNewPin(card);
         db.DigitalIdCards.Add(card);
 
         try { await db.SaveChangesAsync(ct); }
@@ -264,6 +273,7 @@ public sealed partial class DigitalIdCardsService(
                 KmsKeyId = NfcKeyStoreService.LocalKmsKeyId,
             },
             SunUrlTemplate = SunUrlTemplate(),
+            Pin = pin,
         };
     }
 

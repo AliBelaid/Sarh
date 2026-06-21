@@ -18,7 +18,7 @@ public class DigitalIdCardsController(DigitalIdCardsService cards) : ControllerB
 
     [HttpPost("issue")]
     [OfficerOnly("id_issuer", "super_admin")]
-    [Audit(Action = AuditActions.IssueId, Entity = "digital_id_cards", EntityIdFrom = "card.id")]
+    [Audit(Action = AuditActions.IssueId, Entity = "digital_id_cards", EntityIdFrom = "card.id", CaptureResponseBody = false)]
     public Task<IssueCardResult> Issue([FromBody] IssueCardDto dto, CancellationToken ct)
         => cards.IssueAsync(dto, User.RequireUser(), ct);
 
@@ -36,13 +36,13 @@ public class DigitalIdCardsController(DigitalIdCardsService cards) : ControllerB
 
     [HttpPost("{id:guid}/reissue")]
     [OfficerOnly("id_issuer", "super_admin")]
-    [Audit(Action = AuditActions.IssueId, Entity = "digital_id_cards", EntityIdFrom = "card.id")]
+    [Audit(Action = AuditActions.IssueId, Entity = "digital_id_cards", EntityIdFrom = "card.id", CaptureResponseBody = false)]
     public Task<IssueCardResult> Reissue(Guid id, [FromBody] ReissueCardDto dto, CancellationToken ct)
         => cards.ReissueAsync(id, dto, User.RequireUser(), ct);
 
     [HttpPost("{id:guid}/reset-pin")]
     [OfficerOnly("id_issuer", "super_admin")]
-    [Audit(Action = AuditActions.Update, Entity = "digital_id_cards", EntityIdFrom = "card_id")]
+    [Audit(Action = AuditActions.Update, Entity = "digital_id_cards", EntityIdFrom = "card_id", CaptureResponseBody = false)]
     public Task<ResetPinResult> ResetPin(Guid id, CancellationToken ct)
         => cards.ResetPinAsync(id, User.RequireUser(), ct);
 

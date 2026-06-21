@@ -10,6 +10,8 @@ import { CARD_STATUS, REGIONS } from '../../../shared/status-pills';
 
 interface ReissueResult {
   card: DigitalIdCard;
+  // Initial mobile-app PIN for the reissued card — shown once to the officer.
+  pin: string;
 }
 
 @Component({
@@ -120,6 +122,13 @@ interface ReissueResult {
                     {{ successMsg() }}
                   </div>
                 }
+                @if (reissuePin()) {
+                  <div class="pin-box">
+                    <span class="pin-label">رمز الدخول (PIN) للبطاقة الجديدة</span>
+                    <span class="pin-value mono">{{ reissuePin() }}</span>
+                    <small>سلّم هذا الرمز للمواطن لتسجيل الدخول في تطبيق صَرح. لن يظهر مرة أخرى.</small>
+                  </div>
+                }
                 <button class="btn-primary" (click)="reissue()" [disabled]="busy() || !reason">
                   @if (busy()) {
                     <span class="spin"></span> جارٍ المعالجة…
@@ -206,6 +215,12 @@ interface ReissueResult {
     .hint { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
     .spin { width: 16px; height: 16px; border: 2.5px solid rgba(249, 115, 22, 0.3); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .pin-box { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; margin-top: 10px; border: 1px dashed var(--accent); border-radius: 10px; background: rgba(249, 115, 22, 0.06); }
+    .pin-label { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+    .pin-value { font-size: 26px; font-weight: 800; letter-spacing: 0.32em; color: var(--ink); direction: ltr; }
+    .pin-box small { font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .mono { font-family: var(--font-mono, 'Courier New', monospace); }
   `],
 })
 export class ReissuePage {
@@ -225,6 +240,7 @@ export class ReissuePage {
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
   readonly successMsg = signal<string | null>(null);
+  readonly reissuePin = signal<string | null>(null);
 
   async runSearch(): Promise<void> {
     const q = this.search.trim();
@@ -245,6 +261,9 @@ export class ReissuePage {
     this.currentCard.set(null);
     this.errorMsg.set(null);
     this.successMsg.set(null);
+    // Clear any PIN from a previous reissue so it can't linger on screen when
+    // the officer switches to a different citizen.
+    this.reissuePin.set(null);
     this.loadingCard.set(true);
     try {
       const res = await this.cardsApi.list({ citizen_id: c.id, limit: 1 });
@@ -259,18 +278,21 @@ export class ReissuePage {
     if (!card) return;
     this.errorMsg.set(null);
     this.successMsg.set(null);
+    this.reissuePin.set(null);
     this.busy.set(true);
     try {
-      await firstValueFrom(
+      const result = await firstValueFrom(
         this.http.post<ReissueResult>(`${API_BASE}/digital-id-cards/${card.id}/reissue`, {
           reason: this.reason,
           note: this.note || undefined,
         }),
       );
-      this.successMsg.set('تمت إعادة الإصدار. سيتم تجهيز البطاقة الجديدة.');
-      // Refresh current card
+      // Refresh the card view first — select() resets the success/PIN signals —
+      // then surface the result so the confirmation and PIN stay visible.
       const sel = this.selected();
       if (sel) await this.select(sel);
+      this.reissuePin.set(result.pin);
+      this.successMsg.set('تمت إعادة الإصدار. سيتم تجهيز البطاقة الجديدة.');
     } catch (e: unknown) {
       const err = e as { error?: { error?: { message_ar?: string } } };
       this.errorMsg.set(err.error?.error?.message_ar ?? 'تعذّر إعادة الإصدار. حاول مجدداً.');

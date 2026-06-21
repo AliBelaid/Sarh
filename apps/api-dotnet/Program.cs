@@ -327,7 +327,11 @@ var app = builder.Build();
             var migrationConn = Sarh.Api.Data.MigrationConnection.Resolve(app.Configuration);
             // When false, the demo-seed migrations are skipped on a fresh build so the
             // DB comes up empty (data then comes from the DbSeeder / landing load button).
-            var seedDemoViaMigrations = app.Configuration.GetValue("Sarh:SeedDemoViaMigrations", true);
+            // Default OFF: the safe path is the DbSeeder importing seed-data.json
+            // (every demo card has a PIN). The legacy migration seed path inserts
+            // some cards with NULL pin_hash → permanent mobile-login 403s, so it
+            // must be opted into explicitly via appsettings/env.
+            var seedDemoViaMigrations = app.Configuration.GetValue("Sarh:SeedDemoViaMigrations", false);
             await Sarh.Api.Data.EfDatabaseBootstrapper.RunAsync(migrationConn, migrationLogger, seedDemoViaMigrations);
         }
         catch (Exception ex)
