@@ -145,7 +145,15 @@ builder.Services.AddRateLimiter(o =>
 // EF Core → SQL Server.
 var connStr = builder.Configuration["Sarh:ConnectionString"]
     ?? throw new InvalidOperationException("Sarh:ConnectionString is required.");
-builder.Services.AddDbContext<SarhDbContext>(opt => opt.UseSqlServer(connStr));
+// IHttpContextAccessor + the session-context interceptor drive SQL Server
+// Row-Level Security (audit_log / digital_id_cards) from each request's
+// identity. Without it, RLS hides every audited row and the audit log reads
+// empty. See Data/SessionContextInterceptor.cs.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<Sarh.Api.Data.SessionContextInterceptor>();
+builder.Services.AddDbContext<SarhDbContext>((sp, opt) =>
+    opt.UseSqlServer(connStr)
+       .AddInterceptors(sp.GetRequiredService<Sarh.Api.Data.SessionContextInterceptor>()));
 
 // JWT bearer — HS256 with the same secret NestJS used.
 builder.Services.AddSingleton<JwtTokenService>();

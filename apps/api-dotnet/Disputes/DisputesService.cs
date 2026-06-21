@@ -3,6 +3,7 @@ using Sarh.Api.Auth;
 using Sarh.Api.Common.Errors;
 using Sarh.Api.Data;
 using Sarh.Api.Data.Entities;
+using Sarh.Api.Notifications;
 
 namespace Sarh.Api.Disputes;
 
@@ -11,7 +12,7 @@ namespace Sarh.Api.Disputes;
 // gate that LicenseService (mint) and TransferService (sale) call before
 // they let a parcel move. An active dispute is a hard block on those two
 // paths — the registry must never sell or mint an encumbered parcel.
-public sealed class DisputesService(SarhDbContext db)
+public sealed class DisputesService(SarhDbContext db, NotificationsService notifications)
 {
     // Who may record an encumbrance vs. who may release one. Releasing is the
     // more sensitive act (it re-opens sale/mint), so it's the narrower set.
@@ -82,6 +83,17 @@ public sealed class DisputesService(SarhDbContext db)
         db.PropertyDisputes.Add(dispute);
         await db.SaveChangesAsync(ct);
 
+        // The owner is directly impacted — an active encumbrance blocks selling
+        // or minting their parcel — so they must be told.
+        await notifications.NotifyCitizenAsync(
+            property.OwnerCitizenId,
+            "تم تسجيل حجز على عقارك",
+            $"تم تسجيل {DisputeLabels.TypeAr(dispute.DisputeType)} على عقارك " +
+            $"({property.PropertyCode ?? "—"}) من جهة \"{dispute.IssuingAuthority}\". " +
+            "لا يمكن نقل ملكيته أو إصدار رخصته حتى يُرفع الحجز.",
+            new { property_id = property.Id, dispute_id = dispute.Id, dispute_type = dispute.DisputeType },
+            ct, alsoSms: true);
+
         return DisputeView.From(dispute, property.PropertyCode);
     }
 
@@ -111,6 +123,17 @@ public sealed class DisputesService(SarhDbContext db)
                 : $"{dispute.Notes}\n— رفع الحجز: {dto.Notes.Trim()}";
 
         await db.SaveChangesAsync(ct);
+
+        // The parcel is unblocked again — let the owner know transfers/mint are
+        // possible once more.
+        await notifications.NotifyCitizenAsync(
+            property.OwnerCitizenId,
+            "تم رفع الحجز عن عقارك",
+            $"تم رفع الحجز/النزاع عن عقارك ({property.PropertyCode ?? "—"}). " +
+            "أصبح بإمكانك إتمام معاملات النقل وإصدار الرخصة.",
+            new { property_id = property.Id, dispute_id = dispute.Id },
+            ct, alsoSms: true);
+
         return DisputeView.From(dispute, property.PropertyCode);
     }
 

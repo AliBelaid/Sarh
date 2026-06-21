@@ -191,7 +191,9 @@ public sealed partial class DigitalIdCardsService(
         var citizen = await db.Citizens.AsNoTracking().FirstOrDefaultAsync(c => c.Id == old.CitizenId, ct)
             ?? throw SarhException.NotFound("المواطن", "Citizen");
 
-        await TransitionAsync(cardId, "revoked", $"إعادة إصدار: {dto.Reason}", actor, "revoked", ct);
+        // notify:false — reissue sends its own "card reissued" message below; we
+        // don't want the holder to also receive a scary "card revoked" message.
+        await TransitionAsync(cardId, "revoked", $"إعادة إصدار: {dto.Reason}", actor, "revoked", ct, notify: false);
 
         var year = DateTime.UtcNow.Year;
         var region = ParseRegionFromDigitalId(old.DigitalIdNumber);
@@ -245,6 +247,13 @@ public sealed partial class DigitalIdCardsService(
         await IssueDigitalIdVcAsync(card, ct);
         await db.SaveChangesAsync(ct);
 
+        await notifications.NotifyCitizenAsync(
+            card.CitizenId,
+            "تم إعادة إصدار بطاقتك الرقمية",
+            $"تم إصدار بطاقة هوية رقمية جديدة لك برقم {card.DigitalIdNumber}. أصبحت بطاقتك السابقة لاغية.",
+            new { card_id = card.Id, digital_id_number = card.DigitalIdNumber, reissued = true },
+            ct, alsoSms: true);
+
         return new IssueCardResult
         {
             Card = CardView.From(card),
@@ -261,7 +270,7 @@ public sealed partial class DigitalIdCardsService(
     // ---------------- helpers ----------------
     private async Task<CardView> TransitionAsync(
         Guid cardId, string nextStatus, string reason, CurrentUser actor,
-        string historyAction, CancellationToken ct)
+        string historyAction, CancellationToken ct, bool notify = true)
     {
         if (actor.OfficerId is null) throw SarhException.Forbidden();
 
@@ -293,6 +302,21 @@ public sealed partial class DigitalIdCardsService(
         });
 
         await db.SaveChangesAsync(ct);
+
+        if (!notify) return CardView.From(card);
+
+        // The card holder must be told about a status change to their identity
+        // card. Revocation is a critical security event → also push an SMS.
+        var (titleAr, bodyAr) = nextStatus == "frozen"
+            ? ("تم تجميد بطاقة الهوية الرقمية",
+               $"تم تجميد بطاقتك رقم {card.DigitalIdNumber} مؤقتاً." + (string.IsNullOrWhiteSpace(reason) ? "" : $" السبب: {reason}"))
+            : ("تم إلغاء بطاقة الهوية الرقمية",
+               $"تم إلغاء بطاقتك رقم {card.DigitalIdNumber}." + (string.IsNullOrWhiteSpace(reason) ? "" : $" السبب: {reason}"));
+        await notifications.NotifyCitizenAsync(
+            card.CitizenId, titleAr, bodyAr,
+            new { card_id = card.Id, status = nextStatus, reason },
+            ct, alsoSms: nextStatus == "revoked");
+
         return CardView.From(card);
     }
 

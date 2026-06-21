@@ -113,6 +113,14 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
                 ct);
         }
 
+        // Acknowledge receipt to the submitting owner so they know it's in queue.
+        await notifications.NotifyCitizenAsync(
+            ownerCitizenId,
+            "تم استلام طلب تسجيل العقار",
+            $"تم استلام طلبك رقم {requestNo} وهو قيد المراجعة الآن.",
+            new { property_id = propertyId, request_no = requestNo },
+            ct);
+
         return new SubmitResult
         {
             Property = PropertyView.From(property),
@@ -286,6 +294,17 @@ public sealed class PropertiesService(SarhDbContext db, NotificationsService not
         view.LocationConflicts = await LocationConflictsForPropertyAsync(id, ct);
         view.HasLocationConflict = view.LocationConflicts.Count > 0;
         view.ConflictKind = ClassifyConflict(view.LocationConflicts);
+
+        // If an officer redrew the parcel, tell the owner. Skip when the owner is
+        // the one editing their own boundary (no self-notification).
+        if (actor.CitizenId != updated.OwnerCitizenId)
+            await notifications.NotifyCitizenAsync(
+                updated.OwnerCitizenId,
+                "تم تعديل حدود عقارك",
+                $"قام موظف السجل بتحديث حدود عقارك ({updated.PropertyCode ?? "—"}). راجع التفاصيل في حسابك.",
+                new { property_id = id, has_location_conflict = view.HasLocationConflict },
+                ct);
+
         return view;
     }
 

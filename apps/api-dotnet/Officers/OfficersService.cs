@@ -4,10 +4,11 @@ using Sarh.Api.Common;
 using Sarh.Api.Common.Errors;
 using Sarh.Api.Data;
 using Sarh.Api.Data.Entities;
+using Sarh.Api.Notifications;
 
 namespace Sarh.Api.Officers;
 
-public sealed class OfficersService(SarhDbContext db)
+public sealed class OfficersService(SarhDbContext db, NotificationsService notifications)
 {
     public async Task<CursorPage<OfficerView>> ListAsync(ListOfficersQuery q, CurrentUser actor, CancellationToken ct)
     {
@@ -139,6 +140,15 @@ public sealed class OfficersService(SarhDbContext db)
         db.Officers.Add(officer);
         await db.SaveChangesAsync(ct);
 
+        // Welcome the new officer into their in-app inbox (officers are valid
+        // recipients). Never include the password.
+        await notifications.NotifyOfficerAsync(
+            officer.Id,
+            "تم إنشاء حساب الموظف",
+            $"تم إنشاء حسابك في منصة صَرح بدور \"{officer.Role}\". يمكنك تسجيل الدخول باستخدام بريدك الإلكتروني.",
+            new { officer_id = officer.Id, role = officer.Role },
+            ct);
+
         return OfficerView.From(officer);
     }
 
@@ -183,7 +193,20 @@ public sealed class OfficersService(SarhDbContext db)
         if (req.Phone is not null) o.Phone = req.Phone.Trim();
         if (req.Permissions is not null) o.Permissions = req.Permissions;
 
+        // Access-affecting changes (role / region / permissions) are the ones an
+        // officer needs to know about; plain contact edits stay quiet.
+        var accessChanged = req.Role is not null || req.RegionId is not null || req.Permissions is not null;
+
         await db.SaveChangesAsync(ct);
+
+        if (accessChanged)
+            await notifications.NotifyOfficerAsync(
+                o.Id,
+                "تم تحديث صلاحيات حسابك",
+                "تم تحديث صلاحيات أو منطقة حسابك في منصة صَرح. سجّل الدخول لمراجعة التغييرات.",
+                new { officer_id = o.Id, role = o.Role, region_id = o.RegionId },
+                ct);
+
         return OfficerView.From(o);
     }
 
@@ -194,6 +217,13 @@ public sealed class OfficersService(SarhDbContext db)
 
         o.IsActive = isActive;
         await db.SaveChangesAsync(ct);
+
+        var (titleAr, bodyAr) = isActive
+            ? ("تمت إعادة تفعيل حسابك", "تمت إعادة تفعيل حسابك ويمكنك الآن تسجيل الدخول إلى منصة صَرح.")
+            : ("تم إيقاف حسابك", "تم إيقاف حسابك في منصة صَرح. للاستفسار تواصل مع المسؤول العام.");
+        await notifications.NotifyOfficerAsync(
+            o.Id, titleAr, bodyAr, new { officer_id = o.Id, is_active = isActive }, ct);
+
         return OfficerView.From(o);
     }
 
@@ -210,5 +240,14 @@ public sealed class OfficersService(SarhDbContext db)
 
         authUser.EncryptedPassword = BCrypt.Net.BCrypt.HashPassword(newPassword, 12);
         await db.SaveChangesAsync(ct);
+
+        // Security best-practice: tell the officer their password was reset by an
+        // admin. Never include the new password.
+        await notifications.NotifyOfficerAsync(
+            o.Id,
+            "تم تغيير كلمة مرور حسابك",
+            "تمت إعادة تعيين كلمة مرور حسابك من قبل المسؤول. إن لم تطلب ذلك تواصل مع المسؤول العام فوراً.",
+            new { officer_id = o.Id, password_reset = true },
+            ct);
     }
 }

@@ -29,6 +29,15 @@ public sealed partial class DigitalIdCardsService
 
         log.LogInformation("PIN reset for card {CardId} by officer {OfficerId}", cardId, actor.OfficerId);
 
+        // Security-sensitive: the holder must know their PIN was reset (fraud
+        // signal). Never put the new PIN in the message.
+        await notifications.NotifyCitizenAsync(
+            card.CitizenId,
+            "تم إعادة تعيين رمز PIN لبطاقتك",
+            $"تمت إعادة تعيين رمز التعريف الشخصي (PIN) لبطاقتك الرقمية رقم {card.DigitalIdNumber} في مكتب الإصدار. إن لم تطلب ذلك تواصل معنا فوراً.",
+            new { card_id = card.Id, pin_reset = true },
+            ct, alsoSms: true);
+
         return new ResetPinResult
         {
             CardId = cardId,

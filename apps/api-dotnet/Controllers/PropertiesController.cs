@@ -16,7 +16,7 @@ namespace Sarh.Api.Controllers;
 [Authorize]
 public class PropertiesController(
     PropertiesService svc, ReviewService review, LicenseService license,
-    MapService map, StorageService storageReader) : ControllerBase
+    MapService map, StorageService storageReader, AuditService audit) : ControllerBase
 {
     // In-app parcel map feed — every live parcel across ALL regions, including
     // ones still in the workflow so pending requests (yellow) show alongside
@@ -72,10 +72,19 @@ public class PropertiesController(
     public Task<PropertyView> UpdateBoundary(Guid id, [FromBody] UpdateBoundaryDto dto, CancellationToken ct)
         => svc.UpdateBoundaryAsync(id, dto, User.RequireUser(), ct);
 
+    // NOTE: no static [Audit] here. The single review path branches on
+    // dto.Decision (approve / reject / needs_clarification); a hardcoded
+    // Action=approve would mislabel every rejection as an approval in the
+    // audit log. We record the audit row ourselves with the correct action,
+    // mirroring the per-item bulk path below.
     [HttpPost("{id:guid}/review")]
-    [Audit(Action = AuditActions.Approve, Entity = "properties", EntityIdFrom = "property.id")]
-    public Task<ReviewResult> Review(Guid id, [FromBody] ReviewDecisionDto dto, CancellationToken ct)
-        => review.ReviewAsync(id, dto, User.RequireUser(), ct);
+    public async Task<ReviewResult> Review(Guid id, [FromBody] ReviewDecisionDto dto, CancellationToken ct)
+    {
+        var actor = User.RequireUser();
+        var result = await review.ReviewAsync(id, dto, actor, ct);
+        await audit.RecordAsync(ReviewAuditEntry(actor, ReviewDecisionToAction(dto.Decision), id, dto.Note, bulk: false), ct);
+        return result;
+    }
 
     // Final approval — mints the on-chain NFT licence on top of an
     // officer-approved property. Restricted to department_manager/super_admin
@@ -105,6 +114,11 @@ public class PropertiesController(
                 };
                 await review.ReviewAsync(id, dto, actor, ct);
                 results.Add(new BulkItemResult { Id = id, Success = true });
+                // Per-property audit row: the bulk endpoint is one HTTP request but
+                // mutates many properties, and the [Audit] action filter only captures
+                // a single entity. Record each decision individually so the audit log
+                // reflects every property touched.
+                await audit.RecordAsync(ReviewAuditEntry(actor, ReviewDecisionToAction(req.Decision), id, req.Note, bulk: true), ct);
             }
             catch (Exception ex)
             {
@@ -127,6 +141,7 @@ public class PropertiesController(
                 var dto = new FinalApproveDto { Note = req.Note };
                 await license.FinalApproveAsync(id, dto, actor, ct);
                 results.Add(new BulkItemResult { Id = id, Success = true });
+                await audit.RecordAsync(ReviewAuditEntry(actor, AuditActions.Approve, id, req.Note, bulk: true), ct);
             }
             catch (Exception ex)
             {
@@ -135,6 +150,27 @@ public class PropertiesController(
         }
         return new BulkResultResponse { Results = results };
     }
+
+    // Maps a review decision to the correct audit action. approve→approve,
+    // reject→reject, needs_clarification (and anything else)→update.
+    private static string ReviewDecisionToAction(string decision) => decision switch
+    {
+        "approve" => AuditActions.Approve,
+        "reject" => AuditActions.Reject,
+        _ => AuditActions.Update,
+    };
+
+    private AuditEntry ReviewAuditEntry(CurrentUser actor, string action, Guid propertyId, string? note, bool bulk) => new()
+    {
+        ActorKind = "officer",
+        ActorId = actor.OfficerId,
+        Action = action,
+        EntityTable = "properties",
+        EntityId = propertyId,
+        AfterStateJson = System.Text.Json.JsonSerializer.Serialize(new { bulk, note }),
+        IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = HttpContext.Request.Headers.UserAgent.ToString() is { Length: > 0 } ua ? ua : null,
+    };
 }
 
 public sealed class DocumentsResult

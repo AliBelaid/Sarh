@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Sarh.Api.Audit;
 using Sarh.Api.Auth;
 using Sarh.Api.Common.Errors;
 using Sarh.Api.Data.DemoData;
@@ -34,6 +35,7 @@ public class DemoDataController(DemoDataService demo) : ControllerBase
     // Public, but a no-op guard: only loads when the DB is empty (first run).
     [HttpPost("load")]
     [AllowAnonymous]
+    [Audit(Action = AuditActions.Create, Entity = "demo_data", CaptureRequestBody = false)]
     public async Task<object> Load(CancellationToken ct)
     {
         var status = await demo.StatusAsync(ct);
@@ -64,6 +66,7 @@ public class DemoDataController(DemoDataService demo) : ControllerBase
     // Clear the demo dataset (scoped to seeded ids, admin preserved).
     [HttpPost("truncate")]
     [OfficerOnly("super_admin")]
+    [Audit(Action = AuditActions.Delete, Entity = "demo_data", CaptureRequestBody = false)]
     public async Task<object> Truncate(CancellationToken ct)
     {
         var deleted = await demo.TruncateAsync(ct);
@@ -73,6 +76,7 @@ public class DemoDataController(DemoDataService demo) : ControllerBase
     // Truncate then re-import — a clean reset to the canonical demo state.
     [HttpPost("reset")]
     [OfficerOnly("super_admin")]
+    [Audit(Action = AuditActions.Update, Entity = "demo_data", CaptureRequestBody = false)]
     public async Task<object> Reset(CancellationToken ct)
     {
         var deleted = await demo.TruncateAsync(ct);
