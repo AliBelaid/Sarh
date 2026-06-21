@@ -87,6 +87,19 @@ public sealed partial class DigitalIdCardsService
 
         card.UpdatedAt = now;
         await db.SaveChangesAsync(ct);
+
+        // Tell the holder their card data moved. Identity corrections re-hash the
+        // chip fingerprint, so those especially warrant a heads-up.
+        var bodyAr = identityChanged
+            ? $"تم تحديث بيانات هويتك على بطاقتك الرقمية ({card.DigitalIdNumber}). قد يتطلب ذلك مراجعة مكتب الإصدار."
+            : $"تم تحديث صلاحية بطاقتك الرقمية ({card.DigitalIdNumber}).";
+        await notifications.NotifyCitizenAsync(
+            card.CitizenId,
+            "تم تحديث بطاقتك الرقمية",
+            bodyAr,
+            new { card_id = card.Id, identity_changed = identityChanged, validity_changed = validityChanged },
+            ct, alsoSms: identityChanged);
+
         return CardView.From(card);
     }
 

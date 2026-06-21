@@ -6,10 +6,11 @@ using Sarh.Api.Common.Errors;
 using Sarh.Api.Data;
 using Sarh.Api.Data.Entities;
 using Sarh.Api.DigitalIdCards;
+using Sarh.Api.Notifications;
 
 namespace Sarh.Api.Citizens;
 
-public sealed class CitizensService(SarhDbContext db)
+public sealed class CitizensService(SarhDbContext db, NotificationsService notifications)
 {
     private const int UNIQUE_VIOLATION = 2627;
     private const int UNIQUE_VIOLATION_INDEX = 2601;
@@ -62,6 +63,16 @@ public sealed class CitizensService(SarhDbContext db)
                 "يوجد مواطن مسجّل مسبقاً برقم وطني أو هاتف أو بريد إلكتروني مماثل.",
                 "A citizen already exists with the same national/phone/email.");
         }
+
+        // Enrollment confirmation. A fresh citizen has no auth account yet, so
+        // this is delivered primarily by SMS (no-op if no phone on file).
+        await notifications.NotifyCitizenAsync(
+            c.Id,
+            "تم تسجيلك في منصة صَرح",
+            "تم إنشاء سجلّك في منصة صَرح بنجاح. يمكنك الآن مراجعة مكتب الإصدار لاستلام هويتك الرقمية.",
+            new { citizen_id = c.Id },
+            ct, alsoSms: true);
+
         return CitizenView.From(c);
     }
 
@@ -188,6 +199,17 @@ public sealed class CitizensService(SarhDbContext db)
                 "تعارض في رقم الهاتف أو البريد الإلكتروني أو الرقم الوطني.",
                 "Conflict on phone, email or national number.");
         }
+
+        // A civil-identity change invalidates and re-hashes every live card, so
+        // the citizen should know (and may need to reissue).
+        if (identityChanged)
+            await notifications.NotifyCitizenAsync(
+                c.Id,
+                "تم تحديث بياناتك الشخصية",
+                "تم تحديث بيانات هويتك في السجل، وقد يتطلب ذلك إعادة إصدار بطاقتك الرقمية. يُرجى مراجعة مكتب الإصدار.",
+                new { citizen_id = c.Id, identity_changed = true },
+                ct, alsoSms: true);
+
         return CitizenView.From(c);
     }
 

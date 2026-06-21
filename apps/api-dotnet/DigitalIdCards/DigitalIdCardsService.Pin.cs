@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Sarh.Api.Auth;
 using Sarh.Api.Common.Errors;
+using Sarh.Api.Data.Entities;
 
 namespace Sarh.Api.DigitalIdCards;
 
@@ -21,13 +22,20 @@ public sealed partial class DigitalIdCardsService
                 "Cannot reset PIN for a revoked or expired card.");
         }
 
-        var pin = GenerateNumericPin(6);
-        card.PinHash = BCrypt.Net.BCrypt.HashPassword(pin, 10);
-        card.PinSetAt = DateTimeOffset.UtcNow;
+        var pin = AssignNewPin(card);
         card.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
 
         log.LogInformation("PIN reset for card {CardId} by officer {OfficerId}", cardId, actor.OfficerId);
+
+        // Security-sensitive: the holder must know their PIN was reset (fraud
+        // signal). Never put the new PIN in the message.
+        await notifications.NotifyCitizenAsync(
+            card.CitizenId,
+            "تم إعادة تعيين رمز PIN لبطاقتك",
+            $"تمت إعادة تعيين رمز التعريف الشخصي (PIN) لبطاقتك الرقمية رقم {card.DigitalIdNumber} في مكتب الإصدار. إن لم تطلب ذلك تواصل معنا فوراً.",
+            new { card_id = card.Id, pin_reset = true },
+            ct, alsoSms: true);
 
         return new ResetPinResult
         {
@@ -35,6 +43,17 @@ public sealed partial class DigitalIdCardsService
             Pin = pin,
             SetAt = card.PinSetAt.Value,
         };
+    }
+
+    // Single source of truth for giving a card a PIN (issue / reissue / reset):
+    // generate a fresh 6-digit PIN, persist only its bcrypt hash + the set-time,
+    // and return the plaintext once for the caller to relay to the holder.
+    internal static string AssignNewPin(DigitalIdCard card)
+    {
+        var pin = GenerateNumericPin(6);
+        card.PinHash = BCrypt.Net.BCrypt.HashPassword(pin, 10);
+        card.PinSetAt = DateTimeOffset.UtcNow;
+        return pin;
     }
 
     private static string GenerateNumericPin(int digits)

@@ -136,6 +136,10 @@ public sealed class IssueCardResult
     public required CardView Card { get; init; }
     public required IssueCardNfcKeys NfcKeys { get; init; }
     public required string SunUrlTemplate { get; init; }
+    // Initial PIN generated for the new card so the holder can sign in to the
+    // mobile app. Shown once to the issuing officer to hand to the citizen —
+    // never stored in clear (only the bcrypt hash persists on the card).
+    public required string Pin { get; init; }
 }
 
 public sealed class IssueCardNfcKeys

@@ -37,7 +37,7 @@ public sealed class SignInResponse
     public required SignInUser User { get; init; }
 }
 
-public sealed class AuthService(SarhDbContext db, JwtTokenService jwt)
+public sealed class AuthService(SarhDbContext db, JwtTokenService jwt, ILogger<AuthService> log)
 {
     public async Task<SignInResponse> SignInWithPinAsync(SignInWithPinRequest dto, CancellationToken ct)
     {
@@ -51,15 +51,42 @@ public sealed class AuthService(SarhDbContext db, JwtTokenService jwt)
         var did = dto.DigitalIdNumber.Trim();
         var card = await db.DigitalIdCards.AsNoTracking()
             .Where(c => c.DigitalIdNumber == did)
-            .FirstOrDefaultAsync(ct)
-            ?? throw SarhException.Unauthorized();
+            .FirstOrDefaultAsync(ct);
 
-        if (card.Status is not "active")
-            throw SarhException.Unauthorized();
+        // "No such card", "no PIN set" and "wrong PIN" all return the SAME generic
+        // message on purpose — distinguishing them would let an attacker enumerate
+        // which digital IDs exist (and which lack a PIN) and confirm PINs. On the
+        // card-missing / no-PIN paths we still run a bcrypt verify against a
+        // throwaway hash so the response time matches the real-PIN path and can't
+        // be used as a timing oracle. The precise reason is logged server-side so
+        // we can still diagnose a failed login from the API log.
+        if (card is null)
+        {
+            BCrypt.Net.BCrypt.Verify(dto.Pin, DummyPinHash);
+            log.LogInformation("PIN login rejected: no card for digital_id_number '{Did}'", did);
+            throw InvalidPinCredentials();
+        }
+
         if (string.IsNullOrEmpty(card.PinHash))
-            throw SarhException.Unauthorized();
+        {
+            BCrypt.Net.BCrypt.Verify(dto.Pin, DummyPinHash);
+            log.LogInformation("PIN login rejected: card '{Did}' has no PIN set (officer must reset PIN)", did);
+            throw InvalidPinCredentials();
+        }
+
         if (!BCrypt.Net.BCrypt.Verify(dto.Pin, card.PinHash))
-            throw SarhException.Unauthorized();
+        {
+            log.LogInformation("PIN login rejected: wrong PIN for card '{Did}'", did);
+            throw InvalidPinCredentials();
+        }
+
+        // PIN verified — now safe to reveal card-state details to the legitimate
+        // holder. An inactive (frozen/revoked/expired/lost) card can't sign in.
+        if (card.Status is not "active")
+        {
+            log.LogInformation("PIN login rejected: card '{Did}' is '{Status}'", did, card.Status);
+            throw CardNotActive(card.Status);
+        }
 
         var citizen = await db.Citizens.AsNoTracking()
             .Where(c => c.Id == card.CitizenId)
@@ -97,6 +124,35 @@ public sealed class AuthService(SarhDbContext db, JwtTokenService jwt)
                 CitizenId = citizen.Id.ToString(),
             },
         };
+    }
+
+    // A valid bcrypt hash (work factor 10) used only to equalize the timing of
+    // the "no card" / "no PIN" rejection paths with a real PIN verification, so
+    // the response time can't reveal whether a digital ID exists.
+    private static readonly string DummyPinHash =
+        BCrypt.Net.BCrypt.HashPassword("sarh-timing-equalizer", 10);
+
+    // Generic invalid-credentials for the PIN flow. Used for "no such card",
+    // "no PIN set" and "wrong PIN" so none can be told apart by a caller.
+    private static SarhException InvalidPinCredentials() =>
+        new(401, "ERR_INVALID_CREDENTIALS",
+            "رقم الهوية الرقمية أو رمز PIN غير صحيح.",
+            "Digital ID number or PIN is incorrect.");
+
+    // Card-state message shown only after the PIN has been verified (so it never
+    // leaks to someone who doesn't already hold the card).
+    private static SarhException CardNotActive(string status)
+    {
+        var ar = status switch
+        {
+            "frozen" => "بطاقتك مجمّدة مؤقتاً. يرجى مراجعة مكتب الإصدار.",
+            "revoked" => "بطاقتك ملغاة ولا يمكن استخدامها. يرجى مراجعة مكتب الإصدار.",
+            "expired" => "انتهت صلاحية بطاقتك. يرجى مراجعة مكتب الإصدار لإعادة إصدارها.",
+            "lost" => "بطاقتك مُبلّغ عنها كمفقودة. يرجى مراجعة مكتب الإصدار.",
+            _ => "بطاقتك غير مفعّلة حالياً. يرجى مراجعة مكتب الإصدار.",
+        };
+        return new SarhException(403, "ERR_CARD_NOT_ACTIVE", ar,
+            $"Your card is not active (status: {status}).");
     }
 
     public async Task<SignInResponse> SignInAsync(SignInRequest dto, CancellationToken ct)

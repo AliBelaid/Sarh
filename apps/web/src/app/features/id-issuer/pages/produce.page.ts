@@ -114,6 +114,13 @@ type Phase = 'idle' | 'issuing' | 'awaiting_card' | 'encoding' | 'printing' | 'd
           @if (phase() === 'done') {
             <div class="state ok">
               <p>✓ تم الإصدار بنجاح.</p>
+              @if (pin()) {
+                <div class="pin-box">
+                  <span class="pin-label">رمز الدخول (PIN) لتطبيق الجوال</span>
+                  <span class="pin-value mono">{{ pin() }}</span>
+                  <small>سلّم هذا الرمز للمواطن لتسجيل الدخول في تطبيق صَرح برقم الهوية الرقمية. لن يظهر مرة أخرى.</small>
+                </div>
+              }
               <button type="button" class="btn-primary" (click)="finish()">إصدار جديد</button>
             </div>
           }
@@ -236,6 +243,12 @@ type Phase = 'idle' | 'issuing' | 'awaiting_card' | 'encoding' | 'printing' | 'd
     .state { padding-top: 14px; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 10px; }
     .state p { margin: 0; font-size: 13px; color: var(--ink); }
     .state.ok p { color: var(--good); font-weight: 600; }
+
+    .pin-box { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px dashed var(--accent); border-radius: 10px; background: rgba(249, 115, 22, 0.06); }
+    .pin-label { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+    .pin-value { font-size: 26px; font-weight: 800; letter-spacing: 0.32em; color: var(--ink); direction: ltr; }
+    .pin-box small { font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .mono { font-family: var(--font-mono, 'Courier New', monospace); }
     .bar { height: 4px; background: var(--rule); border-radius: 2px; overflow: hidden; position: relative; }
     .bar span { position: absolute; inset: 0; background: var(--accent); animation: slide 1.4s ease-in-out infinite; }
     @keyframes slide { 0% { inset-inline-start: -40%; width: 40%; } 100% { inset-inline-start: 100%; width: 40%; } }
@@ -263,6 +276,7 @@ export class ProducePage {
   readonly phase = signal<Phase>('idle');
   readonly error = signal<string | null>(null);
   readonly cardSerial = signal<string | null>(null);
+  readonly pin = signal<string | null>(null);
 
   readonly identity = computed(() => this.wizard.identity());
   readonly photoUrl = computed(() => this.wizard.photoDataUrl() ?? null);
@@ -286,6 +300,7 @@ export class ProducePage {
       this.wizard.createdCardId.set(issue.card.id);
       this.wizard.createdDigitalIdNumber.set(issue.card.digital_id_number);
       this.cardSerial.set(issue.card.card_serial);
+      this.pin.set(issue.pin);
 
       this.phase.set('awaiting_card');
       this.phase.set('encoding');
@@ -308,6 +323,7 @@ export class ProducePage {
   }
 
   finish(): void {
+    this.pin.set(null);
     this.wizard.reset();
     void this.router.navigate(['/app/issue/produce/step1']);
   }

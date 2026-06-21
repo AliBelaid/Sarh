@@ -14,6 +14,10 @@ public sealed class AuditAttribute : Attribute
     // Persist the inbound request body into before_state. Default true.
     // Set false on /auth/sign-in so we never persist passwords.
     public bool CaptureRequestBody { get; init; } = true;
+    // Persist the outbound response body into after_state. Default true. Set
+    // false on endpoints whose response carries secrets — PINs, NFC keys, JWT
+    // access/refresh tokens — so they never land in the append-only audit log.
+    public bool CaptureResponseBody { get; init; } = true;
 }
 
 public static class AuditActions

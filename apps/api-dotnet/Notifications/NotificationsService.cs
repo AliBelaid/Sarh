@@ -161,6 +161,7 @@ public sealed class NotificationsService(
             BodyAr = bodyAr,
             Payload = payload is null ? null : JsonSerializer.Serialize(payload),
             DeliveryStatus = "queued",
+            SentAt = DateTimeOffset.UtcNow,
         };
         try
         {
@@ -200,6 +201,11 @@ public sealed class NotificationsService(
     {
         try
         {
+            // sent_at has a SYSDATETIMEOFFSET() DB default, but EF sends the
+            // entity's default(DateTimeOffset) (0001-01-01) on insert, which
+            // overrides it and buries every new notification at the bottom of
+            // the inbox (it orders by sent_at DESC). Stamp it explicitly.
+            if (n.SentAt == default) n.SentAt = DateTimeOffset.UtcNow;
             db.Notifications.Add(n);
             await db.SaveChangesAsync(ct);
             await BroadcastAsync(n);

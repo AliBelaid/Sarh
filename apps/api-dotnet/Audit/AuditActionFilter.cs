@@ -38,6 +38,12 @@ public sealed class AuditActionFilter(AuditService audit) : IAsyncActionFilter
         body ??= ResultValueViaReflection(executed.Result);
 
         var actor = ResolveActor(ctx.HttpContext.User);
+        // Sign-in requests are anonymous (no JWT yet), so the principal carries no
+        // actor and ResolveActor falls back to "system". Recover who actually
+        // signed in from the response body's `user` object, so the audit page
+        // attributes a login to the citizen/officer by name instead of "system".
+        if (actor.Kind == "system" && attr.Action == AuditActions.Login)
+            actor = ResolveLoginActorFromBody(body) ?? actor;
         var entityId = PickEntityId(body, attr.EntityIdFrom ?? "id");
 
         var entry = new AuditEntry
@@ -48,7 +54,7 @@ public sealed class AuditActionFilter(AuditService audit) : IAsyncActionFilter
             EntityTable = attr.Entity,
             EntityId = entityId,
             BeforeStateJson = inbound is null ? null : JsonSerializer.Serialize(inbound, JsonDefaults.Options),
-            AfterStateJson = body is null ? null : JsonSerializer.Serialize(body, JsonDefaults.Options),
+            AfterStateJson = (body is null || !attr.CaptureResponseBody) ? null : JsonSerializer.Serialize(body, JsonDefaults.Options),
             IpAddress = RequestIp(ctx.HttpContext),
             UserAgent = ctx.HttpContext.Request.Headers.UserAgent.ToString() is { Length: > 0 } ua ? ua : null,
         };
@@ -64,6 +70,30 @@ public sealed class AuditActionFilter(AuditService audit) : IAsyncActionFilter
         if (Guid.TryParse(citizenId, out var cid)) return ("citizen", cid);
         var sub = principal.FindFirst("sub")?.Value;
         return ("system", Guid.TryParse(sub, out var sid) ? sid : null);
+    }
+
+    // Pulls the signed-in actor out of a SignInResponse body. The shape is
+    // { user: { officer_id, citizen_id, ... } } — officer wins over citizen.
+    private static (string Kind, Guid? Id)? ResolveLoginActorFromBody(object? body)
+    {
+        if (body is null) return null;
+        var doc = JsonSerializer.SerializeToElement(body, JsonDefaults.Options);
+        if (doc.ValueKind != JsonValueKind.Object
+            || !doc.TryGetProperty("user", out var user)
+            || user.ValueKind != JsonValueKind.Object)
+            return null;
+
+        if (user.TryGetProperty("officer_id", out var oid)
+            && oid.ValueKind == JsonValueKind.String
+            && Guid.TryParse(oid.GetString(), out var officerId))
+            return ("officer", officerId);
+
+        if (user.TryGetProperty("citizen_id", out var cid)
+            && cid.ValueKind == JsonValueKind.String
+            && Guid.TryParse(cid.GetString(), out var citizenId))
+            return ("citizen", citizenId);
+
+        return null;
     }
 
     private static string? RequestIp(HttpContext http)

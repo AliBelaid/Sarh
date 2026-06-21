@@ -124,6 +124,11 @@ public sealed partial class DigitalIdCardsService(
             Status = "active",
             LastNfcCounter = 0,
         };
+        // Give the brand-new card an initial mobile PIN so the holder can sign in
+        // immediately (without this, PinHash stays null and sign-in-with-pin
+        // always fails for a just-issued card). Returned once to the issuing
+        // officer to relay to the citizen; only the bcrypt hash persists.
+        var pin = AssignNewPin(card);
         db.DigitalIdCards.Add(card);
 
         try { await db.SaveChangesAsync(ct); }
@@ -170,6 +175,7 @@ public sealed partial class DigitalIdCardsService(
                 KmsKeyId = NfcKeyStoreService.LocalKmsKeyId,
             },
             SunUrlTemplate = SunUrlTemplate(),
+            Pin = pin,
         };
     }
 
@@ -191,7 +197,9 @@ public sealed partial class DigitalIdCardsService(
         var citizen = await db.Citizens.AsNoTracking().FirstOrDefaultAsync(c => c.Id == old.CitizenId, ct)
             ?? throw SarhException.NotFound("المواطن", "Citizen");
 
-        await TransitionAsync(cardId, "revoked", $"إعادة إصدار: {dto.Reason}", actor, "revoked", ct);
+        // notify:false — reissue sends its own "card reissued" message below; we
+        // don't want the holder to also receive a scary "card revoked" message.
+        await TransitionAsync(cardId, "revoked", $"إعادة إصدار: {dto.Reason}", actor, "revoked", ct, notify: false);
 
         var year = DateTime.UtcNow.Year;
         var region = ParseRegionFromDigitalId(old.DigitalIdNumber);
@@ -219,6 +227,9 @@ public sealed partial class DigitalIdCardsService(
             Status = "active",
             LastNfcCounter = 0,
         };
+        // A reissued card is a fresh card and needs its own PIN, otherwise the
+        // holder can't sign in after a reissue.
+        var pin = AssignNewPin(card);
         db.DigitalIdCards.Add(card);
 
         try { await db.SaveChangesAsync(ct); }
@@ -245,6 +256,13 @@ public sealed partial class DigitalIdCardsService(
         await IssueDigitalIdVcAsync(card, ct);
         await db.SaveChangesAsync(ct);
 
+        await notifications.NotifyCitizenAsync(
+            card.CitizenId,
+            "تم إعادة إصدار بطاقتك الرقمية",
+            $"تم إصدار بطاقة هوية رقمية جديدة لك برقم {card.DigitalIdNumber}. أصبحت بطاقتك السابقة لاغية.",
+            new { card_id = card.Id, digital_id_number = card.DigitalIdNumber, reissued = true },
+            ct, alsoSms: true);
+
         return new IssueCardResult
         {
             Card = CardView.From(card),
@@ -255,13 +273,14 @@ public sealed partial class DigitalIdCardsService(
                 KmsKeyId = NfcKeyStoreService.LocalKmsKeyId,
             },
             SunUrlTemplate = SunUrlTemplate(),
+            Pin = pin,
         };
     }
 
     // ---------------- helpers ----------------
     private async Task<CardView> TransitionAsync(
         Guid cardId, string nextStatus, string reason, CurrentUser actor,
-        string historyAction, CancellationToken ct)
+        string historyAction, CancellationToken ct, bool notify = true)
     {
         if (actor.OfficerId is null) throw SarhException.Forbidden();
 
@@ -293,6 +312,21 @@ public sealed partial class DigitalIdCardsService(
         });
 
         await db.SaveChangesAsync(ct);
+
+        if (!notify) return CardView.From(card);
+
+        // The card holder must be told about a status change to their identity
+        // card. Revocation is a critical security event → also push an SMS.
+        var (titleAr, bodyAr) = nextStatus == "frozen"
+            ? ("تم تجميد بطاقة الهوية الرقمية",
+               $"تم تجميد بطاقتك رقم {card.DigitalIdNumber} مؤقتاً." + (string.IsNullOrWhiteSpace(reason) ? "" : $" السبب: {reason}"))
+            : ("تم إلغاء بطاقة الهوية الرقمية",
+               $"تم إلغاء بطاقتك رقم {card.DigitalIdNumber}." + (string.IsNullOrWhiteSpace(reason) ? "" : $" السبب: {reason}"));
+        await notifications.NotifyCitizenAsync(
+            card.CitizenId, titleAr, bodyAr,
+            new { card_id = card.Id, status = nextStatus, reason },
+            ct, alsoSms: nextStatus == "revoked");
+
         return CardView.From(card);
     }
 
@@ -328,13 +362,26 @@ public sealed partial class DigitalIdCardsService(
         try
         {
             var vc = await ssi.IssueDigitalIdVcAsync(card.Id, ct);
-            if (vc is not null) { card.Did = vc.Did; return; }
+            if (vc is not null) card.Did = vc.Did;
+            else AttachPlaceholderVc(card);
         }
         catch (Exception ex)
         {
             log.LogWarning(ex, "SSI DigitalId VC issuance failed for card {CardId}; using placeholder DID.", card.Id);
+            AttachPlaceholderVc(card);
         }
-        AttachPlaceholderVc(card);
+
+        // The SSI DID is the citizen's stable wallet DID, so every card the
+        // citizen has ever held resolves to the SAME value — but
+        // digital_id_cards.did is UNIQUE (ux_did_cards_did). Keep the DID on the
+        // citizen's current card only: release it from any prior (e.g. revoked)
+        // card before the caller persists it here, otherwise a reissue collides
+        // with the old card's DID and the save 500s. Placeholder DIDs are
+        // per-card unique, so this is a harmless no-op for them.
+        if (!string.IsNullOrEmpty(card.Did))
+            await db.Database.ExecuteSqlRawAsync(
+                "UPDATE digital_id_cards SET did = NULL WHERE citizen_id = {0} AND id <> {1} AND did = {2}",
+                new object[] { card.CitizenId, card.Id, card.Did }, ct);
     }
 
     private void AttachPlaceholderVc(DigitalIdCard card)
