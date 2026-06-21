@@ -362,13 +362,26 @@ public sealed partial class DigitalIdCardsService(
         try
         {
             var vc = await ssi.IssueDigitalIdVcAsync(card.Id, ct);
-            if (vc is not null) { card.Did = vc.Did; return; }
+            if (vc is not null) card.Did = vc.Did;
+            else AttachPlaceholderVc(card);
         }
         catch (Exception ex)
         {
             log.LogWarning(ex, "SSI DigitalId VC issuance failed for card {CardId}; using placeholder DID.", card.Id);
+            AttachPlaceholderVc(card);
         }
-        AttachPlaceholderVc(card);
+
+        // The SSI DID is the citizen's stable wallet DID, so every card the
+        // citizen has ever held resolves to the SAME value — but
+        // digital_id_cards.did is UNIQUE (ux_did_cards_did). Keep the DID on the
+        // citizen's current card only: release it from any prior (e.g. revoked)
+        // card before the caller persists it here, otherwise a reissue collides
+        // with the old card's DID and the save 500s. Placeholder DIDs are
+        // per-card unique, so this is a harmless no-op for them.
+        if (!string.IsNullOrEmpty(card.Did))
+            await db.Database.ExecuteSqlRawAsync(
+                "UPDATE digital_id_cards SET did = NULL WHERE citizen_id = {0} AND id <> {1} AND did = {2}",
+                new object[] { card.CitizenId, card.Id, card.Did }, ct);
     }
 
     private void AttachPlaceholderVc(DigitalIdCard card)
