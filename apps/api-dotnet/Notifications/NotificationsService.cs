@@ -78,7 +78,7 @@ public sealed class NotificationsService(
     public async Task<CursorPage<NotificationView>> ListMineAsync(
         CurrentUser actor, ListNotificationsQuery q, CancellationToken ct)
     {
-        var query = MyQueryFor(actor);
+        var query = InboxQueryFor(actor);
         if (q.UnreadOnly == true) query = query.Where(n => n.ReadAt == null);
 
         if (!string.IsNullOrWhiteSpace(q.Cursor)
@@ -107,7 +107,7 @@ public sealed class NotificationsService(
     }
 
     public async Task<int> UnreadCountAsync(CurrentUser actor, CancellationToken ct)
-        => await MyQueryFor(actor).Where(n => n.ReadAt == null).CountAsync(ct);
+        => await InboxQueryFor(actor).Where(n => n.ReadAt == null).CountAsync(ct);
 
     public async Task<NotificationView> MarkReadAsync(
         Guid notificationId, CurrentUser actor, CancellationToken ct)
@@ -144,6 +144,14 @@ public sealed class NotificationsService(
             return db.Notifications.Where(n => n.RecipientOfficerId == oid);
         throw SarhException.Forbidden("لا يوجد مستلِم مرتبط بحسابك.");
     }
+
+    // The inbox view of MyQueryFor. kind='sms' rows are delivery-log records
+    // written by TrySendSmsAsync (one per alsoSms event, duplicating the
+    // in_app row's title/body) — they belong in delivery tracking, not the
+    // in-app inbox, so listing + unread-count exclude them to avoid showing
+    // each approval/rejection twice.
+    private IQueryable<Notification> InboxQueryFor(CurrentUser actor)
+        => MyQueryFor(actor).Where(n => n.Kind != "sms");
 
     // Sends an SMS and records the attempt as a kind='sms' notification row
     // with delivery_status reflecting the outcome (sent / failed). Entirely
