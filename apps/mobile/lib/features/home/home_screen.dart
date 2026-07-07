@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,8 +18,70 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   int _navIndex = 0;
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _stopPolling();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // When the app returns to the foreground (e.g. the citizen switched away
+  // while a registry officer approved the parcel on the web portal), re-pull
+  // "عقاراتي" + notifications so a server-side status change shows immediately
+  // instead of staying stale on "قيد المراجعة".
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refresh();
+      _startPolling();
+    } else {
+      _stopPolling();
+    }
+  }
+
+  // Properties/notifications are pull-based (no realtime push wired into the
+  // mobile app yet), so a gentle foreground poll keeps the list in sync with
+  // reviewer decisions without the user having to pull-to-refresh. The timer
+  // is cancelled while the app is backgrounded to avoid needless work.
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) _refresh();
+    });
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  // Invalidating the autoDispose providers the home screen watches forces a
+  // refetch; `.when` keeps the previous data visible during the refresh
+  // (skipLoadingOnRefresh), so the status chip just flips without a spinner.
+  void _refresh() {
+    ref.invalidate(myPropertiesProvider);
+    ref.invalidate(myNotificationsProvider);
+  }
+
+  // Push a route and refresh on return: the home screen stays mounted under
+  // pushed routes, so without this a submit (new pending parcel) or a
+  // mark-read wouldn't reflect until the next poll.
+  Future<void> _pushAndRefresh(String route) async {
+    await context.push(route);
+    if (mounted) _refresh();
+  }
 
   String _timeGreeting() {
     final hour = DateTime.now().hour;
@@ -30,6 +94,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
     final properties = ref.watch(myPropertiesProvider);
+    final unreadCount = ref.watch(myNotificationsProvider).maybeWhen(
+          data: (items) => items.where((n) => n.isUnread).length,
+          orElse: () => 0,
+        );
     final citizen = auth.citizen;
 
     return Scaffold(
@@ -76,8 +144,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           IconButton(
             tooltip: 'الإشعارات',
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => context.push(AppRoutes.notifications),
+            icon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text('$unreadCount'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            onPressed: () => _pushAndRefresh(AppRoutes.notifications),
           ),
         ],
       ),
@@ -89,16 +161,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               setState(() => _navIndex = 0);
               break;
             case 1:
-              context.push(AppRoutes.wallet);
+              _pushAndRefresh(AppRoutes.wallet);
               break;
             case 2:
-              context.push(AppRoutes.wizard);
+              _pushAndRefresh(AppRoutes.wizard);
               break;
             case 3:
-              context.push(AppRoutes.notifications);
+              _pushAndRefresh(AppRoutes.notifications);
               break;
             case 4:
-              context.push(AppRoutes.profile);
+              _pushAndRefresh(AppRoutes.profile);
               break;
           }
         },
@@ -153,7 +225,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Text('عقاراتي', style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
                 TextButton.icon(
-                  onPressed: () => context.push(AppRoutes.wizard),
+                  onPressed: () => _pushAndRefresh(AppRoutes.wizard),
                   icon: const Icon(Icons.add, size: 16),
                   label: const Text('تسجيل جديد'),
                   style: TextButton.styleFrom(
@@ -173,7 +245,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ? const _EmptyState()
                   : Column(
                       children: [
-                        for (final p in items) _PropertyCard(property: p),
+                        for (final p in items)
+                          _PropertyCard(property: p, onOpen: _pushAndRefresh),
                       ],
                     ),
               loading: () => const Padding(
@@ -417,13 +490,16 @@ class _Greeting extends StatelessWidget {
 
 class _PropertyCard extends StatelessWidget {
   final Property property;
-  const _PropertyCard({required this.property});
+  // Routes through the home screen's _pushAndRefresh so the list refreshes when the user
+  // returns from the detail screen (where they may have pulled-to-refresh).
+  final Future<void> Function(String route) onOpen;
+  const _PropertyCard({required this.property, required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: () => context.push(AppRoutes.propertyDetail(property.id)),
+      onTap: () => onOpen(AppRoutes.propertyDetail(property.id)),
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
